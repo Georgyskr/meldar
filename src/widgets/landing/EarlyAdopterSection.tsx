@@ -1,0 +1,84 @@
+import { Flex, Grid, styled, VStack } from '@styled-system/jsx'
+import { HandHelping, Mail, Users, Zap } from 'lucide-react'
+import { FoundingCounter, FoundingEmailCapture } from '@/features/founding-program'
+
+const perks = [
+	{
+		icon: HandHelping,
+		title: 'Hand-by-hand guidance',
+		desc: 'Never touched AI? Perfect. We sit with you (virtually) and walk you through everything. Not a video tutorial you watch alone. Actual help, from a real person, until it works.',
+	},
+	{
+		icon: Zap,
+		title: 'Personal time audit',
+		desc: "Tell us what your week looks like. We send you a custom report: here's where your hours go, here's what to automate first, here's how.",
+	},
+	{
+		icon: Mail,
+		title: 'Weekly automation tip',
+		desc: "Every week, one specific thing you can automate right now with free tools. Practical, not theoretical. You'll start saving time before Meldar even launches.",
+	},
+	{
+		icon: Users,
+		title: 'Shape what gets built',
+		desc: 'Vote on which features ship first. Your input decides what Meldar becomes. Early members keep this power forever.',
+	},
+]
+
+export function EarlyAdopterSection() {
+	return (
+		<styled.section paddingBlock={32} paddingInline={8} bg="surface">
+			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12} alignItems="center">
+				<VStack gap={4} textAlign="center" maxWidth="600px">
+					<styled.span textStyle="label.upper" color="primary">
+						Founding members
+					</styled.span>
+					<styled.h2 textStyle="heading.section" color="onSurface">
+						We don&apos;t just give you a tool. We get you in.
+					</styled.h2>
+					<styled.p textStyle="body.lead" color="onSurfaceVariant">
+						The biggest barrier to AI isn&apos;t the technology. It&apos;s that nobody holds your
+						hand through the door. We do. Sign up and get things nobody else will.
+					</styled.p>
+				</VStack>
+
+				<Grid columns={{ base: 1, md: 2 }} gap={6} width="100%">
+					{perks.map((perk) => (
+						<VStack
+							key={perk.title}
+							alignItems="flex-start"
+							gap={4}
+							padding={8}
+							bg="surfaceContainerLowest"
+							borderRadius="xl"
+							border="1px solid"
+							borderColor="outlineVariant/5"
+						>
+							<Flex
+								alignItems="center"
+								justifyContent="center"
+								width="40px"
+								height="40px"
+								borderRadius="lg"
+								bg="surfaceContainerHigh"
+							>
+								<perk.icon size={20} color="#623153" strokeWidth={1.5} aria-hidden="true" />
+							</Flex>
+							<styled.h3 fontFamily="heading" fontWeight="700">
+								{perk.title}
+							</styled.h3>
+							<styled.p textStyle="body.sm" color="onSurfaceVariant">
+								{perk.desc}
+							</styled.p>
+						</VStack>
+					))}
+				</Grid>
+
+				<VStack alignItems="center" gap={4} paddingBlockStart={4}>
+					<FoundingCounter />
+					<FoundingEmailCapture />
+				</VStack>
+			</VStack>
+		</styled.section>
+	)
+}

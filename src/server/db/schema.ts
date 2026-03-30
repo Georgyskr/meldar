@@ -1,0 +1,66 @@
+import {
+	boolean,
+	index,
+	integer,
+	jsonb,
+	pgTable,
+	real,
+	text,
+	timestamp,
+	uuid,
+} from 'drizzle-orm/pg-core'
+
+// ── Table 1: X-Ray Results ──────────────────────────────────────────────────
+
+export const xrayResults = pgTable(
+	'xray_results',
+	{
+		id: text('id').primaryKey(), // nanoid (12 chars, URL-safe)
+		email: text('email'),
+		quizPains: text('quiz_pains').array(),
+		apps: jsonb('apps').notNull(), // [{name, usageMinutes, category}]
+		totalHours: real('total_hours').notNull(),
+		topApp: text('top_app').notNull(),
+		pickups: integer('pickups'),
+		insight: text('insight').notNull(),
+		suggestions: jsonb('suggestions'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	() => [],
+)
+
+// ── Table 2: Audit Orders ───────────────────────────────────────────────────
+
+export const auditOrders = pgTable(
+	'audit_orders',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		email: text('email').notNull(),
+		stripeCheckoutSessionId: text('stripe_checkout_session_id').notNull().unique(),
+		stripeCustomerId: text('stripe_customer_id'),
+		product: text('product').notNull(), // 'time_audit' | 'app_build'
+		amountCents: integer('amount_cents').notNull(),
+		currency: text('currency').notNull().default('eur'),
+		xrayId: text('xray_id').references(() => xrayResults.id, { onDelete: 'set null' }),
+		status: text('status').notNull().default('paid'), // 'paid' | 'in_progress' | 'delivered'
+		deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+		notes: text('notes'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [index('idx_audit_email').on(table.email)],
+)
+
+// ── Table 3: Subscribers ────────────────────────────────────────────────────
+
+export const subscribers = pgTable(
+	'subscribers',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		email: text('email').notNull().unique(),
+		source: text('source').notNull().default('landing'), // 'landing' | 'xray' | 'quiz' | 'checkout'
+		xrayId: text('xray_id').references(() => xrayResults.id, { onDelete: 'set null' }),
+		foundingMember: boolean('founding_member').notNull().default(false),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(_table) => [],
+)
