@@ -2,15 +2,12 @@ import { styled } from '@styled-system/jsx'
 import { BUSINESS_INFO, SITE_CONFIG } from '@/shared/config'
 import { JsonLd } from '@/shared/ui'
 import {
-	DataReceiptSection,
 	EarlyAdopterSection,
 	FaqSection,
 	FinalCtaSection,
 	HeroSection,
 	HowItWorksSection,
 	ProblemSection,
-	SkillCardsSection,
-	TiersSection,
 	TrustSection,
 } from '@/widgets/landing'
 
@@ -82,11 +79,8 @@ export default function HomePage() {
 			<HeroSection />
 			<ProblemSection />
 			<HowItWorksSection />
-			<DataReceiptSection />
 			<TrustSection />
-			<SkillCardsSection />
 			<EarlyAdopterSection />
-			<TiersSection />
 			<FaqSection />
 			<FinalCtaSection />
 		</styled.main>

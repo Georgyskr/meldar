@@ -30,12 +30,7 @@ export function PainQuiz() {
 
 	if (state === 'results') {
 		const picks = painLibrary.filter((p) => selected.has(p.id))
-		const totalHours = picks.reduce((sum, p) => {
-			const num = Number.parseFloat(p.weeklyHours.replace(/[^0-9.]/g, ''))
-			return sum + (Number.isNaN(num) ? 2 : num)
-		}, 0)
-
-		return <QuizResults picks={picks} totalHours={totalHours} />
+		return <QuizResults picks={picks} />
 	}
 
 	return (
@@ -131,18 +126,19 @@ function PainTile({
 	)
 }
 
-function QuizResults({ picks, totalHours }: { picks: PainPoint[]; totalHours: number }) {
+function QuizResults({ picks }: { picks: PainPoint[] }) {
 	return (
 		<VStack gap={8} width="100%" maxWidth="breakpoint-md" marginInline="auto">
 			<VStack gap={3} textAlign="center">
 				<styled.span fontFamily="heading" fontSize="5xl" fontWeight="800" color="primary">
-					~{totalHours} hrs/week
+					{picks.length} time drains
 				</styled.span>
 				<styled.h2 fontFamily="heading" fontSize="2xl" fontWeight="700" color="onSurface">
-					That&apos;s how much time you could get back
+					You named them. Now let&apos;s measure them.
 				</styled.h2>
 				<styled.p textStyle="body.base" color="onSurfaceVariant">
-					Based on what you picked, here&apos;s what Meldar would build for you:
+					People who pick these same items typically lose 8-14 hours a week. Want YOUR actual
+					number?
 				</styled.p>
 			</VStack>
 
@@ -170,16 +166,13 @@ function QuizResults({ picks, totalHours }: { picks: PainPoint[]; totalHours: nu
 								{pick.automationHint}
 							</styled.span>
 						</VStack>
-						<styled.span textStyle="label.upper" color="primary" flexShrink={0}>
-							{pick.weeklyHours}
-						</styled.span>
 					</Flex>
 				))}
 			</VStack>
 
 			<VStack gap={4} alignItems="center" paddingBlockStart={4}>
 				<styled.p textStyle="body.base" color="onSurfaceVariant" textAlign="center">
-					Want your real numbers? Upload a Screen Time screenshot or your Google data.
+					A 30-second screenshot gives you the real picture.
 				</styled.p>
 				<styled.a
 					href="/xray"

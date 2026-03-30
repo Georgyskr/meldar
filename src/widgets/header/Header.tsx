@@ -41,7 +41,7 @@ export function Header() {
 					</styled.a>
 				</Flex>
 				<styled.a
-					href="/quiz"
+					href="/xray"
 					paddingInline={5}
 					paddingBlock={2}
 					fontSize="sm"
@@ -54,7 +54,7 @@ export function Header() {
 					_hover={{ opacity: 0.9 }}
 					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
 				>
-					Get your free time audit
+					Get your Time X-Ray
 				</styled.a>
 			</Flex>
 		</styled.header>

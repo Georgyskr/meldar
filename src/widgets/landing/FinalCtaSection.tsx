@@ -1,5 +1,5 @@
 import { Box, styled, VStack } from '@styled-system/jsx'
-import { EmailCapture } from '@/shared/ui'
+import { ArrowRight } from 'lucide-react'
 
 export function FinalCtaSection() {
 	return (
@@ -45,10 +45,29 @@ export function FinalCtaSection() {
 				</styled.h2>
 
 				<styled.p textStyle="body.lead" color="white/80" maxWidth="480px">
-					Take your data back. See your Time X-Ray. Get the hours they owe you.
+					Take your data back. See your Time X-Ray. Use it for yourself.
 				</styled.p>
 
-				<EmailCapture dark />
+				<styled.a
+					href="/xray"
+					display="inline-flex"
+					alignItems="center"
+					gap={2}
+					paddingInline={8}
+					paddingBlock={4}
+					background="white"
+					color="#623153"
+					fontFamily="heading"
+					fontWeight="700"
+					fontSize="md"
+					borderRadius="md"
+					textDecoration="none"
+					transition="opacity 0.2s ease"
+					_hover={{ opacity: 0.9 }}
+				>
+					Get your free Time X-Ray
+					<ArrowRight size={18} />
+				</styled.a>
 			</VStack>
 		</styled.section>
 	)
