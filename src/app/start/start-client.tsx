@@ -18,6 +18,7 @@ import {
 	profileDataAtom,
 	QuickProfile,
 	sessionIdAtom,
+	terminateOcr,
 	uploadStatusAtom,
 } from '@/features/discovery-flow'
 
@@ -162,6 +163,7 @@ export function StartClient() {
 			const data = await res.json()
 			setAnalysis(data.analysis)
 			setAnalyzing(false)
+			terminateOcr() // Free WASM memory — uploads are done
 			transitionTo('results')
 		} catch {
 			setError('Connection failed. Please try again.')

@@ -27,8 +27,8 @@ export const screenTimeExtractionSchema = z.object({
 	apps: z.array(appUsageSchema),
 	totalScreenTimeMinutes: z.number(),
 	pickups: z.number().nullable(),
-	firstAppOpenTime: z.string().nullable(),
-	date: z.string().nullable(),
+	firstAppOpenTime: z.string().nullable().optional(),
+	date: z.string().nullable().optional(),
 	platform: z.enum(['ios', 'android', 'unknown']),
 	confidence: z.enum(['high', 'medium', 'low']),
 })

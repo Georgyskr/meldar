@@ -4,6 +4,7 @@ import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
 import { BookOpen, Briefcase, Check, Laptop, type LucideIcon, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { painLibrary } from '@/entities/pain-points/model/data'
+import { preloadOcr } from '@/features/discovery-flow/lib/ocr-client'
 
 export type ProfileData = {
 	occupation: string
@@ -63,6 +64,11 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 	const [step, setStep] = useState(0)
 	const [transitioning, setTransitioning] = useState(false)
 	const [occupation, setOccupation] = useState('')
+
+	// Preload Tesseract WASM while user fills quiz — ready by upload phase
+	useEffect(() => {
+		preloadOcr()
+	}, [])
 	const [ageBracket, setAgeBracket] = useState('')
 	const [painPicks, setPainPicks] = useState<string[]>([])
 	const [aiComfort, setAiComfort] = useState(0)

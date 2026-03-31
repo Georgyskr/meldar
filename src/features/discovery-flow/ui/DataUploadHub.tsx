@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { trackEvent } from '@/features/analytics'
+import { extractText, waitForOcr } from '../lib/ocr-client'
 import { uploadStatusAtom } from '../model/atoms'
 import { UploadCard, type UploadStatus } from './UploadCard'
 
@@ -389,6 +390,9 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 		}
 	}
 
+	const isImagePlatform = (id: string) =>
+		INSTANT_SOURCES.some((s) => s.id === id) || id === 'adaptive'
+
 	async function handleFile(platformId: string, file: File) {
 		const prevCount = sources[platformId]?.uploadCount ?? 0
 		setSources((prev) => ({
@@ -398,9 +402,26 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 
 		try {
 			const formData = new FormData()
-			formData.append('file', file)
 			formData.append('platform', platformId)
 			formData.append('sessionId', sessionId)
+
+			// For image screenshots: try client-side OCR first (cheaper + more private)
+			let usedOcr = false
+			if (isImagePlatform(platformId)) {
+				const ocrReady = await waitForOcr()
+				if (ocrReady) {
+					const ocrText = await extractText(file)
+					if (ocrText) {
+						formData.append('ocrText', ocrText)
+						usedOcr = true
+					}
+				}
+			}
+
+			// Fallback: send raw file (for ZIPs, or if OCR failed/not ready)
+			if (!usedOcr) {
+				formData.append('file', file)
+			}
 
 			setSources((prev) => ({
 				...prev,

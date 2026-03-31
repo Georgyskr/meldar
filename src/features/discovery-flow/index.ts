@@ -1,3 +1,4 @@
+export { terminateOcr } from './lib/ocr-client'
 export {
 	type AdaptiveFollowUpItem,
 	adaptiveAnswersAtom,

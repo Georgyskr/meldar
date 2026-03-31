@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getDb } from '@/server/db/client'
 import { discoverySessions } from '@/server/db/schema'
+import { extractFromOcrText } from '@/server/discovery/extract-from-text'
 import { extractFromScreenshot } from '@/server/discovery/extract-screenshot'
 import { extractGoogleTopics, extractTopicsFromMessages } from '@/server/discovery/extract-topics'
 import { extractScreenTime } from '@/server/discovery/ocr'
@@ -53,7 +54,9 @@ function resolveAdaptiveSourceType(appName: string | null): string {
 		'cash app',
 		'paypal',
 		'nordea',
-		'op',
+		'op mobile',
+		'op business',
+		'op pivo',
 		's-pankki',
 		'bank of america',
 	]
@@ -127,12 +130,18 @@ export async function POST(request: NextRequest) {
 
 		const formData = await request.formData()
 		const file = formData.get('file') as File | null
+		const ocrText = formData.get('ocrText') as string | null
 		const platform = formData.get('platform') as string | null
 		const sessionId = formData.get('sessionId') as string | null
 
-		if (!file || !platform || !sessionId) {
+		if ((!file && !ocrText) || !platform || !sessionId) {
 			return NextResponse.json(
-				{ error: { code: 'VALIDATION_ERROR', message: 'Missing file, platform, or sessionId.' } },
+				{
+					error: {
+						code: 'VALIDATION_ERROR',
+						message: 'Missing file/ocrText, platform, or sessionId.',
+					},
+				},
 				{ status: 400 },
 			)
 		}
@@ -154,7 +163,7 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Validate file size per platform
+		// Validate file size per platform (skip if client-side OCR provided text)
 		const isImagePlatform =
 			platform === 'screentime' ||
 			platform === 'subscriptions' ||
@@ -164,61 +173,67 @@ export async function POST(request: NextRequest) {
 			platform === 'health' ||
 			platform === 'adaptive'
 
-		if (isImagePlatform) {
-			if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-				return NextResponse.json(
-					{ error: { code: 'VALIDATION_ERROR', message: 'File must be JPEG, PNG, or WebP.' } },
-					{ status: 400 },
-				)
+		if (!ocrText && file) {
+			if (isImagePlatform) {
+				if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+					return NextResponse.json(
+						{ error: { code: 'VALIDATION_ERROR', message: 'File must be JPEG, PNG, or WebP.' } },
+						{ status: 400 },
+					)
+				}
+				if (file.size > MAX_IMAGE_SIZE) {
+					return NextResponse.json(
+						{ error: { code: 'VALIDATION_ERROR', message: 'Image must be under 5 MB.' } },
+						{ status: 400 },
+					)
+				}
+			} else if (platform === 'claude') {
+				if (file.size > MAX_JSON_SIZE) {
+					return NextResponse.json(
+						{ error: { code: 'VALIDATION_ERROR', message: 'JSON file must be under 50 MB.' } },
+						{ status: 400 },
+					)
+				}
+			} else {
+				if (file.size > MAX_ZIP_SIZE) {
+					return NextResponse.json(
+						{ error: { code: 'VALIDATION_ERROR', message: 'ZIP file must be under 200 MB.' } },
+						{ status: 400 },
+					)
+				}
 			}
-			if (file.size > MAX_IMAGE_SIZE) {
-				return NextResponse.json(
-					{ error: { code: 'VALIDATION_ERROR', message: 'Image must be under 5 MB.' } },
-					{ status: 400 },
-				)
-			}
-		} else if (platform === 'claude') {
-			if (file.size > MAX_JSON_SIZE) {
-				return NextResponse.json(
-					{ error: { code: 'VALIDATION_ERROR', message: 'JSON file must be under 50 MB.' } },
-					{ status: 400 },
-				)
-			}
-		} else {
-			if (file.size > MAX_ZIP_SIZE) {
-				return NextResponse.json(
-					{ error: { code: 'VALIDATION_ERROR', message: 'ZIP file must be under 200 MB.' } },
-					{ status: 400 },
-				)
-			}
-		}
 
-		// Route to correct parser
-		// C2: MIME validation for non-screentime uploads
-		const ALLOWED_ZIP_TYPES = new Set([
-			'application/zip',
-			'application/x-zip-compressed',
-			'application/octet-stream',
-		])
-		const ALLOWED_JSON_TYPES = new Set(['application/json', 'text/plain'])
+			// C2: MIME validation for non-screentime uploads
+			const ALLOWED_ZIP_TYPES = new Set([
+				'application/zip',
+				'application/x-zip-compressed',
+				'application/octet-stream',
+			])
+			const ALLOWED_JSON_TYPES = new Set(['application/json', 'text/plain'])
 
-		if (
-			(platform === 'chatgpt' || platform === 'google') &&
-			!ALLOWED_ZIP_TYPES.has(file.type) &&
-			!file.name.endsWith('.zip')
-		) {
+			if (
+				(platform === 'chatgpt' || platform === 'google') &&
+				!ALLOWED_ZIP_TYPES.has(file.type) &&
+				!file.name.endsWith('.zip')
+			) {
+				return NextResponse.json(
+					{ error: { code: 'VALIDATION_ERROR', message: 'File must be a ZIP archive.' } },
+					{ status: 400 },
+				)
+			}
+			if (
+				platform === 'claude' &&
+				!ALLOWED_JSON_TYPES.has(file.type) &&
+				!file.name.endsWith('.json')
+			) {
+				return NextResponse.json(
+					{ error: { code: 'VALIDATION_ERROR', message: 'File must be a JSON file.' } },
+					{ status: 400 },
+				)
+			}
+		} else if (ocrText && ocrText.length > 50000) {
 			return NextResponse.json(
-				{ error: { code: 'VALIDATION_ERROR', message: 'File must be a ZIP archive.' } },
-				{ status: 400 },
-			)
-		}
-		if (
-			platform === 'claude' &&
-			!ALLOWED_JSON_TYPES.has(file.type) &&
-			!file.name.endsWith('.json')
-		) {
-			return NextResponse.json(
-				{ error: { code: 'VALIDATION_ERROR', message: 'File must be a JSON file.' } },
+				{ error: { code: 'VALIDATION_ERROR', message: 'OCR text too large.' } },
 				{ status: 400 },
 			)
 		}
@@ -254,26 +269,44 @@ export async function POST(request: NextRequest) {
 
 		switch (platformParsed.data) {
 			case 'screentime': {
-				const buffer = Buffer.from(await file.arrayBuffer())
-				const base64 = buffer.toString('base64')
-				const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
-				const result = await extractScreenTime(base64, mediaType)
-
-				if ('error' in result) {
-					return NextResponse.json(
-						{
-							error: {
-								code: 'UNPROCESSABLE',
-								message: `Could not process screenshot: ${result.error}`,
+				if (ocrText) {
+					// Client-side OCR provided — use text-only Haiku (cheap)
+					const result = await extractFromOcrText(ocrText, 'screentime')
+					if ('error' in result) {
+						return NextResponse.json(
+							{ error: { code: 'UNPROCESSABLE', message: result.error } },
+							{ status: 422 },
+						)
+					}
+					updateData = { screenTimeData: result.data }
+				} else if (file) {
+					// Fallback: Vision API (expensive)
+					const buffer = Buffer.from(await file.arrayBuffer())
+					const base64 = buffer.toString('base64')
+					const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
+					const result = await extractScreenTime(base64, mediaType)
+					if ('error' in result) {
+						return NextResponse.json(
+							{
+								error: {
+									code: 'UNPROCESSABLE',
+									message: `Could not process screenshot: ${result.error}`,
+								},
 							},
-						},
-						{ status: 422 },
-					)
+							{ status: 422 },
+						)
+					}
+					updateData = { screenTimeData: result.data }
 				}
-				updateData = { screenTimeData: result.data }
 				break
 			}
 			case 'chatgpt': {
+				if (!file) {
+					return NextResponse.json(
+						{ error: { code: 'VALIDATION_ERROR', message: 'File required for ChatGPT export.' } },
+						{ status: 400 },
+					)
+				}
 				const parsed = await parseChatGptExport(file)
 				// Extract topics via Haiku BEFORE stripping raw messages
 				const topics = await extractTopicsFromMessages(parsed._rawMessages, 'ChatGPT')
@@ -288,6 +321,12 @@ export async function POST(request: NextRequest) {
 				break
 			}
 			case 'claude': {
+				if (!file) {
+					return NextResponse.json(
+						{ error: { code: 'VALIDATION_ERROR', message: 'File required for Claude export.' } },
+						{ status: 400 },
+					)
+				}
 				const parsed = await parseClaudeExport(file)
 				const topics = await extractTopicsFromMessages(parsed._rawMessages, 'Claude')
 				const { _rawMessages, ...persistable } = parsed
@@ -301,6 +340,12 @@ export async function POST(request: NextRequest) {
 				break
 			}
 			case 'google': {
+				if (!file) {
+					return NextResponse.json(
+						{ error: { code: 'VALIDATION_ERROR', message: 'File required for Google Takeout.' } },
+						{ status: 400 },
+					)
+				}
 				const parsed = await parseGoogleTakeout(file)
 				const googleTopics = await extractGoogleTopics(
 					parsed._rawSearches,
@@ -324,10 +369,18 @@ export async function POST(request: NextRequest) {
 			case 'storage':
 			case 'calendar':
 			case 'health': {
-				const buffer = Buffer.from(await file.arrayBuffer())
-				const base64 = buffer.toString('base64')
-				const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
-				const result = await extractFromScreenshot(base64, mediaType, platformParsed.data)
+				let result: { data: unknown } | { error: string }
+
+				if (ocrText) {
+					result = await extractFromOcrText(ocrText, platformParsed.data)
+				} else if (file) {
+					const buffer = Buffer.from(await file.arrayBuffer())
+					const base64 = buffer.toString('base64')
+					const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
+					result = await extractFromScreenshot(base64, mediaType, platformParsed.data)
+				} else {
+					result = { error: 'No file or OCR text provided' }
+				}
 
 				if ('error' in result) {
 					return NextResponse.json(
@@ -347,13 +400,19 @@ export async function POST(request: NextRequest) {
 			}
 			case 'adaptive': {
 				const adaptiveAppName = formData.get('appName') as string | null
-				const buffer = Buffer.from(await file.arrayBuffer())
-				const base64 = buffer.toString('base64')
-				const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
-
-				// Determine the best extraction source type based on the app
 				const sourceType = resolveAdaptiveSourceType(adaptiveAppName)
-				const result = await extractFromScreenshot(base64, mediaType, sourceType)
+
+				let result: { data: unknown } | { error: string }
+				if (ocrText) {
+					result = await extractFromOcrText(ocrText, sourceType)
+				} else if (file) {
+					const buffer = Buffer.from(await file.arrayBuffer())
+					const base64 = buffer.toString('base64')
+					const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
+					result = await extractFromScreenshot(base64, mediaType, sourceType)
+				} else {
+					result = { error: 'No file or OCR text provided' }
+				}
 
 				if ('error' in result) {
 					return NextResponse.json(
@@ -413,7 +472,8 @@ export async function POST(request: NextRequest) {
 			message.includes('not an array') ||
 			message.includes('No conversations.json') ||
 			message.includes('valid ChatGPT') ||
-			message.includes('valid Claude')
+			message.includes('valid Claude') ||
+			message.includes('Archive too large')
 		) {
 			return NextResponse.json({ error: { code: 'UNPROCESSABLE', message } }, { status: 422 })
 		}
