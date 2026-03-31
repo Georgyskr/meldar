@@ -3,20 +3,29 @@ import {
 	type ScreenTimeExtraction,
 	screenTimeExtractionSchema,
 } from '@/entities/xray-result/model/types'
-import { SCREEN_TIME_SYSTEM_PROMPT } from './prompts'
+import { FOCUS_MODE_PROMPT_ADDENDUM, SCREEN_TIME_SYSTEM_PROMPT } from './prompts'
 
 const client = new Anthropic()
 
 type ExtractionResult = { data: ScreenTimeExtraction } | { error: string }
 
+type ExtractionOptions = {
+	focusMode?: boolean
+}
+
 export async function extractScreenTime(
 	imageBase64: string,
 	mediaType: 'image/jpeg' | 'image/png' | 'image/webp',
+	options: ExtractionOptions = {},
 ): Promise<ExtractionResult> {
+	const systemPrompt = options.focusMode
+		? `${SCREEN_TIME_SYSTEM_PROMPT}\n\n${FOCUS_MODE_PROMPT_ADDENDUM}`
+		: SCREEN_TIME_SYSTEM_PROMPT
+
 	const response = await client.messages.create({
 		model: 'claude-haiku-4-5-20251001',
 		max_tokens: 1024,
-		system: SCREEN_TIME_SYSTEM_PROMPT,
+		system: systemPrompt,
 		messages: [
 			{
 				role: 'user',

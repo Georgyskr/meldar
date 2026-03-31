@@ -16,6 +16,7 @@ export const xrayResults = pgTable(
 	'xray_results',
 	{
 		id: text('id').primaryKey(), // nanoid (12 chars, URL-safe)
+		userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
 		email: text('email'),
 		quizPains: text('quiz_pains').array(),
 		apps: jsonb('apps').notNull(), // [{name, usageMinutes, category}]
@@ -50,7 +51,28 @@ export const auditOrders = pgTable(
 	(table) => [index('idx_audit_email').on(table.email)],
 )
 
-// ── Table 3: Subscribers ────────────────────────────────────────────────────
+// ── Table 3: Users ─────────────────────────────────────────────────────────
+
+export const users = pgTable(
+	'users',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		email: text('email').notNull().unique(),
+		passwordHash: text('password_hash').notNull(),
+		name: text('name'),
+		emailVerified: boolean('email_verified').notNull().default(false),
+		verifyToken: text('verify_token'),
+		verifyTokenExpiresAt: timestamp('verify_token_expires_at', { withTimezone: true }),
+		resetToken: text('reset_token'),
+		resetTokenExpiresAt: timestamp('reset_token_expires_at', { withTimezone: true }),
+		xrayUsageCount: integer('xray_usage_count').notNull().default(0),
+		marketingConsent: boolean('marketing_consent').notNull().default(false),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [index('idx_users_email').on(table.email)],
+)
+
+// ── Table 4: Subscribers ────────────────────────────────────────────────────
 
 export const subscribers = pgTable(
 	'subscribers',

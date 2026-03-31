@@ -28,6 +28,16 @@ export const quizLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'rl:quiz' })
 	: null
 
+// 5 login attempts per 15 minutes per IP
+export const loginLimit = redis
+	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '15 m'), prefix: 'rl:login' })
+	: null
+
+// 3 password reset requests per hour per IP
+export const resetLimit = redis
+	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'rl:reset' })
+	: null
+
 export async function checkRateLimit(limiter: Ratelimit | null, identifier: string) {
 	if (!limiter) return { success: true }
 	return limiter.limit(identifier)

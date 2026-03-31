@@ -40,6 +40,7 @@ export const insightSchema = z.object({
 	comparison: z.string(),
 	suggestion: z.string(),
 	severity: z.enum(['low', 'medium', 'high']),
+	fixSteps: z.array(z.string()),
 })
 
 export type Insight = z.infer<typeof insightSchema>

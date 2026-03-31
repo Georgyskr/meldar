@@ -1,5 +1,6 @@
 import { styled } from '@styled-system/jsx'
 import type { Metadata } from 'next'
+import { FocusAmbient } from '@/features/focus-mode'
 import { PainQuiz } from '@/features/quiz'
 
 export const metadata: Metadata = {
@@ -10,7 +11,14 @@ export const metadata: Metadata = {
 
 export default function QuizPage() {
 	return (
-		<styled.main paddingBlockStart="96px" paddingBlockEnd={32} paddingInline={8} bg="surface">
+		<styled.main
+			paddingBlockStart="96px"
+			paddingBlockEnd={32}
+			paddingInline={8}
+			bg="surface"
+			position="relative"
+		>
+			<FocusAmbient />
 			<PainQuiz />
 		</styled.main>
 	)

@@ -28,6 +28,9 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
+		// Check focus mode cookie
+		const focusMode = request.cookies.get('meldar-focus')?.value === '1'
+
 		const formData = await request.formData()
 		const file = formData.get('screenshot') as File | null
 
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
 		const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
 
 		// Extract screen time data via Claude Vision
-		const result = await extractScreenTime(base64, mediaType)
+		const result = await extractScreenTime(base64, mediaType, { focusMode })
 
 		if ('error' in result) {
 			const errorKey = result.error
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
 		const extraction = result.data
 
 		// Generate rule-based insights and upsells (zero AI cost)
-		const insights = generateInsights(extraction)
+		const insights = generateInsights(extraction, { focusMode })
 		const upsells = generateUpsells(extraction)
 		const painPoints = mapToPainPoints(extraction)
 

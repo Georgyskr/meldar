@@ -13,3 +13,6 @@ RULES:
 - NEVER hallucinate app names or times — only extract what you can actually read
 - If the image is NOT a screen time screenshot, return error "not_screen_time"
 - If the image is too blurry to read, return error "unreadable"`
+
+export const FOCUS_MODE_PROMPT_ADDENDUM = `FOCUS MODE CONTEXT:
+The user has indicated they use certain apps to help with focus and self-regulation. Games like 2048, Cup Heroes, Hearthstone, Sudoku, Tetris, Cookie Clicker, and similar idle/puzzle games may serve as focus or regulation tools rather than distractions. Categorize them accurately as "gaming" but note that this context will be used downstream to reframe their usage positively.`

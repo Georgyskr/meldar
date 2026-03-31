@@ -55,6 +55,7 @@ export default async function XRayResultPage({ params }: PageProps) {
 			comparison: `${xray.topApp} is the top app`,
 			suggestion: 'Want help fixing this?',
 			severity: xray.totalHours > 6 ? ('high' as const) : ('medium' as const),
+			fixSteps: [],
 		},
 	]
 

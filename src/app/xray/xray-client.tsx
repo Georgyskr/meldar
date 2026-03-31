@@ -8,6 +8,7 @@ import { XRayCard } from '@/entities/xray-result/ui/XRayCard'
 import { XRayCardActions } from '@/entities/xray-result/ui/XRayCardActions'
 import { RevealStagger, XRayCardReveal } from '@/entities/xray-result/ui/XRayCardReveal'
 import { UpsellBlock } from '@/features/billing'
+import { FocusAmbient } from '@/features/focus-mode'
 import {
 	ContextChip,
 	type LifeStage,
@@ -56,8 +57,9 @@ export function XRayPageClient() {
 	}
 
 	return (
-		<styled.main paddingBlock={16} paddingInline={6} minHeight="100dvh">
-			<VStack gap={8} maxWidth="640px" marginInline="auto">
+		<styled.main paddingBlock={16} paddingInline={6} minHeight="100dvh" position="relative">
+			<FocusAmbient />
+			<VStack gap={8} maxWidth="640px" marginInline="auto" position="relative" zIndex={1}>
 				{/* Header — adapts based on phase */}
 				<VStack gap={3} textAlign="center">
 					<styled.h1

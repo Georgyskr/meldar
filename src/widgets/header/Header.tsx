@@ -1,4 +1,5 @@
 import { Flex, styled } from '@styled-system/jsx'
+import { FocusModeToggle } from '@/features/focus-mode'
 
 export function Header() {
 	return (
@@ -40,22 +41,25 @@ export function Header() {
 						Meldar
 					</styled.a>
 				</Flex>
-				<styled.a
-					href="/xray"
-					paddingInline={5}
-					paddingBlock={2}
-					fontSize="sm"
-					fontWeight="500"
-					background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-					color="white"
-					borderRadius="md"
-					textDecoration="none"
-					transition="opacity 0.2s ease"
-					_hover={{ opacity: 0.9 }}
-					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
-				>
-					Get your Time X-Ray
-				</styled.a>
+				<Flex alignItems="center" gap={3}>
+					<FocusModeToggle />
+					<styled.a
+						href="/xray"
+						paddingInline={5}
+						paddingBlock={2}
+						fontSize="sm"
+						fontWeight="500"
+						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
+						color="white"
+						borderRadius="md"
+						textDecoration="none"
+						transition="opacity 0.2s ease"
+						_hover={{ opacity: 0.9 }}
+						_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
+					>
+						Get your Time X-Ray
+					</styled.a>
+				</Flex>
 			</Flex>
 		</styled.header>
 	)
