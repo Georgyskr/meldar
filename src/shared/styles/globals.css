@@ -127,6 +127,75 @@
 	}
 }
 
+@keyframes bouncySelect {
+	0% {
+		transform: scale(1);
+	}
+	40% {
+		transform: scale(1.08);
+	}
+	70% {
+		transform: scale(0.97);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+@keyframes slideInFromRight {
+	from {
+		opacity: 0;
+		transform: translateX(40px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slideOutToLeft {
+	from {
+		opacity: 1;
+		transform: translateX(0);
+	}
+	to {
+		opacity: 0;
+		transform: translateX(-40px);
+	}
+}
+
+@keyframes pulseGlow {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(98, 49, 83, 0.3);
+	}
+	50% {
+		box-shadow: 0 0 0 8px rgba(98, 49, 83, 0);
+	}
+}
+
+@keyframes staggerFadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes blurReveal {
+	from {
+		filter: blur(8px);
+		opacity: 0;
+	}
+	to {
+		filter: blur(0px);
+		opacity: 1;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

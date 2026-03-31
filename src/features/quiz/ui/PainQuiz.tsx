@@ -1,6 +1,7 @@
 'use client'
 
-import { Flex, Grid, styled, VStack } from '@styled-system/jsx'
+import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { type PainPoint, painLibrary } from '@/entities/pain-points'
 
@@ -30,7 +31,6 @@ export function PainQuiz() {
 
 	if (state === 'results') {
 		const picks = painLibrary.filter((p) => selected.has(p.id))
-		// Persist selections so /xray can read them
 		if (typeof sessionStorage !== 'undefined') {
 			sessionStorage.setItem('meldar-quiz-picks', JSON.stringify(picks.map((p) => p.id)))
 		}
@@ -41,7 +41,7 @@ export function PainQuiz() {
 		<VStack gap={8} width="100%" maxWidth="breakpoint-lg" marginInline="auto">
 			<VStack gap={3} textAlign="center">
 				<styled.h2 fontFamily="heading" fontSize="3xl" fontWeight="700" color="onSurface">
-					What eats your time?
+					What would you fix first?
 				</styled.h2>
 				<styled.p textStyle="body.lead" color="onSurfaceVariant">
 					Pick 2&ndash;5 that feel like your life. No signup needed.
@@ -79,6 +79,7 @@ export function PainQuiz() {
 					cursor={selected.size >= 2 ? 'pointer' : 'not-allowed'}
 					transition="all 0.2s ease"
 					_hover={selected.size >= 2 ? { opacity: 0.9 } : {}}
+					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
 				>
 					Show me what to fix ({selected.size}/5)
 				</styled.button>
@@ -131,67 +132,144 @@ function PainTile({
 }
 
 function QuizResults({ picks }: { picks: PainPoint[] }) {
+	// Calculate estimated hours from the pain library data
+	const totalWeeklyHours = picks.reduce((sum, pick) => {
+		const match = pick.weeklyHours.match(/(\d+)/)
+		return sum + (match ? Number.parseInt(match[1], 10) : 2)
+	}, 0)
+	const yearlyHours = totalWeeklyHours * 52
+
 	return (
-		<VStack gap={8} width="100%" maxWidth="breakpoint-md" marginInline="auto">
-			<VStack gap={3} textAlign="center">
-				<styled.span fontFamily="heading" fontSize="5xl" fontWeight="800" color="primary">
-					{picks.length} time drains
+		<VStack
+			gap={10}
+			width="100%"
+			maxWidth="breakpoint-sm"
+			marginInline="auto"
+			style={{ animation: 'meldarFadeSlideUp 0.5s ease-out both' }}
+		>
+			{/* The number */}
+			<VStack gap={4} textAlign="center">
+				<styled.span
+					fontFamily="heading"
+					fontSize={{ base: '6xl', md: '7xl' }}
+					fontWeight="800"
+					color="primary"
+					letterSpacing="-0.04em"
+					lineHeight="1"
+				>
+					~{yearlyHours}
 				</styled.span>
-				<styled.h2 fontFamily="heading" fontSize="2xl" fontWeight="700" color="onSurface">
-					You named them. Now let&apos;s measure them.
-				</styled.h2>
-				<styled.p textStyle="body.base" color="onSurfaceVariant">
-					People who pick these same items typically lose 8-14 hours a week. Want YOUR actual
-					number?
+				<styled.span fontFamily="heading" fontSize="xl" fontWeight="600" color="onSurface">
+					hours a year. Gone.
+				</styled.span>
+				<styled.p textStyle="body.base" color="onSurfaceVariant" maxWidth="400px">
+					And that&apos;s just from {picks.length} things you picked. There&apos;s probably more we
+					can&apos;t figure out from a quiz alone.
 				</styled.p>
 			</VStack>
 
-			<VStack gap={4} width="100%">
-				{picks.map((pick) => (
-					<Flex
-						key={pick.id}
-						gap={4}
-						padding={6}
-						bg="surfaceContainerLowest"
-						borderRadius="xl"
-						border="1px solid"
-						borderColor="outlineVariant/10"
-						alignItems="flex-start"
-						width="100%"
-					>
-						<styled.span fontSize="2xl" flexShrink={0}>
-							{pick.emoji}
+			{/* What they picked — compact, not the main event */}
+			<Box
+				width="100%"
+				padding={5}
+				borderRadius="16px"
+				bg="surfaceContainerLowest"
+				border="1px solid"
+				borderColor="outlineVariant/10"
+			>
+				<styled.p
+					fontSize="xs"
+					fontWeight="600"
+					fontFamily="heading"
+					color="onSurfaceVariant/50"
+					textTransform="uppercase"
+					letterSpacing="0.06em"
+					marginBlockEnd={3}
+				>
+					What you picked
+				</styled.p>
+				<Flex gap={2} flexWrap="wrap">
+					{picks.map((pick) => (
+						<styled.span
+							key={pick.id}
+							display="inline-flex"
+							alignItems="center"
+							gap={1}
+							paddingInline={3}
+							paddingBlock="6px"
+							bg="primary/5"
+							borderRadius="full"
+							fontSize="sm"
+							fontWeight="500"
+							color="onSurface"
+						>
+							{pick.emoji} {pick.title}
 						</styled.span>
-						<VStack alignItems="flex-start" gap={1} flex={1}>
-							<styled.span fontFamily="heading" fontWeight="700" color="onSurface">
-								{pick.title}
-							</styled.span>
-							<styled.span textStyle="body.sm" color="onSurfaceVariant">
-								{pick.automationHint}
-							</styled.span>
-						</VStack>
-					</Flex>
-				))}
-			</VStack>
+					))}
+				</Flex>
+			</Box>
 
-			<VStack gap={4} alignItems="center" paddingBlockStart={4}>
-				<styled.p textStyle="body.base" color="onSurfaceVariant" textAlign="center">
-					A 30-second screenshot gives you the real picture.
+			{/* Two paths */}
+			<VStack gap={4} width="100%">
+				<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center" fontWeight="500">
+					What do you want to do next?
 				</styled.p>
+
+				{/* Path 1: Screen Recap — find out more with real data */}
 				<styled.a
 					href="/xray"
-					paddingInline={8}
-					paddingBlock={4}
-					background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-					color="white"
-					fontFamily="heading"
-					fontWeight="700"
-					borderRadius="md"
+					display="flex"
+					alignItems="center"
+					justifyContent="space-between"
+					width="100%"
+					padding={5}
+					borderRadius="16px"
+					background="linear-gradient(135deg, #623153 0%, #874a72 50%, #FFB876 100%)"
 					textDecoration="none"
 					transition="opacity 0.2s ease"
-					_hover={{ opacity: 0.9 }}
+					_hover={{ opacity: 0.92 }}
+					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
 				>
-					Get your real Time X-Ray
+					<VStack gap={1} alignItems="flex-start">
+						<styled.span fontFamily="heading" fontWeight="700" fontSize="md" color="white">
+							Get your real numbers
+						</styled.span>
+						<styled.span fontSize="xs" color="white/70">
+							Upload a screen time screenshot. 30 seconds. Deleted immediately.
+						</styled.span>
+					</VStack>
+					<ArrowRight size={20} color="rgba(255,255,255,0.6)" />
+				</styled.a>
+
+				{/* Path 2: Already know what to build */}
+				<styled.a
+					href="mailto:georgy@meldar.ai?subject=I%20know%20what%20I%20want%20to%20build"
+					display="flex"
+					alignItems="center"
+					justifyContent="space-between"
+					width="100%"
+					padding={5}
+					borderRadius="16px"
+					bg="surfaceContainerLowest"
+					border="1.5px solid"
+					borderColor="outlineVariant/20"
+					textDecoration="none"
+					transition="all 0.2s ease"
+					_hover={{ borderColor: 'primary/30', bg: 'surfaceContainer' }}
+					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
+				>
+					<VStack gap={1} alignItems="flex-start">
+						<Flex gap={2} alignItems="center">
+							<Sparkles size={16} color="#623153" />
+							<styled.span fontFamily="heading" fontWeight="700" fontSize="md" color="onSurface">
+								I already know what I want to build
+							</styled.span>
+						</Flex>
+						<styled.span fontSize="xs" color="onSurfaceVariant">
+							Tell us and we&apos;ll help you get started. On your own terms.
+						</styled.span>
+					</VStack>
+					<ArrowRight size={20} color="#81737a" />
 				</styled.a>
 			</VStack>
 		</VStack>

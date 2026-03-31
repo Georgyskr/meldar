@@ -86,3 +86,40 @@ export const subscribers = pgTable(
 	},
 	(_table) => [],
 )
+
+// ── Table 5: Discovery Sessions ────────────────────────────────────────────
+
+export const discoverySessions = pgTable(
+	'discovery_sessions',
+	{
+		id: text('id').primaryKey(), // nanoid(16)
+		userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+		email: text('email'),
+
+		// Phase 1
+		quizPicks: text('quiz_picks').array(),
+		aiComfort: integer('ai_comfort'), // 1-4
+		aiToolsUsed: text('ai_tools_used').array(),
+
+		// Phase 2 (processed extractions)
+		screenTimeData: jsonb('screen_time_data'),
+		chatgptData: jsonb('chatgpt_data'),
+		claudeData: jsonb('claude_data'),
+		googleData: jsonb('google_data'),
+		sourcesProvided: text('sources_provided').array().notNull().default([]),
+
+		// Phase 3 (AI output)
+		analysis: jsonb('analysis'),
+		recommendedApp: text('recommended_app'),
+		learningModules: jsonb('learning_modules'),
+
+		// Conversion
+		tierPurchased: text('tier_purchased'), // null | 'base' | 'build'
+		stripeSessionId: text('stripe_session_id'),
+		paidAt: timestamp('paid_at', { withTimezone: true }),
+
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [index('idx_discovery_user_id').on(table.userId)],
+)

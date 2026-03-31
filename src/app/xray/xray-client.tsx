@@ -46,7 +46,13 @@ export function XRayPageClient() {
 	}
 
 	return (
-		<styled.main paddingBlock={12} paddingInline={5} minHeight="100dvh" position="relative">
+		<styled.main
+			paddingBlockStart="96px"
+			paddingBlockEnd={12}
+			paddingInline={5}
+			minHeight="100dvh"
+			position="relative"
+		>
 			<FocusAmbient />
 			<VStack gap={8} maxWidth="640px" marginInline="auto" position="relative" zIndex={1}>
 				{/* ── SCAN PHASE: context + upload unified ── */}

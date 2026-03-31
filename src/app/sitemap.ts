@@ -5,10 +5,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
 	return [
 		{ url: SITE_CONFIG.url, lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
 		{
-			url: `${SITE_CONFIG.url}/quiz`,
+			url: `${SITE_CONFIG.url}/start`,
 			lastModified: new Date(),
 			changeFrequency: 'monthly',
-			priority: 0.8,
+			priority: 0.9,
+		},
+		{
+			url: `${SITE_CONFIG.url}/xray`,
+			lastModified: new Date(),
+			changeFrequency: 'monthly',
+			priority: 0.7,
 		},
 		{
 			url: `${SITE_CONFIG.url}/privacy-policy`,

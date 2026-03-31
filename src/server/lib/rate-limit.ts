@@ -33,6 +33,11 @@ export const loginLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '15 m'), prefix: 'rl:login' })
 	: null
 
+// 3 analysis requests per 10 minutes per IP (expensive AI call)
+export const analyzeLimit = redis
+	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '10 m'), prefix: 'rl:analyze' })
+	: null
+
 // 3 password reset requests per hour per IP
 export const resetLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'rl:reset' })

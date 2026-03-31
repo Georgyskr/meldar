@@ -25,6 +25,7 @@
 		"drizzle-orm": "^0.45.2",
 		"html-to-image": "^1.11.13",
 		"jsonwebtoken": "^9.0.3",
+		"jszip": "^3.10.1",
 		"lucide-react": "^0.563.0",
 		"nanoid": "^5.1.7",
 		"next": "16.1.6",
