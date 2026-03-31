@@ -11,6 +11,7 @@ const subscribeSchema = z.object({
 	email: z.string().email(),
 	founding: z.boolean().optional(),
 	xrayId: z.string().optional(),
+	source: z.string().optional(),
 })
 
 function escapeHtml(str: string) {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		const { email, founding, xrayId } = parsed.data
+		const { email, founding, xrayId, source } = parsed.data
 
 		// Save to DB
 		const db = getDb()
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
 			.insert(subscribers)
 			.values({
 				email,
-				source: xrayId ? 'xray' : founding ? 'founding' : 'landing',
+				source: source || (xrayId ? 'xray' : founding ? 'founding' : 'landing'),
 				xrayId: xrayId || null,
 				foundingMember: !!founding,
 			})

@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getStripe } from '@/server/billing/stripe'
+import { checkoutLimit, checkRateLimit } from '@/server/lib/rate-limit'
+import { SITE_CONFIG } from '@/shared/config/seo'
 import { PRODUCT_META, STRIPE_PRICES } from '@/shared/config/stripe'
 
 const checkoutSchema = z.object({
@@ -11,6 +13,20 @@ const checkoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
 	try {
+		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+		const { success } = await checkRateLimit(checkoutLimit, ip)
+		if (!success) {
+			return NextResponse.json(
+				{
+					error: {
+						code: 'RATE_LIMITED',
+						message: 'Too many requests. Try again in a few minutes.',
+					},
+				},
+				{ status: 429 },
+			)
+		}
+
 		const body = await request.json()
 		const parsed = checkoutSchema.safeParse(body)
 
@@ -22,35 +38,32 @@ export async function POST(request: NextRequest) {
 		}
 
 		const { product, email, xrayId } = parsed.data
-
-		// Starter is coming soon — capture interest, don't charge
-		if (product === 'starter') {
-			if (email) {
-				const { getDb } = await import('@/server/db/client')
-				const { subscribers } = await import('@/server/db/schema')
-				const db = getDb()
-				await db
-					.insert(subscribers)
-					.values({ email, source: 'starter_interest', foundingMember: false })
-					.onConflictDoNothing()
-			}
-			return NextResponse.json({ comingSoon: true })
-		}
-
 		const priceId = STRIPE_PRICES[product]
 		const meta = PRODUCT_META[product]
+
+		const isSubscription = meta.mode === 'subscription'
 
 		const session = await getStripe().checkout.sessions.create({
 			mode: meta.mode,
 			line_items: [{ price: priceId, quantity: 1 }],
-			success_url: `${request.nextUrl.origin}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
-			cancel_url: `${request.nextUrl.origin}`,
+			success_url: `${SITE_CONFIG.url}/thank-you?product=${product}`,
+			cancel_url: `${SITE_CONFIG.url}`,
 			customer_email: email || undefined,
 			metadata: {
 				product,
 				xrayId: xrayId || '',
 			},
 			allow_promotion_codes: true,
+			...(isSubscription && {
+				subscription_data: {
+					trial_period_days: 7,
+					trial_settings: {
+						end_behavior: {
+							missing_payment_method: 'cancel' as const,
+						},
+					},
+				},
+			}),
 		})
 
 		return NextResponse.json({ url: session.url })

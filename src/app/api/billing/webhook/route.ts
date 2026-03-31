@@ -10,6 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const PRODUCT_NAMES: Record<string, string> = {
 	timeAudit: 'Personal Time Audit',
 	appBuild: 'App Build',
+	starter: 'AI Automation Toolkit',
 }
 
 export async function POST(request: NextRequest) {
@@ -111,6 +112,24 @@ export async function POST(request: NextRequest) {
 				foundingMember: false,
 			})
 			.onConflictDoNothing()
+	}
+
+	if (event.type === 'customer.subscription.created') {
+		const subscription = event.data.object as Stripe.Subscription
+		const customerId =
+			typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+		console.log(
+			`[stripe] subscription.created: customer=${customerId}, status=${subscription.status}, trial_end=${subscription.trial_end}`,
+		)
+	}
+
+	if (event.type === 'customer.subscription.deleted') {
+		const subscription = event.data.object as Stripe.Subscription
+		const customerId =
+			typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+		console.log(
+			`[stripe] subscription.deleted: customer=${customerId}, status=${subscription.status}`,
+		)
 	}
 
 	return NextResponse.json({ received: true })

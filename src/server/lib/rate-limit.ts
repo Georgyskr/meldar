@@ -13,6 +13,10 @@ function getRedis() {
 
 const redis = getRedis()
 
+if (!redis && process.env.NODE_ENV === 'production') {
+	console.warn('[rate-limit] UPSTASH_REDIS not configured — rate limiting is DISABLED')
+}
+
 // 5 screenshot uploads per minute per IP
 export const screentimeLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'rl:screentime' })
@@ -36,6 +40,16 @@ export const loginLimit = redis
 // 3 analysis requests per 10 minutes per IP (expensive AI call)
 export const analyzeLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '10 m'), prefix: 'rl:analyze' })
+	: null
+
+// 5 adaptive follow-up requests per minute per IP (cheap Haiku call)
+export const adaptiveLimit = redis
+	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'rl:adaptive' })
+	: null
+
+// 10 checkout requests per minute per IP
+export const checkoutLimit = redis
+	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'rl:checkout' })
 	: null
 
 // 3 password reset requests per hour per IP

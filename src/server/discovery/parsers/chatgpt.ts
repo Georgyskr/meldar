@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import { extractTimePatterns } from './time-patterns'
-import type { AiChatParseResult } from './types'
+import type { AiChatRawParseResult } from './types'
 
 /**
  * Parse a ChatGPT data export ZIP.
@@ -8,8 +8,22 @@ import type { AiChatParseResult } from './types'
  * The ZIP contains `conversations.json` — an array of conversation objects.
  * Each has a `mapping` field with a tree of message nodes.
  */
-export async function parseChatGptExport(file: File): Promise<AiChatParseResult> {
+const MAX_DECOMPRESSED_SIZE = 500 * 1024 * 1024 // 500 MB
+
+export async function parseChatGptExport(file: File): Promise<AiChatRawParseResult> {
 	const archive = await JSZip.loadAsync(await file.arrayBuffer())
+
+	// Zip bomb protection: check total uncompressed size before extracting
+	let totalSize = 0
+	for (const entry of Object.values(archive.files)) {
+		totalSize +=
+			(entry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize ?? 0
+	}
+	if (totalSize > MAX_DECOMPRESSED_SIZE) {
+		throw new Error(
+			'Archive too large when decompressed. Please select fewer data categories in your export.',
+		)
+	}
 
 	const convFile = archive.file('conversations.json')
 	if (!convFile) {

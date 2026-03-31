@@ -97,6 +97,8 @@ export const discoverySessions = pgTable(
 		email: text('email'),
 
 		// Phase 1
+		occupation: text('occupation'),
+		ageBracket: text('age_bracket'),
 		quizPicks: text('quiz_picks').array(),
 		aiComfort: integer('ai_comfort'), // 1-4
 		aiToolsUsed: text('ai_tools_used').array(),
@@ -106,6 +108,12 @@ export const discoverySessions = pgTable(
 		chatgptData: jsonb('chatgpt_data'),
 		claudeData: jsonb('claude_data'),
 		googleData: jsonb('google_data'),
+		subscriptionsData: jsonb('subscriptions_data'),
+		batteryData: jsonb('battery_data'),
+		storageData: jsonb('storage_data'),
+		calendarData: jsonb('calendar_data'),
+		healthData: jsonb('health_data'),
+		adaptiveData: jsonb('adaptive_data'),
 		sourcesProvided: text('sources_provided').array().notNull().default([]),
 
 		// Phase 3 (AI output)

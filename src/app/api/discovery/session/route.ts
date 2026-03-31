@@ -6,6 +6,8 @@ import { discoverySessions } from '@/server/db/schema'
 import { checkRateLimit, quizLimit } from '@/server/lib/rate-limit'
 
 const createSessionSchema = z.object({
+	occupation: z.string().min(1).max(50),
+	ageBracket: z.string().min(1).max(10),
 	quizPicks: z.array(z.string()).min(1).max(12),
 	aiComfort: z.number().int().min(1).max(4),
 	aiToolsUsed: z.array(z.string()).max(10),
@@ -31,12 +33,14 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		const { quizPicks, aiComfort, aiToolsUsed } = parsed.data
+		const { occupation, ageBracket, quizPicks, aiComfort, aiToolsUsed } = parsed.data
 		const id = nanoid(16)
 
 		const db = getDb()
 		await db.insert(discoverySessions).values({
 			id,
+			occupation,
+			ageBracket,
 			quizPicks,
 			aiComfort,
 			aiToolsUsed,

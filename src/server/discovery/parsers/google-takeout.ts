@@ -1,5 +1,5 @@
 import JSZip from 'jszip'
-import type { GoogleParseResult } from './types'
+import type { GoogleRawParseResult } from './types'
 
 /**
  * Parse a Google Takeout ZIP export.
@@ -8,7 +8,7 @@ import type { GoogleParseResult } from './types'
  * `Takeout/My Activity/Search/` and `Takeout/My Activity/YouTube/`.
  * Path varies by locale, so we match by folder name patterns.
  */
-export async function parseGoogleTakeout(file: File): Promise<GoogleParseResult> {
+export async function parseGoogleTakeout(file: File): Promise<GoogleRawParseResult> {
 	const MAX_FILE_SIZE = 200 * 1024 * 1024 // 200 MB
 	if (file.size > MAX_FILE_SIZE) {
 		throw new Error(
@@ -18,6 +18,19 @@ export async function parseGoogleTakeout(file: File): Promise<GoogleParseResult>
 
 	const archive = await JSZip.loadAsync(await file.arrayBuffer())
 
+	// Zip bomb protection: check total uncompressed size before extracting
+	const MAX_DECOMPRESSED_SIZE = 500 * 1024 * 1024 // 500 MB
+	let totalSize = 0
+	for (const entry of Object.values(archive.files)) {
+		totalSize +=
+			(entry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize ?? 0
+	}
+	if (totalSize > MAX_DECOMPRESSED_SIZE) {
+		throw new Error(
+			'Archive too large when decompressed. Please select fewer data categories in your export.',
+		)
+	}
+
 	const searches: string[] = []
 	const youtubeWatches: string[] = []
 
@@ -26,7 +39,13 @@ export async function parseGoogleTakeout(file: File): Promise<GoogleParseResult>
 
 		// Search history
 		if (path.includes('My Activity') && path.includes('Search') && path.endsWith('.json')) {
-			const raw: unknown = JSON.parse(await entry.async('string'))
+			let raw: unknown
+			try {
+				raw = JSON.parse(await entry.async('string'))
+			} catch {
+				console.warn(`Skipping malformed JSON in Takeout archive: ${path}`)
+				continue
+			}
 			if (!Array.isArray(raw)) continue
 
 			for (const item of raw) {
@@ -39,7 +58,13 @@ export async function parseGoogleTakeout(file: File): Promise<GoogleParseResult>
 
 		// YouTube watch history
 		if (path.includes('My Activity') && path.includes('YouTube') && path.endsWith('.json')) {
-			const raw: unknown = JSON.parse(await entry.async('string'))
+			let raw: unknown
+			try {
+				raw = JSON.parse(await entry.async('string'))
+			} catch {
+				console.warn(`Skipping malformed JSON in Takeout archive: ${path}`)
+				continue
+			}
 			if (!Array.isArray(raw)) continue
 
 			for (const item of raw) {

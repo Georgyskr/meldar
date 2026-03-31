@@ -7,27 +7,37 @@ export const metadata: Metadata = {
 	robots: { index: false },
 }
 
-const PRODUCTS: Record<string, { title: string; message: string }> = {
+type ProductConfig = {
+	title: string
+	message: string
+	returnLink?: { href: string; label: string }
+}
+
+const PRODUCTS: Record<string, ProductConfig> = {
 	timeAudit: {
-		title: 'Your Time Audit is on its way',
+		title: 'Base — Full Analysis unlocked',
 		message:
 			"I'll review your data and send your personalized report within 72 hours. You'll hear from me at the email you used at checkout.",
+		returnLink: { href: '/start', label: 'Return to your analysis' },
 	},
 	appBuild: {
-		title: 'Your App Build is booked',
+		title: 'Build — Handcrafted Repo is booked',
 		message: "I'll reach out within 24 hours to kick off your project. Keep an eye on your inbox.",
+		returnLink: { href: '/start', label: 'Return to your analysis' },
 	},
 	starter: {
-		title: "You're in",
+		title: 'Starter — Free Trial has started',
 		message:
-			"Your AI Automation Toolkit is ready. I'll send setup instructions to your email shortly.",
+			"You have 7 days of full access. Upload your ChatGPT, Claude, and Google data to get the deepest analysis. We'll email you before the trial ends.",
+		returnLink: { href: '/start', label: 'Return to your analysis' },
 	},
 }
 
-const DEFAULT_PRODUCT = {
+const DEFAULT_PRODUCT: ProductConfig = {
 	title: 'Payment received',
 	message:
 		"I'll follow up at the email you used at checkout. You should hear from me within 72 hours.",
+	returnLink: { href: '/start', label: 'Return to your analysis' },
 }
 
 type PageProps = {
@@ -57,6 +67,24 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
 				<styled.p textStyle="body.sm" color="onSurfaceVariant/60">
 					Questions? Email georgy@meldar.ai — I reply to everything.
 				</styled.p>
+				{config.returnLink && (
+					<styled.a
+						href={config.returnLink.href}
+						paddingInline={6}
+						paddingBlock={3}
+						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
+						borderRadius="md"
+						fontSize="sm"
+						fontWeight="700"
+						fontFamily="heading"
+						color="white"
+						textDecoration="none"
+						_hover={{ opacity: 0.9 }}
+						_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
+					>
+						{config.returnLink.label}
+					</styled.a>
+				)}
 				<styled.a
 					href="/"
 					paddingInline={6}

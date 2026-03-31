@@ -24,6 +24,7 @@
 		"bcryptjs": "^3.0.3",
 		"drizzle-orm": "^0.45.2",
 		"html-to-image": "^1.11.13",
+		"jotai": "^2.19.0",
 		"jsonwebtoken": "^9.0.3",
 		"jszip": "^3.10.1",
 		"lucide-react": "^0.563.0",

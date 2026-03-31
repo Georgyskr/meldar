@@ -1,8 +1,10 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getDb } from '@/server/db/client'
 import { discoverySessions } from '@/server/db/schema'
+import { extractFromScreenshot } from '@/server/discovery/extract-screenshot'
+import { extractGoogleTopics, extractTopicsFromMessages } from '@/server/discovery/extract-topics'
 import { extractScreenTime } from '@/server/discovery/ocr'
 import {
 	parseChatGptExport,
@@ -11,12 +13,101 @@ import {
 } from '@/server/discovery/parsers'
 import { checkRateLimit, screentimeLimit } from '@/server/lib/rate-limit'
 
-const platformSchema = z.enum(['screentime', 'chatgpt', 'claude', 'google'])
+const platformSchema = z.enum([
+	'screentime',
+	'chatgpt',
+	'claude',
+	'google',
+	'subscriptions',
+	'battery',
+	'storage',
+	'calendar',
+	'health',
+	'adaptive',
+])
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
 const MAX_ZIP_SIZE = 200 * 1024 * 1024 // 200 MB
 const MAX_JSON_SIZE = 50 * 1024 * 1024 // 50 MB
+
+/**
+ * Map an adaptive screenshot's app name to the best extraction source type.
+ * Falls back to 'subscriptions' as a generic extractor for unknown apps.
+ */
+function resolveAdaptiveSourceType(appName: string | null): string {
+	if (!appName) return 'subscriptions'
+	const lower = appName.toLowerCase()
+
+	// Trading apps — portfolio/watchlist screenshots
+	const tradingApps = ['robinhood', 'etoro', 'trading 212', 'webull', 'interactive brokers']
+	if (tradingApps.some((a) => lower.includes(a))) return 'subscriptions'
+
+	// Banking apps — transaction screenshots
+	const bankingApps = [
+		'revolut',
+		'chase',
+		'n26',
+		'wise',
+		'venmo',
+		'cash app',
+		'paypal',
+		'nordea',
+		'op',
+		's-pankki',
+		'bank of america',
+	]
+	if (bankingApps.some((a) => lower.includes(a))) return 'subscriptions'
+
+	// Fitness / health apps
+	if (
+		lower.includes('strava') ||
+		lower.includes('nike') ||
+		lower.includes('strong') ||
+		lower.includes('hevy') ||
+		lower.includes('fitbit') ||
+		lower.includes('myfitnesspal') ||
+		lower.includes('whoop')
+	)
+		return 'health'
+
+	// Food delivery apps — order history screenshots
+	const foodApps = [
+		'ubereats',
+		'uber eats',
+		'wolt',
+		'doordash',
+		'bolt food',
+		'deliveroo',
+		'grubhub',
+	]
+	if (foodApps.some((a) => lower.includes(a))) return 'subscriptions'
+
+	// Music/streaming apps
+	if (
+		lower.includes('spotify') ||
+		lower.includes('apple music') ||
+		lower.includes('youtube music') ||
+		lower.includes('tidal') ||
+		lower.includes('soundcloud')
+	)
+		return 'subscriptions'
+
+	// Calendar apps
+	if (
+		lower.includes('calendar') ||
+		lower.includes('google calendar') ||
+		lower.includes('outlook') ||
+		lower.includes('fantastical')
+	)
+		return 'calendar'
+
+	// Storage-heavy apps
+	if (lower.includes('photos') || lower.includes('files') || lower.includes('dropbox'))
+		return 'storage'
+
+	return 'subscriptions'
+}
 
 export async function POST(request: NextRequest) {
 	try {
@@ -54,8 +145,26 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
+		// Validate sessionId format BEFORE any DB query
+		const sessionIdParsed = z.string().min(1).max(32).safeParse(sessionId)
+		if (!sessionIdParsed.success) {
+			return NextResponse.json(
+				{ error: { code: 'VALIDATION_ERROR', message: 'Invalid session ID.' } },
+				{ status: 400 },
+			)
+		}
+
 		// Validate file size per platform
-		if (platform === 'screentime') {
+		const isImagePlatform =
+			platform === 'screentime' ||
+			platform === 'subscriptions' ||
+			platform === 'battery' ||
+			platform === 'storage' ||
+			platform === 'calendar' ||
+			platform === 'health' ||
+			platform === 'adaptive'
+
+		if (isImagePlatform) {
 			if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
 				return NextResponse.json(
 					{ error: { code: 'VALIDATION_ERROR', message: 'File must be JPEG, PNG, or WebP.' } },
@@ -82,21 +191,6 @@ export async function POST(request: NextRequest) {
 					{ status: 400 },
 				)
 			}
-		}
-
-		// Verify session exists
-		const db = getDb()
-		const [session] = await db
-			.select({ id: discoverySessions.id })
-			.from(discoverySessions)
-			.where(eq(discoverySessions.id, sessionId))
-			.limit(1)
-
-		if (!session) {
-			return NextResponse.json(
-				{ error: { code: 'NOT_FOUND', message: 'Session not found.' } },
-				{ status: 404 },
-			)
 		}
 
 		// Route to correct parser
@@ -129,13 +223,31 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// H1: Validate sessionId format
-		const sessionIdParsed = z.string().min(1).max(32).safeParse(sessionId)
-		if (!sessionIdParsed.success) {
+		// Verify session exists and check sourcesProvided for idempotency
+		const db = getDb()
+		const [session] = await db
+			.select({
+				id: discoverySessions.id,
+				sourcesProvided: discoverySessions.sourcesProvided,
+			})
+			.from(discoverySessions)
+			.where(eq(discoverySessions.id, sessionId))
+			.limit(1)
+
+		if (!session) {
 			return NextResponse.json(
-				{ error: { code: 'VALIDATION_ERROR', message: 'Invalid session ID.' } },
-				{ status: 400 },
+				{ error: { code: 'NOT_FOUND', message: 'Session not found.' } },
+				{ status: 404 },
 			)
+		}
+
+		// B9: Skip re-extraction if this source was already uploaded (idempotent).
+		// Adaptive is intentionally multi-upload, so exclude it from this guard.
+		if (
+			platformParsed.data !== 'adaptive' &&
+			session.sourcesProvided?.includes(platformParsed.data)
+		) {
+			return NextResponse.json({ success: true, platform: platformParsed.data, cached: true })
 		}
 
 		let updateData: Record<string, unknown> = {}
@@ -163,21 +275,112 @@ export async function POST(request: NextRequest) {
 			}
 			case 'chatgpt': {
 				const parsed = await parseChatGptExport(file)
+				// Extract topics via Haiku BEFORE stripping raw messages
+				const topics = await extractTopicsFromMessages(parsed._rawMessages, 'ChatGPT')
 				const { _rawMessages, ...persistable } = parsed
-				updateData = { chatgptData: persistable }
+				updateData = {
+					chatgptData: {
+						...persistable,
+						topTopics: topics.topTopics,
+						repeatedQuestions: topics.repeatedQuestions,
+					},
+				}
 				break
 			}
 			case 'claude': {
 				const parsed = await parseClaudeExport(file)
+				const topics = await extractTopicsFromMessages(parsed._rawMessages, 'Claude')
 				const { _rawMessages, ...persistable } = parsed
-				updateData = { claudeData: persistable }
+				updateData = {
+					claudeData: {
+						...persistable,
+						topTopics: topics.topTopics,
+						repeatedQuestions: topics.repeatedQuestions,
+					},
+				}
 				break
 			}
 			case 'google': {
 				const parsed = await parseGoogleTakeout(file)
+				const googleTopics = await extractGoogleTopics(
+					parsed._rawSearches,
+					parsed._rawYoutubeWatches,
+				)
 				const { _rawSearches, _rawYoutubeWatches, ...persistable } = parsed
-				updateData = { googleData: persistable }
+				updateData = {
+					googleData: {
+						...persistable,
+						searchTopics: googleTopics.searchTopics,
+						youtubeTopCategories:
+							googleTopics.youtubeTopCategories.length > 0
+								? googleTopics.youtubeTopCategories
+								: null,
+					},
+				}
 				break
+			}
+			case 'subscriptions':
+			case 'battery':
+			case 'storage':
+			case 'calendar':
+			case 'health': {
+				const buffer = Buffer.from(await file.arrayBuffer())
+				const base64 = buffer.toString('base64')
+				const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
+				const result = await extractFromScreenshot(base64, mediaType, platformParsed.data)
+
+				if ('error' in result) {
+					return NextResponse.json(
+						{
+							error: {
+								code: 'UNPROCESSABLE',
+								message: `Could not process screenshot: ${result.error}`,
+							},
+						},
+						{ status: 422 },
+					)
+				}
+
+				const dataKey = `${platformParsed.data}Data` as const
+				updateData = { [dataKey]: result.data }
+				break
+			}
+			case 'adaptive': {
+				const adaptiveAppName = formData.get('appName') as string | null
+				const buffer = Buffer.from(await file.arrayBuffer())
+				const base64 = buffer.toString('base64')
+				const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
+
+				// Determine the best extraction source type based on the app
+				const sourceType = resolveAdaptiveSourceType(adaptiveAppName)
+				const result = await extractFromScreenshot(base64, mediaType, sourceType)
+
+				if ('error' in result) {
+					return NextResponse.json(
+						{
+							error: {
+								code: 'UNPROCESSABLE',
+								message: `Could not process screenshot: ${result.error}`,
+							},
+						},
+						{ status: 422 },
+					)
+				}
+
+				// B1: Atomic JSONB append to avoid race condition on concurrent uploads
+				const newEntry = JSON.stringify([
+					{ appName: adaptiveAppName, sourceType, extraction: result.data },
+				])
+				await db
+					.update(discoverySessions)
+					.set({
+						adaptiveData: sql`COALESCE(${discoverySessions.adaptiveData}, '[]'::jsonb) || ${newEntry}::jsonb`,
+						sourcesProvided: sql`array_append(${discoverySessions.sourcesProvided}, ${platformParsed.data})`,
+						updatedAt: new Date(),
+					})
+					.where(eq(discoverySessions.id, sessionId))
+
+				return NextResponse.json({ success: true, platform: platformParsed.data })
 			}
 		}
 
@@ -189,21 +392,12 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Update session with parsed data and add platform to sourcesProvided
-		const [current] = await db
-			.select({ sourcesProvided: discoverySessions.sourcesProvided })
-			.from(discoverySessions)
-			.where(eq(discoverySessions.id, sessionId))
-			.limit(1)
-
-		const sources = new Set(current?.sourcesProvided ?? [])
-		sources.add(platformParsed.data)
-
+		// Update session with parsed data and atomically append platform to sourcesProvided
 		await db
 			.update(discoverySessions)
 			.set({
 				...updateData,
-				sourcesProvided: [...sources],
+				sourcesProvided: sql`array_append(${discoverySessions.sourcesProvided}, ${platformParsed.data})`,
 				updatedAt: new Date(),
 			})
 			.where(eq(discoverySessions.id, sessionId))

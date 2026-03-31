@@ -1,11 +1,13 @@
 'use client'
 
 import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
-import { Check } from 'lucide-react'
-import { useState } from 'react'
+import { BookOpen, Briefcase, Check, Laptop, type LucideIcon, Search } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { painLibrary } from '@/entities/pain-points/model/data'
 
 export type ProfileData = {
+	occupation: string
+	ageBracket: string
 	painPicks: string[]
 	aiComfort: number
 	aiToolsUsed: string[]
@@ -14,6 +16,20 @@ export type ProfileData = {
 type QuickProfileProps = {
 	onComplete: (data: ProfileData) => void
 }
+
+const OCCUPATION_OPTIONS: { id: string; label: string; subtitle: string; icon: LucideIcon }[] = [
+	{ id: 'student', label: 'Student', subtitle: 'Classes, exams, side projects', icon: BookOpen },
+	{ id: 'working', label: 'Working', subtitle: '9-to-5, meetings, commute', icon: Briefcase },
+	{ id: 'freelance', label: 'Freelance', subtitle: 'Clients, invoices, hustle', icon: Laptop },
+	{
+		id: 'job-hunting',
+		label: 'Job hunting',
+		subtitle: 'Applications, interviews, waiting',
+		icon: Search,
+	},
+]
+
+const AGE_BRACKET_OPTIONS = ['16-20', '21-25', '26-30', '30+'] as const
 
 const FEATURED_PAIN_IDS = [
 	'email-chaos',
@@ -46,18 +62,45 @@ const MIN_PAIN_PICKS = 2
 export function QuickProfile({ onComplete }: QuickProfileProps) {
 	const [step, setStep] = useState(0)
 	const [transitioning, setTransitioning] = useState(false)
+	const [occupation, setOccupation] = useState('')
+	const [ageBracket, setAgeBracket] = useState('')
 	const [painPicks, setPainPicks] = useState<string[]>([])
 	const [aiComfort, setAiComfort] = useState(0)
 	const [aiToolsUsed, setAiToolsUsed] = useState<string[]>([])
 
+	const stepContainerRef = useRef<HTMLDivElement>(null)
+	const [stepFocusTrigger, setStepFocusTrigger] = useState(0)
+
 	const featuredPains = painLibrary.filter((p) => FEATURED_PAIN_IDS.includes(p.id))
+
+	/** Focus the step heading after each step transition for a11y */
+	// biome-ignore lint/correctness/useExhaustiveDependencies: stepFocusTrigger is an intentional re-run trigger
+	useEffect(() => {
+		if (stepContainerRef.current) {
+			const heading = stepContainerRef.current.querySelector('h2, [tabindex]')
+			if (heading instanceof HTMLElement) {
+				heading.focus({ preventScroll: true })
+			}
+		}
+	}, [stepFocusTrigger])
 
 	function advanceStep(nextStep?: number) {
 		setTransitioning(true)
 		setTimeout(() => {
-			setStep(nextStep ?? step + 1)
+			setStep((s) => nextStep ?? s + 1)
 			setTransitioning(false)
+			setStepFocusTrigger((n) => n + 1)
 		}, 250)
+	}
+
+	function selectOccupation(id: string) {
+		setOccupation(id)
+		setTimeout(() => advanceStep(1), 300)
+	}
+
+	function selectAgeBracket(value: string) {
+		setAgeBracket(value)
+		setTimeout(() => advanceStep(2), 300)
 	}
 
 	function togglePain(id: string) {
@@ -70,7 +113,7 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 
 	function selectComfort(value: number) {
 		setAiComfort(value)
-		setTimeout(() => advanceStep(2), 300)
+		setTimeout(() => advanceStep(4), 300)
 	}
 
 	function toggleTool(id: string) {
@@ -83,16 +126,16 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 	}
 
 	function handleDone() {
-		onComplete({ painPicks, aiComfort, aiToolsUsed })
+		onComplete({ occupation, ageBracket, painPicks, aiComfort, aiToolsUsed })
 	}
 
 	return (
 		<VStack gap={6} width="100%" maxWidth="560px" marginInline="auto">
 			{/* Dot indicators */}
 			<Flex gap={2} justifyContent="center">
-				{[0, 1, 2].map((i) => (
+				{[0, 1, 2, 3, 4].map((i) => (
 					<Box
-						key={i}
+						key={`step-${i}`}
 						width={step === i ? '24px' : '8px'}
 						height="8px"
 						borderRadius="full"
@@ -104,6 +147,7 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 
 			{/* Step container with slide animation */}
 			<Box
+				ref={stepContainerRef}
 				width="100%"
 				style={{
 					animation: transitioning
@@ -111,11 +155,155 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 						: 'slideInFromRight 0.35s ease-out both',
 				}}
 			>
-				{/* Step 1: Pain tiles */}
+				{/* Step 0: Occupation */}
 				{step === 0 && (
 					<VStack gap={5} width="100%">
 						<VStack gap={2} textAlign="center">
-							<styled.h2 textStyle="heading.section" color="onSurface">
+							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
+								What do you do?
+							</styled.h2>
+							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
+								Just the basics. No LinkedIn required.
+							</styled.p>
+						</VStack>
+
+						<VStack gap={3} width="100%">
+							{OCCUPATION_OPTIONS.map((opt, i) => {
+								const isSelected = occupation === opt.id
+								const IconComponent = opt.icon
+								return (
+									<styled.button
+										key={opt.id}
+										onClick={() => selectOccupation(opt.id)}
+										display="flex"
+										alignItems="center"
+										gap={4}
+										width="100%"
+										padding={5}
+										borderRadius="16px"
+										border="2px solid"
+										borderColor={isSelected ? 'primary' : 'outlineVariant/15'}
+										bg={isSelected ? 'primary/6' : 'surfaceContainerLowest'}
+										cursor="pointer"
+										transition="border-color 0.2s ease, background 0.2s ease"
+										textAlign="left"
+										_hover={{
+											borderColor: isSelected ? 'primary' : 'outlineVariant/40',
+											bg: isSelected ? 'primary/6' : 'surfaceContainer',
+										}}
+										_focusVisible={{
+											outline: '2px solid',
+											outlineColor: 'primary',
+											outlineOffset: '2px',
+										}}
+										aria-pressed={isSelected}
+										style={{
+											animation: isSelected
+												? 'bouncySelect 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+												: `staggerFadeIn 0.4s ease-out ${i * 0.08}s both`,
+										}}
+									>
+										<Box
+											width="44px"
+											height="44px"
+											borderRadius="12px"
+											bg={isSelected ? 'primary/10' : 'surfaceContainer'}
+											display="flex"
+											alignItems="center"
+											justifyContent="center"
+											flexShrink={0}
+										>
+											<IconComponent
+												size={22}
+												color={isSelected ? '#623153' : '#81737a'}
+												strokeWidth={1.5}
+											/>
+										</Box>
+										<VStack gap={0.5} alignItems="flex-start">
+											<styled.span
+												fontFamily="heading"
+												fontWeight="600"
+												fontSize="md"
+												color="onSurface"
+											>
+												{opt.label}
+											</styled.span>
+											<styled.span fontSize="xs" color="onSurfaceVariant/60" lineHeight="1.4">
+												{opt.subtitle}
+											</styled.span>
+										</VStack>
+									</styled.button>
+								)
+							})}
+						</VStack>
+					</VStack>
+				)}
+
+				{/* Step 1: Age bracket */}
+				{step === 1 && (
+					<VStack gap={5} width="100%">
+						<VStack gap={2} textAlign="center">
+							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
+								How old are you?
+							</styled.h2>
+							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
+								Helps us pick the right examples.
+							</styled.p>
+						</VStack>
+
+						<Flex gap={3} flexWrap="wrap" justifyContent="center" width="100%">
+							{AGE_BRACKET_OPTIONS.map((age, i) => {
+								const isSelected = ageBracket === age
+								return (
+									<styled.button
+										key={age}
+										onClick={() => selectAgeBracket(age)}
+										display="flex"
+										alignItems="center"
+										justifyContent="center"
+										paddingInline={6}
+										paddingBlock={3.5}
+										borderRadius="full"
+										border="2px solid"
+										borderColor={isSelected ? 'primary' : 'outlineVariant/20'}
+										bg={isSelected ? 'primary/6' : 'surfaceContainerLowest'}
+										color={isSelected ? 'primary' : 'onSurfaceVariant'}
+										fontFamily="heading"
+										fontWeight="600"
+										fontSize="md"
+										cursor="pointer"
+										minWidth="80px"
+										transition="border-color 0.2s ease, background 0.2s ease, transform 0.2s ease"
+										_hover={{
+											borderColor: isSelected ? 'primary' : 'outlineVariant/50',
+											bg: isSelected ? 'primary/6' : 'surfaceContainer',
+											transform: 'scale(1.05)',
+										}}
+										_focusVisible={{
+											outline: '2px solid',
+											outlineColor: 'primary',
+											outlineOffset: '2px',
+										}}
+										aria-pressed={isSelected}
+										style={{
+											animation: isSelected
+												? 'bouncySelect 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
+												: `staggerFadeIn 0.3s ease-out ${i * 0.05}s both`,
+										}}
+									>
+										{age}
+									</styled.button>
+								)
+							})}
+						</Flex>
+					</VStack>
+				)}
+
+				{/* Step 2: Pain tiles */}
+				{step === 2 && (
+					<VStack gap={5} width="100%">
+						<VStack gap={2} textAlign="center">
+							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
 								What bugs you most?
 							</styled.h2>
 							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
@@ -208,7 +396,7 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 								{painPicks.length} of {MAX_PAIN_PICKS} picked
 							</styled.span>
 							<styled.button
-								onClick={() => advanceStep(1)}
+								onClick={() => advanceStep(3)}
 								disabled={painPicks.length < MIN_PAIN_PICKS}
 								paddingInline={6}
 								paddingBlock={3}
@@ -240,11 +428,11 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 					</VStack>
 				)}
 
-				{/* Step 2: AI Comfort */}
-				{step === 1 && (
+				{/* Step 3: AI Comfort */}
+				{step === 3 && (
 					<VStack gap={5} width="100%">
 						<VStack gap={2} textAlign="center">
-							<styled.h2 textStyle="heading.section" color="onSurface">
+							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
 								How AI-savvy are you?
 							</styled.h2>
 							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
@@ -303,11 +491,11 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 					</VStack>
 				)}
 
-				{/* Step 3: AI Tools */}
-				{step === 2 && (
+				{/* Step 4: AI Tools */}
+				{step === 4 && (
 					<VStack gap={5} width="100%">
 						<VStack gap={2} textAlign="center">
-							<styled.h2 textStyle="heading.section" color="onSurface">
+							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
 								Which AI tools have you used?
 							</styled.h2>
 							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">

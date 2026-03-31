@@ -1,5 +1,5 @@
 import { extractTimePatterns } from './time-patterns'
-import type { AiChatParseResult } from './types'
+import type { AiChatRawParseResult } from './types'
 
 /**
  * Parse a Claude data export JSON.
@@ -7,7 +7,7 @@ import type { AiChatParseResult } from './types'
  * Claude exports are JSON with an array of conversations, each containing
  * `chat_messages` with sender/role and text/content fields.
  */
-export async function parseClaudeExport(file: File): Promise<AiChatParseResult> {
+export async function parseClaudeExport(file: File): Promise<AiChatRawParseResult> {
 	const text = await file.text()
 	let raw: unknown
 	try {

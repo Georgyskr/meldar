@@ -2,10 +2,10 @@ export { parseChatGptExport } from './chatgpt'
 export { parseClaudeExport } from './claude-export'
 export { parseGoogleTakeout } from './google-takeout'
 export type {
-	AiChatParseResult,
 	AiChatPattern,
+	AiChatRawParseResult,
 	DiscoveryAnalysis,
-	GoogleParseResult,
 	GooglePattern,
+	GoogleRawParseResult,
 } from './types'
 export { aiChatPatternSchema, discoveryAnalysisSchema, googlePatternSchema } from './types'

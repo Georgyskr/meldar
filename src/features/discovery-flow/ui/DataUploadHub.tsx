@@ -1,16 +1,32 @@
 'use client'
 
 import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
-import { Brain, Camera, MessageSquare, Search } from 'lucide-react'
-import { useState } from 'react'
-import { UploadCard } from './UploadCard'
+import { useAtom } from 'jotai'
+import type { LucideIcon } from 'lucide-react'
+import {
+	Battery,
+	Brain,
+	CalendarDays,
+	Camera,
+	HardDrive,
+	Heart,
+	Lock,
+	MessageSquare,
+	Search,
+	Wallet,
+} from 'lucide-react'
+import { type ReactNode, useState } from 'react'
+import { trackEvent } from '@/features/analytics'
+import { uploadStatusAtom } from '../model/atoms'
+import { UploadCard, type UploadStatus } from './UploadCard'
 
-type UploadStatus = 'idle' | 'uploading' | 'processing' | 'done' | 'error'
-
-type SourceState = {
-	status: UploadStatus
-	progress?: number
-	errorMessage?: string
+type SourceConfig = {
+	id: string
+	title: string
+	description: string
+	timeEstimate: string
+	accept: string
+	icon: LucideIcon
 }
 
 type DataUploadHubProps = {
@@ -19,9 +35,9 @@ type DataUploadHubProps = {
 	onSkip: () => void
 }
 
-const PLATFORMS = [
+const INSTANT_SOURCES: SourceConfig[] = [
 	{
-		id: 'screentime' as const,
+		id: 'screentime',
 		title: 'Screen Time',
 		description: 'Screenshot from your phone settings',
 		timeEstimate: '30 sec',
@@ -29,32 +45,75 @@ const PLATFORMS = [
 		icon: Camera,
 	},
 	{
-		id: 'chatgpt' as const,
+		id: 'subscriptions',
+		title: 'App Subscriptions',
+		description: 'Your active subscriptions list',
+		timeEstimate: '30 sec',
+		accept: 'image/jpeg,image/png,image/webp',
+		icon: Wallet,
+	},
+	{
+		id: 'battery',
+		title: 'Battery Usage',
+		description: 'Which apps drain your battery',
+		timeEstimate: '30 sec',
+		accept: 'image/jpeg,image/png,image/webp',
+		icon: Battery,
+	},
+	{
+		id: 'storage',
+		title: 'Storage',
+		description: 'What takes up space on your phone',
+		timeEstimate: '30 sec',
+		accept: 'image/jpeg,image/png,image/webp',
+		icon: HardDrive,
+	},
+	{
+		id: 'calendar',
+		title: 'Calendar',
+		description: 'Your week at a glance',
+		timeEstimate: '5 sec',
+		accept: 'image/jpeg,image/png,image/webp',
+		icon: CalendarDays,
+	},
+	{
+		id: 'health',
+		title: 'Health',
+		description: 'Your health dashboard',
+		timeEstimate: '5 sec',
+		accept: 'image/jpeg,image/png,image/webp',
+		icon: Heart,
+	},
+]
+
+const DEEP_SOURCES: SourceConfig[] = [
+	{
+		id: 'chatgpt',
 		title: 'ChatGPT History',
-		description: 'Export from Settings > Data controls',
-		timeEstimate: '2 min',
+		description: 'Export takes hours, emailed to you',
+		timeEstimate: '2 min + wait',
 		accept: '.zip',
 		icon: MessageSquare,
 	},
 	{
-		id: 'claude' as const,
+		id: 'claude',
 		title: 'Claude History',
-		description: 'Export from Settings > Export data',
-		timeEstimate: '2 min',
+		description: 'Export takes hours',
+		timeEstimate: '2 min + wait',
 		accept: '.json',
 		icon: Brain,
 	},
 	{
-		id: 'google' as const,
+		id: 'google',
 		title: 'Google Takeout',
-		description: 'Download from takeout.google.com',
-		timeEstimate: '5 min',
+		description: 'Export takes hours/days',
+		timeEstimate: '5 min + wait',
 		accept: '.zip',
 		icon: Search,
 	},
-] as const
+]
 
-type PlatformId = (typeof PLATFORMS)[number]['id']
+/* ─── Instruction components ─── */
 
 function ScreenTimeInstructions() {
 	return (
@@ -111,17 +170,67 @@ function ScreenTimeInstructions() {
 	)
 }
 
+function SubscriptionsInstructions() {
+	return (
+		<VStack gap={1} alignItems="flex-start">
+			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+				1. Settings &rarr; [your name] &rarr; Subscriptions
+			</styled.span>
+			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+				2. Screenshot the list
+			</styled.span>
+		</VStack>
+	)
+}
+
+function BatteryInstructions() {
+	return (
+		<VStack gap={1} alignItems="flex-start">
+			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+				1. Settings &rarr; Battery
+			</styled.span>
+			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+				2. Screenshot the app list
+			</styled.span>
+		</VStack>
+	)
+}
+
+function StorageInstructions() {
+	return (
+		<VStack gap={1} alignItems="flex-start">
+			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+				1. Settings &rarr; General &rarr; iPhone Storage
+			</styled.span>
+			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+				2. Screenshot the app list
+			</styled.span>
+		</VStack>
+	)
+}
+
 function ChatGPTInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-				1. Open ChatGPT &rarr; Settings
+				1.{' '}
+				<styled.a
+					href="https://chatgpt.com/#settings/DataControls"
+					target="_blank"
+					rel="noopener noreferrer"
+					color="primary"
+					textDecoration="underline"
+					textDecorationColor="primary/30"
+					_hover={{ textDecorationColor: 'primary' }}
+				>
+					Open ChatGPT Data Controls
+				</styled.a>
 			</styled.span>
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-				2. Data controls &rarr; Export data
+				2. Click &ldquo;Export data&rdquo;
 			</styled.span>
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-				3. Click &ldquo;Export&rdquo; and wait for email
+				3. Wait for the email (can take hours)
 			</styled.span>
 			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
 				4. Download the .zip and upload it here
@@ -134,16 +243,53 @@ function ClaudeInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-				1. Open Claude &rarr; Settings
+				1.{' '}
+				<styled.a
+					href="https://claude.ai/settings/privacy"
+					target="_blank"
+					rel="noopener noreferrer"
+					color="primary"
+					textDecoration="underline"
+					textDecorationColor="primary/30"
+					_hover={{ textDecorationColor: 'primary' }}
+				>
+					Open Claude Privacy Settings
+				</styled.a>
 			</styled.span>
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
 				2. Click &ldquo;Export data&rdquo;
 			</styled.span>
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-				3. Wait for the download email
+				3. Wait for the download email (can take hours)
 			</styled.span>
 			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
 				4. Upload the .json file here
+			</styled.span>
+		</VStack>
+	)
+}
+
+function CalendarInstructions() {
+	return (
+		<VStack gap={1} alignItems="flex-start">
+			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+				1. Open Calendar app &rarr; Week view
+			</styled.span>
+			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+				2. Screenshot
+			</styled.span>
+		</VStack>
+	)
+}
+
+function HealthInstructions() {
+	return (
+		<VStack gap={1} alignItems="flex-start">
+			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+				1. Open Health app (or Google Fit) &rarr; Summary
+			</styled.span>
+			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+				2. Screenshot
 			</styled.span>
 		</VStack>
 	)
@@ -153,13 +299,24 @@ function GoogleInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-				1. Go to takeout.google.com
+				1.{' '}
+				<styled.a
+					href="https://takeout.google.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					color="primary"
+					textDecoration="underline"
+					textDecorationColor="primary/30"
+					_hover={{ textDecorationColor: 'primary' }}
+				>
+					Go to Google Takeout
+				</styled.a>
 			</styled.span>
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
 				2. Select only: Search, YouTube, Chrome
 			</styled.span>
 			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-				3. Click &ldquo;Create export&rdquo; and wait
+				3. Click &ldquo;Create export&rdquo; and wait (hours/days)
 			</styled.span>
 			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
 				4. Download the .zip and upload it here
@@ -168,31 +325,75 @@ function GoogleInstructions() {
 	)
 }
 
-const INSTRUCTION_MAP: Record<PlatformId, () => React.ReactNode> = {
+const INSTRUCTION_MAP: Record<string, () => ReactNode> = {
 	screentime: ScreenTimeInstructions,
+	subscriptions: SubscriptionsInstructions,
+	battery: BatteryInstructions,
+	storage: StorageInstructions,
+	calendar: CalendarInstructions,
+	health: HealthInstructions,
 	chatgpt: ChatGPTInstructions,
 	claude: ClaudeInstructions,
 	google: GoogleInstructions,
 }
 
+/* ─── Main component ─── */
+
 export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUploadHubProps) {
-	const [sources, setSources] = useState<Record<PlatformId, SourceState>>({
-		screentime: { status: 'idle' },
-		chatgpt: { status: 'idle' },
-		claude: { status: 'idle' },
-		google: { status: 'idle' },
+	const [sources, setSources] = useAtom(uploadStatusAtom)
+
+	function getStatus(id: string): UploadStatus {
+		return sources[id]?.status ?? 'idle'
+	}
+
+	function getError(id: string): string | undefined {
+		return sources[id]?.errorMessage
+	}
+
+	function getUploadCount(id: string): number {
+		return sources[id]?.uploadCount ?? 0
+	}
+
+	const SCREENTIME_MAX_FILES = 4
+
+	const instantDoneCount = INSTANT_SOURCES.filter(
+		(s) => getStatus(s.id) === 'done' || getUploadCount(s.id) > 0,
+	).length
+	const deepDoneCount = DEEP_SOURCES.filter((s) => getStatus(s.id) === 'done').length
+	const totalDone = instantDoneCount + deepDoneCount
+	const hasAnyUpload = totalDone > 0
+	const isAnyActive = [...INSTANT_SOURCES, ...DEEP_SOURCES].some((s) => {
+		const st = getStatus(s.id)
+		return st === 'uploading' || st === 'processing'
 	})
 
-	const doneCount = Object.values(sources).filter((s) => s.status === 'done').length
-	const hasAnyUpload = doneCount > 0
-	const isAnyActive = Object.values(sources).some(
-		(s) => s.status === 'uploading' || s.status === 'processing',
-	)
+	const [trialLoading, setTrialLoading] = useState(false)
 
-	async function handleFile(platformId: PlatformId, file: File) {
+	async function handleStartTrial() {
+		setTrialLoading(true)
+		trackEvent({ name: 'checkout_initiated', product: 'starter' })
+		try {
+			const res = await fetch('/api/billing/checkout', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ product: 'starter' }),
+			})
+			const data = await res.json()
+			if (data.url) {
+				window.location.href = data.url
+				return
+			}
+			setTrialLoading(false)
+		} catch {
+			setTrialLoading(false)
+		}
+	}
+
+	async function handleFile(platformId: string, file: File) {
+		const prevCount = sources[platformId]?.uploadCount ?? 0
 		setSources((prev) => ({
 			...prev,
-			[platformId]: { status: 'uploading', progress: 30 },
+			[platformId]: { ...prev[platformId], status: 'uploading', uploadCount: prevCount },
 		}))
 
 		try {
@@ -203,7 +404,7 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 
 			setSources((prev) => ({
 				...prev,
-				[platformId]: { status: 'processing', progress: 70 },
+				[platformId]: { ...prev[platformId], status: 'processing' },
 			}))
 
 			const res = await fetch('/api/discovery/upload', {
@@ -216,23 +417,76 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 				setSources((prev) => ({
 					...prev,
 					[platformId]: {
-						status: 'error',
+						...prev[platformId],
+						status: prevCount > 0 ? 'done' : 'error',
 						errorMessage: data.error?.message || 'Upload failed. Try again.',
 					},
 				}))
 				return
 			}
 
+			const newCount = prevCount + 1
 			setSources((prev) => ({
 				...prev,
-				[platformId]: { status: 'done' },
+				[platformId]: {
+					status: 'done',
+					uploadCount: newCount,
+					errorMessage: undefined,
+				},
 			}))
 		} catch {
 			setSources((prev) => ({
 				...prev,
-				[platformId]: { status: 'error', errorMessage: 'Connection failed. Try again.' },
+				[platformId]: {
+					...prev[platformId],
+					status: prevCount > 0 ? 'done' : 'error',
+					errorMessage: 'Connection failed. Try again.',
+				},
 			}))
 		}
+	}
+
+	function handleExportStarted(platformId: string) {
+		setSources((prev) => ({
+			...prev,
+			[platformId]: { status: 'waiting' },
+		}))
+	}
+
+	function handleFileReady(platformId: string) {
+		setSources((prev) => ({
+			...prev,
+			[platformId]: { status: 'idle' },
+		}))
+	}
+
+	function renderSourceCard(source: SourceConfig, index: number, isDelayed: boolean) {
+		const InstructionComponent = INSTRUCTION_MAP[source.id]
+		const maxFiles = source.id === 'screentime' ? SCREENTIME_MAX_FILES : 1
+		const uploadCount = getUploadCount(source.id)
+		return (
+			<Box
+				key={source.id}
+				style={{ animation: `staggerFadeIn 0.4s ease-out ${index * 0.1}s both` }}
+			>
+				<UploadCard
+					title={source.title}
+					description={source.description}
+					timeEstimate={source.timeEstimate}
+					accept={source.accept}
+					icon={source.icon}
+					status={getStatus(source.id)}
+					errorMessage={getError(source.id)}
+					onFile={(file) => handleFile(source.id, file)}
+					instructions={InstructionComponent ? <InstructionComponent /> : null}
+					isDelayed={isDelayed}
+					onExportStarted={isDelayed ? () => handleExportStarted(source.id) : undefined}
+					onFileReady={() => handleFileReady(source.id)}
+					maxFiles={maxFiles}
+					uploadCount={uploadCount}
+				/>
+			</Box>
+		)
 	}
 
 	return (
@@ -253,50 +507,157 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 				</styled.p>
 			</VStack>
 
-			{/* Progress dots */}
-			<Flex gap={2} justifyContent="center" alignItems="center">
-				{PLATFORMS.map((p) => (
-					<Box
-						key={p.id}
-						width="10px"
-						height="10px"
-						borderRadius="full"
-						bg={sources[p.id].status === 'done' ? 'primary' : 'outlineVariant/20'}
-						transition="all 0.3s ease"
-					/>
-				))}
-				<styled.span
-					fontSize="xs"
-					fontWeight="500"
-					color="onSurfaceVariant/50"
-					marginInlineStart={2}
-				>
-					{doneCount} of {PLATFORMS.length} sources
-				</styled.span>
-			</Flex>
+			{/* Section 1: Quick scans */}
+			<VStack gap={4} width="100%">
+				<Flex gap={2} justifyContent="space-between" alignItems="center" width="100%">
+					<VStack gap={0} alignItems="flex-start">
+						<styled.h3
+							fontSize="xs"
+							fontWeight="700"
+							fontFamily="heading"
+							color="onSurface"
+							textTransform="uppercase"
+							letterSpacing="0.05em"
+						>
+							Quick scans
+						</styled.h3>
+						<styled.span fontSize="xs" color="onSurfaceVariant/50">
+							Free &middot; screenshots you already have
+						</styled.span>
+					</VStack>
+					<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50">
+						{instantDoneCount} of {INSTANT_SOURCES.length} done
+					</styled.span>
+				</Flex>
 
-			{/* Upload cards */}
-			<Grid columns={{ base: 1, md: 2 }} gap={4} width="100%">
-				{PLATFORMS.map((p, i) => {
-					const InstructionComponent = INSTRUCTION_MAP[p.id]
-					return (
-						<Box key={p.id} style={{ animation: `staggerFadeIn 0.4s ease-out ${i * 0.1}s both` }}>
-							<UploadCard
-								title={p.title}
-								description={p.description}
-								timeEstimate={p.timeEstimate}
-								accept={p.accept}
-								icon={p.icon}
-								status={sources[p.id].status}
-								progress={sources[p.id].progress}
-								errorMessage={sources[p.id].errorMessage}
-								onFile={(file) => handleFile(p.id, file)}
-								instructions={<InstructionComponent />}
-							/>
-						</Box>
-					)
-				})}
-			</Grid>
+				{/* Progress dots */}
+				<Flex gap={2} alignItems="center">
+					{INSTANT_SOURCES.map((s) => (
+						<Box
+							key={s.id}
+							width="10px"
+							height="10px"
+							borderRadius="full"
+							bg={getStatus(s.id) === 'done' ? 'primary' : 'outlineVariant/20'}
+							transition="all 0.3s ease"
+						/>
+					))}
+				</Flex>
+
+				<Grid columns={{ base: 1, md: 2 }} gap={4} width="100%">
+					{INSTANT_SOURCES.map((s, i) => renderSourceCard(s, i, false))}
+				</Grid>
+			</VStack>
+
+			{/* Divider */}
+			<VStack gap={3} width="100%" paddingBlock={2}>
+				<Box width="100%" height="1px" bg="outlineVariant/15" />
+				<styled.p
+					textStyle="body.sm"
+					color="onSurfaceVariant/60"
+					textAlign="center"
+					fontWeight="500"
+					paddingInline={4}
+				>
+					Want deeper insights? These take a bit longer but reveal way more.
+				</styled.p>
+				<Box width="100%" height="1px" bg="outlineVariant/15" />
+			</VStack>
+
+			{/* Section 2: Deep analysis */}
+			<VStack gap={4} width="100%">
+				<Flex gap={2} justifyContent="space-between" alignItems="center" width="100%">
+					<VStack gap={0} alignItems="flex-start">
+						<Flex gap={2} alignItems="center">
+							<styled.h3
+								fontSize="xs"
+								fontWeight="700"
+								fontFamily="heading"
+								color="onSurface"
+								textTransform="uppercase"
+								letterSpacing="0.05em"
+							>
+								Deep analysis
+							</styled.h3>
+							<Flex
+								gap={1}
+								alignItems="center"
+								paddingInline={2}
+								paddingBlock={0.5}
+								borderRadius="md"
+								bg="orange.100"
+							>
+								<Lock size={10} color="#d97706" />
+								<styled.span fontSize="10px" fontWeight="600" color="orange.700">
+									EUR 9.99/mo
+								</styled.span>
+							</Flex>
+						</Flex>
+						<styled.span fontSize="xs" color="onSurfaceVariant/50">
+							Requires async exports (hours/days)
+						</styled.span>
+					</VStack>
+					<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50">
+						{deepDoneCount} of {DEEP_SOURCES.length} done
+					</styled.span>
+				</Flex>
+
+				{/* Progress dots */}
+				<Flex gap={2} alignItems="center">
+					{DEEP_SOURCES.map((s) => (
+						<Box
+							key={s.id}
+							width="10px"
+							height="10px"
+							borderRadius="full"
+							bg={
+								getStatus(s.id) === 'done'
+									? 'primary'
+									: getStatus(s.id) === 'waiting'
+										? 'orange.400'
+										: 'outlineVariant/20'
+							}
+							transition="all 0.3s ease"
+						/>
+					))}
+				</Flex>
+
+				{/* Start free trial CTA */}
+				<styled.button
+					onClick={handleStartTrial}
+					disabled={trialLoading}
+					display="flex"
+					alignItems="center"
+					justifyContent="center"
+					gap={2}
+					width="100%"
+					paddingBlock={3}
+					borderRadius="12px"
+					border="1.5px solid"
+					borderColor="primary/20"
+					bg="primary/4"
+					cursor="pointer"
+					fontSize="sm"
+					fontWeight="700"
+					fontFamily="heading"
+					color="primary"
+					transition="all 0.2s ease"
+					_hover={{ bg: 'primary/8', borderColor: 'primary/40' }}
+					_disabled={{ opacity: 0.6, cursor: 'wait' }}
+					_focusVisible={{
+						outline: '2px solid',
+						outlineColor: 'primary',
+						outlineOffset: '2px',
+					}}
+				>
+					<Lock size={14} />
+					{trialLoading ? 'Redirecting...' : 'Start free trial'}
+				</styled.button>
+
+				<Grid columns={{ base: 1, md: 2 }} gap={4} width="100%">
+					{DEEP_SOURCES.map((s, i) => renderSourceCard(s, i, true))}
+				</Grid>
+			</VStack>
 
 			{/* CTAs */}
 			<VStack gap={3} width="100%" maxWidth="400px" marginInline="auto" paddingBlockStart={2}>

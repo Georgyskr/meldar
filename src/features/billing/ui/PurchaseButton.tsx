@@ -35,11 +35,6 @@ export function PurchaseButton({
 			})
 			const data = await res.json()
 
-			if (data.comingSoon) {
-				window.location.href = '/coming-soon'
-				return
-			}
-
 			if (data.url) {
 				window.location.href = data.url
 				return
@@ -75,6 +70,11 @@ export function PurchaseButton({
 				transition="opacity 0.2s ease"
 				_hover={{ opacity: 0.9 }}
 				_disabled={{ opacity: 0.6, cursor: 'wait' }}
+				_focusVisible={{
+					outline: '2px solid',
+					outlineColor: 'primary',
+					outlineOffset: '2px',
+				}}
 			>
 				{loading ? 'Redirecting...' : label}
 			</styled.button>

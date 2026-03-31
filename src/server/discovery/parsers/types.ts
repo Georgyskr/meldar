@@ -27,8 +27,9 @@ export const aiChatPatternSchema = z.object({
 
 export type AiChatPattern = z.infer<typeof aiChatPatternSchema>
 
-// Raw messages attached during parsing, consumed by the analysis engine
-export type AiChatParseResult = AiChatPattern & {
+// Raw parse result — returned by parsers, consumed by upload route.
+// Raw messages are extracted by Haiku, then discarded before DB storage.
+export type AiChatRawParseResult = AiChatPattern & {
 	_rawMessages: { text: string; timestamp: number }[]
 }
 
@@ -61,7 +62,9 @@ export const googlePatternSchema = z.object({
 
 export type GooglePattern = z.infer<typeof googlePatternSchema>
 
-export type GoogleParseResult = GooglePattern & {
+// Raw parse result — returned by Google parser, consumed by upload route.
+// Raw searches/watches are extracted by Haiku, then discarded.
+export type GoogleRawParseResult = GooglePattern & {
 	_rawSearches: string[]
 	_rawYoutubeWatches: string[]
 }

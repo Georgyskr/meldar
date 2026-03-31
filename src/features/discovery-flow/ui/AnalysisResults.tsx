@@ -1,10 +1,11 @@
 'use client'
 
 import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
-import { Lock, Play, RefreshCw, Share2 } from 'lucide-react'
+import { Check, RefreshCw, Share2 } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { PurchaseButton } from '@/features/billing'
 import type { DiscoveryAnalysis } from '@/server/discovery/parsers/types'
+import { LockedRecommendationCard } from './LockedRecommendationCard'
 
 type LearningModule = DiscoveryAnalysis['learningModules'][number]
 
@@ -42,7 +43,10 @@ const DEFAULT_MODULES: LearningModule[] = [
 ]
 
 export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisResultsProps) {
-	const [comingSoonId, setComingSoonId] = useState<string | null>(null)
+	const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null)
+	const [notifyEmail, setNotifyEmail] = useState('')
+	const [notifySubmitting, setNotifySubmitting] = useState(false)
+	const [notifiedModules, setNotifiedModules] = useState<Set<string>>(new Set())
 
 	const modules = analysis.learningModules.length > 0 ? analysis.learningModules : DEFAULT_MODULES
 
@@ -56,7 +60,7 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 	]
 
 	const handleShare = useCallback(async () => {
-		const url = `${window.location.origin}/start`
+		const url = `${window.location.origin}/start/${sessionId}`
 		try {
 			if (navigator.share) {
 				await navigator.share({
@@ -70,11 +74,32 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 		} catch {
 			// User cancelled share or clipboard unavailable
 		}
-	}, [analysis.recommendedApp.name])
+	}, [analysis.recommendedApp.name, sessionId])
 
 	function handleModuleClick(id: string) {
-		setComingSoonId(id)
-		setTimeout(() => setComingSoonId(null), 3000)
+		if (notifiedModules.has(id)) return
+		setExpandedModuleId((prev) => (prev === id ? null : id))
+		setNotifyEmail('')
+	}
+
+	async function handleNotifySubmit(moduleId: string) {
+		if (!notifyEmail || notifySubmitting) return
+		setNotifySubmitting(true)
+		try {
+			const res = await fetch('/api/subscribe', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email: notifyEmail, source: 'module_notify' }),
+			})
+			if (res.ok) {
+				setNotifiedModules((prev) => new Set(prev).add(moduleId))
+				setExpandedModuleId(null)
+			}
+		} catch {
+			// silently fail
+		} finally {
+			setNotifySubmitting(false)
+		}
 	}
 
 	return (
@@ -101,129 +126,14 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 
 				{allApps.map((app, i) => {
 					const position = i === 0 ? 'first' : i === 1 ? 'second' : 'third'
-					const isBlurred = position === 'first' || position === 'third'
-					const isVisible = position === 'second'
-
 					return (
-						<Box
+						<LockedRecommendationCard
 							key={`${position}-${app.name}`}
-							width="100%"
-							borderRadius="16px"
-							border="1px solid"
-							borderColor={isVisible ? 'primary/20' : 'outlineVariant/15'}
-							bg="surfaceContainerLowest"
-							overflow="hidden"
-							position="relative"
-							style={{
-								animation: `staggerFadeIn 0.4s ease-out ${0.2 + i * 0.15}s both`,
-							}}
-						>
-							{/* Blurred overlay for locked cards */}
-							{isBlurred && (
-								<>
-									<Box
-										position="absolute"
-										inset={0}
-										zIndex={2}
-										display="flex"
-										flexDirection="column"
-										alignItems="center"
-										justifyContent="center"
-										gap={2}
-										bg="surfaceContainerLowest/60"
-										backdropFilter="blur(6px)"
-									>
-										<Box
-											width="40px"
-											height="40px"
-											borderRadius="full"
-											bg="primary/10"
-											display="flex"
-											alignItems="center"
-											justifyContent="center"
-										>
-											<Lock size={18} color="#623153" />
-										</Box>
-										<styled.span
-											fontFamily="heading"
-											fontWeight="700"
-											fontSize="sm"
-											color="primary"
-										>
-											Unlock to see your #{i === 0 ? 1 : 3} recommendation
-										</styled.span>
-									</Box>
-
-									{/* Honeypot content — not the real recommendation */}
-									<VStack gap={2} padding={5} aria-hidden="true">
-										<styled.span
-											fontFamily="heading"
-											fontWeight="700"
-											fontSize="md"
-											color="onSurface"
-										>
-											Removing the CSS doesn&apos;t show this. Nice try.
-										</styled.span>
-										<styled.span textStyle="body.sm" color="onSurfaceVariant">
-											The real recommendation is generated server-side and only revealed after
-											payment.
-										</styled.span>
-									</VStack>
-								</>
-							)}
-
-							{/* Visible card content */}
-							{isVisible && (
-								<VStack gap={3} padding={5} alignItems="flex-start">
-									<Flex gap={2} alignItems="center">
-										<styled.span
-											fontFamily="heading"
-											fontWeight="800"
-											fontSize="lg"
-											color="onSurface"
-										>
-											{app.name}
-										</styled.span>
-										{app.complexity && (
-											<styled.span
-												fontSize="xs"
-												fontWeight="600"
-												color="primary"
-												bg="primary/8"
-												paddingInline={2}
-												paddingBlock={0.5}
-												borderRadius="md"
-											>
-												{app.complexity}
-											</styled.span>
-										)}
-									</Flex>
-									<styled.p textStyle="body.base" color="onSurfaceVariant">
-										{app.description}
-									</styled.p>
-									<Box
-										width="100%"
-										padding={4}
-										borderRadius="12px"
-										bg="primary/4"
-										border="1px solid"
-										borderColor="primary/10"
-									>
-										<styled.p textStyle="body.sm" color="onSurface" lineHeight="1.6">
-											<styled.span fontWeight="600" color="primary">
-												Why you:
-											</styled.span>{' '}
-											{app.whyThisUser}
-										</styled.p>
-									</Box>
-									{app.estimatedBuildTime && (
-										<styled.span textStyle="body.sm" color="onSurfaceVariant/60">
-											Estimated build time: {app.estimatedBuildTime}
-										</styled.span>
-									)}
-								</VStack>
-							)}
-						</Box>
+							app={app}
+							position={position}
+							index={i}
+							animationDelay={0.2 + i * 0.15}
+						/>
 					)
 				})}
 			</VStack>
@@ -236,105 +146,221 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 
 				<Grid columns={{ base: 1, sm: 2 }} gap={3} width="100%">
 					{modules.map((mod, i) => (
-						<styled.button
+						<Box
 							key={mod.id}
-							onClick={() => handleModuleClick(mod.id)}
-							display="flex"
-							flexDirection="column"
-							gap={0}
 							borderRadius="14px"
 							border="1px solid"
 							borderColor="outlineVariant/15"
 							bg="surfaceContainerLowest"
 							overflow="hidden"
-							cursor="pointer"
 							transition="all 0.2s ease"
-							textAlign="left"
-							_hover={{
-								borderColor: 'primary/20',
-								boxShadow: '0 4px 16px rgba(98, 49, 83, 0.08)',
-							}}
-							_focusVisible={{
-								outline: '2px solid',
-								outlineColor: 'primary',
-								outlineOffset: '2px',
-							}}
 							style={{
 								animation: `staggerFadeIn 0.4s ease-out ${0.3 + i * 0.1}s both`,
 							}}
 						>
-							{/* Video thumbnail placeholder */}
-							<Box
+							<styled.button
+								onClick={() => handleModuleClick(mod.id)}
+								display="flex"
+								flexDirection="column"
+								gap={0}
 								width="100%"
-								bg="surfaceContainerHigh"
-								position="relative"
-								style={{ aspectRatio: '16/9' }}
+								cursor="pointer"
+								textAlign="left"
+								bg="transparent"
+								border="none"
+								_hover={{
+									'& > div:first-child': {
+										borderColor: 'primary/20',
+									},
+								}}
+								_focusVisible={{
+									outline: '2px solid',
+									outlineColor: 'primary',
+									outlineOffset: '2px',
+								}}
 							>
-								<Flex position="absolute" inset={0} alignItems="center" justifyContent="center">
-									<Box
-										width="36px"
-										height="36px"
-										borderRadius="full"
-										bg="primary/70"
-										display="flex"
-										alignItems="center"
-										justifyContent="center"
-									>
-										<Play size={16} color="white" fill="white" />
-									</Box>
-								</Flex>
-
-								{/* FREE badge */}
-								<Box position="absolute" top={2} left={2}>
-									<styled.span
-										fontSize="10px"
-										fontWeight="700"
-										fontFamily="heading"
-										color="white"
-										bg="primary"
-										paddingInline={2}
-										paddingBlock={0.5}
-										borderRadius="sm"
-										textTransform="uppercase"
-										letterSpacing="0.05em"
-									>
-										Free preview
-									</styled.span>
-								</Box>
-							</Box>
-
-							<VStack gap={1} padding={3} alignItems="flex-start">
-								<styled.span
-									fontFamily="heading"
-									fontWeight="700"
-									fontSize="sm"
-									color="onSurface"
-									lineHeight="1.3"
+								{/* Thumbnail with "Coming soon" overlay */}
+								<Box
+									width="100%"
+									bg="surfaceContainerHigh"
+									position="relative"
+									style={{ aspectRatio: '16/9' }}
 								>
-									{mod.title}
-								</styled.span>
-								{comingSoonId === mod.id ? (
+									<Flex position="absolute" inset={0} alignItems="center" justifyContent="center">
+										<styled.span
+											fontFamily="heading"
+											fontWeight="700"
+											fontSize="sm"
+											color="onSurfaceVariant/60"
+											letterSpacing="0.02em"
+										>
+											Coming soon
+										</styled.span>
+									</Flex>
+
+									{/* FREE badge */}
+									<Box position="absolute" top={2} left={2}>
+										<styled.span
+											fontSize="10px"
+											fontWeight="700"
+											fontFamily="heading"
+											color="white"
+											bg="primary"
+											paddingInline={2}
+											paddingBlock={0.5}
+											borderRadius="sm"
+											textTransform="uppercase"
+											letterSpacing="0.05em"
+										>
+											Free preview
+										</styled.span>
+									</Box>
+								</Box>
+
+								<VStack gap={1} padding={3} alignItems="flex-start">
 									<styled.span
-										textStyle="body.sm"
-										color="primary"
-										fontWeight="500"
-										style={{ animation: 'meldarFadeSlideUp 0.3s ease-out both' }}
+										fontFamily="heading"
+										fontWeight="700"
+										fontSize="sm"
+										color="onSurface"
+										lineHeight="1.3"
 									>
-										Coming soon. We&apos;re recording this now.
+										{mod.title}
 									</styled.span>
-								) : (
-									<styled.span textStyle="body.sm" color="onSurfaceVariant/60">
-										{mod.description}
-									</styled.span>
-								)}
-							</VStack>
-						</styled.button>
+									{notifiedModules.has(mod.id) ? (
+										<Flex gap={1.5} alignItems="center">
+											<Check size={14} color="#623153" />
+											<styled.span textStyle="body.sm" color="primary" fontWeight="500">
+												We&apos;ll let you know
+											</styled.span>
+										</Flex>
+									) : (
+										<styled.span textStyle="body.sm" color="onSurfaceVariant/60">
+											{mod.description}
+										</styled.span>
+									)}
+								</VStack>
+							</styled.button>
+
+							{/* Inline notify-me form */}
+							{expandedModuleId === mod.id && !notifiedModules.has(mod.id) && (
+								<Box
+									paddingInline={3}
+									paddingBlockEnd={3}
+									style={{ animation: 'meldarFadeSlideUp 0.3s ease-out both' }}
+								>
+									<Flex gap={2} alignItems="stretch">
+										<styled.input
+											type="email"
+											placeholder="your@email.com"
+											value={notifyEmail}
+											onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+												setNotifyEmail(e.target.value)
+											}
+											flex={1}
+											paddingInline={3}
+											paddingBlock={2}
+											borderRadius="8px"
+											border="1.5px solid"
+											borderColor="outlineVariant/25"
+											bg="surfaceContainer/40"
+											fontSize="sm"
+											fontFamily="body"
+											color="onSurface"
+											outline="none"
+											minHeight="44px"
+											_focusVisible={{
+												borderColor: 'primary',
+												boxShadow: '0 0 0 2px rgba(98, 49, 83, 0.15)',
+											}}
+											_placeholder={{ color: 'onSurfaceVariant/40' }}
+										/>
+										<styled.button
+											onClick={() => handleNotifySubmit(mod.id)}
+											disabled={!notifyEmail || notifySubmitting}
+											paddingInline={4}
+											paddingBlock={2}
+											borderRadius="8px"
+											border="none"
+											background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
+											color="white"
+											fontSize="sm"
+											fontWeight="600"
+											fontFamily="heading"
+											cursor="pointer"
+											whiteSpace="nowrap"
+											minHeight="44px"
+											transition="opacity 0.15s ease"
+											_hover={{ opacity: 0.9 }}
+											_disabled={{ opacity: 0.5, cursor: 'not-allowed' }}
+											_focusVisible={{
+												outline: '2px solid',
+												outlineColor: 'primary',
+												outlineOffset: '2px',
+											}}
+										>
+											{notifySubmitting ? '...' : 'Notify me'}
+										</styled.button>
+									</Flex>
+								</Box>
+							)}
+						</Box>
 					))}
 				</Grid>
 			</VStack>
 
 			{/* Paywall section */}
 			<VStack gap={4} width="100%">
+				{/* Starter subscription tier */}
+				<Box
+					width="100%"
+					borderRadius="16px"
+					border="2px solid"
+					borderColor="primary/30"
+					bg="surfaceContainerLowest"
+					overflow="hidden"
+				>
+					<Box
+						paddingInline={5}
+						paddingBlock={4}
+						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
+					>
+						<Flex justifyContent="space-between" alignItems="center">
+							<styled.span fontFamily="heading" fontWeight="800" fontSize="lg" color="white">
+								Start free — 7-day trial
+							</styled.span>
+							<styled.span fontFamily="heading" fontWeight="600" fontSize="sm" color="white/80">
+								EUR 9.99/mo after trial
+							</styled.span>
+						</Flex>
+					</Box>
+					<VStack gap={4} padding={5} alignItems="stretch">
+						<VStack gap={2} alignItems="flex-start">
+							{[
+								'Deep data analysis (ChatGPT, Claude, Google)',
+								'3 analyses per month',
+								'All SOPs and video tutorials',
+								'Personalized curriculum',
+							].map((item) => (
+								<Flex key={item} gap={2} alignItems="flex-start">
+									<styled.span color="primary" fontSize="sm" marginBlockStart="2px">
+										&#10003;
+									</styled.span>
+									<styled.span textStyle="body.sm" color="onSurface">
+										{item}
+									</styled.span>
+								</Flex>
+							))}
+						</VStack>
+						<PurchaseButton
+							product="starter"
+							xrayId={sessionId}
+							label="Start free trial"
+							variant="primary"
+						/>
+					</VStack>
+				</Box>
+
 				<Grid columns={{ base: 1, md: 2 }} gap={4} width="100%">
 					{/* Tier 1: Learn */}
 					<Box

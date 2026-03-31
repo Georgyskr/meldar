@@ -4,8 +4,17 @@ import { z } from 'zod'
 import type { ScreenTimeExtraction } from '@/entities/xray-result/model/types'
 import { getDb } from '@/server/db/client'
 import { discoverySessions } from '@/server/db/schema'
-import { type AnalysisInput, runCrossAnalysis } from '@/server/discovery/analyze'
-import type { AiChatParseResult, GoogleParseResult } from '@/server/discovery/parsers/types'
+import {
+	type AdaptiveDataEntry,
+	type AnalysisInput,
+	type BatteryData,
+	type CalendarData,
+	type HealthData,
+	runCrossAnalysis,
+	type StorageData,
+	type SubscriptionsData,
+} from '@/server/discovery/analyze'
+import type { AiChatPattern, GooglePattern } from '@/server/discovery/parsers/types'
 import { analyzeLimit, checkRateLimit } from '@/server/lib/rate-limit'
 
 const analyzeSchema = z.object({
@@ -40,8 +49,49 @@ export async function POST(request: NextRequest) {
 		const { sessionId } = parsed.data
 		const db = getDb()
 
+		// S2: First check if analysis already exists with a lightweight query
+		const [cacheCheck] = await db
+			.select({
+				id: discoverySessions.id,
+				analysis: discoverySessions.analysis,
+			})
+			.from(discoverySessions)
+			.where(eq(discoverySessions.id, sessionId))
+			.limit(1)
+
+		if (!cacheCheck) {
+			return NextResponse.json(
+				{ error: { code: 'NOT_FOUND', message: 'Session not found.' } },
+				{ status: 404 },
+			)
+		}
+
+		// Don't re-run analysis if already done
+		if (cacheCheck.analysis) {
+			return NextResponse.json({
+				success: true,
+				analysis: cacheCheck.analysis,
+				sessionId,
+			})
+		}
+
+		// Only fetch full session data when analysis is needed
 		const [session] = await db
-			.select()
+			.select({
+				quizPicks: discoverySessions.quizPicks,
+				aiComfort: discoverySessions.aiComfort,
+				aiToolsUsed: discoverySessions.aiToolsUsed,
+				screenTimeData: discoverySessions.screenTimeData,
+				chatgptData: discoverySessions.chatgptData,
+				claudeData: discoverySessions.claudeData,
+				googleData: discoverySessions.googleData,
+				subscriptionsData: discoverySessions.subscriptionsData,
+				batteryData: discoverySessions.batteryData,
+				storageData: discoverySessions.storageData,
+				calendarData: discoverySessions.calendarData,
+				healthData: discoverySessions.healthData,
+				adaptiveData: discoverySessions.adaptiveData,
+			})
 			.from(discoverySessions)
 			.where(eq(discoverySessions.id, sessionId))
 			.limit(1)
@@ -53,23 +103,20 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Don't re-run analysis if already done
-		if (session.analysis) {
-			return NextResponse.json({
-				success: true,
-				analysis: session.analysis,
-				sessionId,
-			})
-		}
-
 		const input: AnalysisInput = {
 			quizPicks: session.quizPicks ?? [],
 			aiComfort: session.aiComfort ?? 1,
 			aiToolsUsed: session.aiToolsUsed ?? [],
 			screenTime: session.screenTimeData as ScreenTimeExtraction | undefined,
-			chatgptData: session.chatgptData as AiChatParseResult | undefined,
-			claudeData: session.claudeData as AiChatParseResult | undefined,
-			googleData: session.googleData as GoogleParseResult | undefined,
+			chatgptData: session.chatgptData as AiChatPattern | undefined,
+			claudeData: session.claudeData as AiChatPattern | undefined,
+			googleData: session.googleData as GooglePattern | undefined,
+			subscriptionsData: session.subscriptionsData as SubscriptionsData | undefined,
+			batteryData: session.batteryData as BatteryData | undefined,
+			storageData: session.storageData as StorageData | undefined,
+			calendarData: session.calendarData as CalendarData | undefined,
+			healthData: session.healthData as HealthData | undefined,
+			adaptiveData: session.adaptiveData as AdaptiveDataEntry[] | undefined,
 		}
 
 		const analysis = await runCrossAnalysis(input)

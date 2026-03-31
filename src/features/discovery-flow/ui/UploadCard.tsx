@@ -1,10 +1,10 @@
 'use client'
 
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
-import { Check, ChevronDown, ChevronUp, type LucideIcon, Play, Upload, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Clock, type LucideIcon, Upload, X } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
 
-type UploadStatus = 'idle' | 'uploading' | 'processing' | 'done' | 'error'
+export type UploadStatus = 'idle' | 'uploading' | 'processing' | 'done' | 'waiting' | 'error'
 
 type UploadCardProps = {
 	title: string
@@ -17,6 +17,16 @@ type UploadCardProps = {
 	errorMessage?: string
 	onFile: (file: File) => void
 	instructions: ReactNode
+	/** Whether this source is a delayed export (shows "I started the export" button) */
+	isDelayed?: boolean
+	/** Called when user marks a delayed source as "export started" */
+	onExportStarted?: () => void
+	/** Called when user says they have the file ready (from waiting state) */
+	onFileReady?: () => void
+	/** Maximum number of files this source accepts (defaults to 1) */
+	maxFiles?: number
+	/** Number of files already uploaded for this source */
+	uploadCount?: number
 }
 
 export function UploadCard({
@@ -30,6 +40,11 @@ export function UploadCard({
 	errorMessage,
 	onFile,
 	instructions,
+	isDelayed,
+	onExportStarted,
+	onFileReady,
+	maxFiles = 1,
+	uploadCount = 0,
 }: UploadCardProps) {
 	const [showGuide, setShowGuide] = useState(false)
 	const fileRef = useRef<HTMLInputElement>(null)
@@ -37,19 +52,42 @@ export function UploadCard({
 	function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const file = e.target.files?.[0]
 		if (file) onFile(file)
+		if (e.target) e.target.value = ''
 	}
 
-	const isDone = status === 'done'
+	const hasMultiFile = maxFiles > 1
+	const isPartiallyDone = hasMultiFile && uploadCount > 0 && uploadCount < maxFiles
+	const isFullyDone = hasMultiFile ? uploadCount >= maxFiles : status === 'done'
+	const isDone = isFullyDone || (status === 'done' && !isPartiallyDone)
 	const isActive = status === 'uploading' || status === 'processing'
 	const isError = status === 'error'
+	const isWaiting = status === 'waiting'
 
 	return (
 		<Box
 			width="100%"
 			borderRadius="16px"
 			border="2px solid"
-			borderColor={isDone ? 'primary/30' : isError ? 'red.300' : 'outlineVariant/15'}
-			bg={isDone ? 'primary/4' : 'surfaceContainerLowest'}
+			borderColor={
+				isDone
+					? 'primary/30'
+					: isPartiallyDone
+						? 'primary/20'
+						: isWaiting
+							? 'orange.300/40'
+							: isError
+								? 'red.300'
+								: 'outlineVariant/15'
+			}
+			bg={
+				isDone
+					? 'primary/4'
+					: isPartiallyDone
+						? 'primary/3'
+						: isWaiting
+							? 'orange.50/40'
+							: 'surfaceContainerLowest'
+			}
 			overflow="hidden"
 			transition="all 0.3s ease"
 		>
@@ -60,7 +98,13 @@ export function UploadCard({
 						width="44px"
 						height="44px"
 						borderRadius="12px"
-						bg={isDone ? 'primary/10' : 'surfaceContainer'}
+						bg={
+							isDone || isPartiallyDone
+								? 'primary/10'
+								: isWaiting
+									? 'orange.100'
+									: 'surfaceContainer'
+						}
 						display="flex"
 						alignItems="center"
 						justifyContent="center"
@@ -68,6 +112,14 @@ export function UploadCard({
 					>
 						{isDone ? (
 							<Check size={22} color="#623153" strokeWidth={2.5} />
+						) : isPartiallyDone ? (
+							<styled.span fontFamily="heading" fontWeight="700" fontSize="xs" color="primary">
+								{uploadCount}/{maxFiles}
+							</styled.span>
+						) : isWaiting ? (
+							<Box style={{ animation: 'gentleBreathe 1.5s ease-in-out infinite' }}>
+								<Clock size={22} color="#d97706" strokeWidth={1.5} />
+							</Box>
 						) : (
 							<Icon size={22} color={isActive ? '#623153' : '#81737a'} strokeWidth={1.5} />
 						)}
@@ -88,12 +140,38 @@ export function UploadCard({
 									paddingBlock={0.5}
 									borderRadius="md"
 								>
-									Analyzed
+									{hasMultiFile ? `${uploadCount} of ${maxFiles} done` : 'Analyzed'}
+								</styled.span>
+							)}
+							{isPartiallyDone && (
+								<styled.span
+									fontSize="xs"
+									fontWeight="600"
+									color="primary"
+									bg="primary/8"
+									paddingInline={2}
+									paddingBlock={0.5}
+									borderRadius="md"
+								>
+									{uploadCount} of {maxFiles} sections
+								</styled.span>
+							)}
+							{isWaiting && (
+								<styled.span
+									fontSize="xs"
+									fontWeight="600"
+									color="orange.700"
+									bg="orange.100"
+									paddingInline={2}
+									paddingBlock={0.5}
+									borderRadius="md"
+								>
+									Waiting
 								</styled.span>
 							)}
 						</Flex>
 						<styled.span fontSize="xs" color="onSurfaceVariant/60">
-							{description}
+							{isWaiting ? 'Export started — come back when you get the email' : description}
 						</styled.span>
 					</VStack>
 
@@ -133,6 +211,74 @@ export function UploadCard({
 					</Box>
 				)}
 
+				{/* Partially done — add more button */}
+				{isPartiallyDone && !isActive && (
+					<styled.label
+						display="flex"
+						alignItems="center"
+						justifyContent="center"
+						gap={2}
+						paddingBlock={2.5}
+						borderRadius="10px"
+						border="1.5px dashed"
+						borderColor="primary/25"
+						bg="primary/4"
+						cursor="pointer"
+						fontSize="sm"
+						fontWeight="600"
+						fontFamily="heading"
+						color="primary"
+						transition="all 0.2s ease"
+						_hover={{ bg: 'primary/8', borderColor: 'primary/40' }}
+						_focusWithin={{
+							outline: '2px solid',
+							outlineColor: 'primary',
+							outlineOffset: '2px',
+						}}
+					>
+						<input
+							ref={fileRef}
+							type="file"
+							accept={accept}
+							aria-label={`Upload file for ${title}`}
+							onChange={handleFileChange}
+							style={{ display: 'none' }}
+						/>
+						<Upload size={15} />
+						Add more ({uploadCount} of {maxFiles})
+					</styled.label>
+				)}
+
+				{/* Waiting state */}
+				{isWaiting && onFileReady && (
+					<styled.button
+						onClick={onFileReady}
+						display="flex"
+						alignItems="center"
+						justifyContent="center"
+						gap={2}
+						paddingBlock={2.5}
+						borderRadius="10px"
+						border="1.5px solid"
+						borderColor="primary/25"
+						bg="primary/4"
+						cursor="pointer"
+						fontSize="sm"
+						fontWeight="600"
+						fontFamily="heading"
+						color="primary"
+						transition="all 0.2s ease"
+						_hover={{ bg: 'primary/8', borderColor: 'primary/40' }}
+						_focusVisible={{
+							outline: '2px solid',
+							outlineColor: 'primary',
+							outlineOffset: '2px',
+						}}
+					>
+						<Upload size={15} />I have the file now
+					</styled.button>
+				)}
+
 				{/* Error */}
 				{isError && (
 					<Flex gap={2} alignItems="center">
@@ -145,39 +291,70 @@ export function UploadCard({
 
 				{/* Upload button (idle or error) */}
 				{(status === 'idle' || isError) && (
-					<styled.label
-						display="flex"
-						alignItems="center"
-						justifyContent="center"
-						gap={2}
-						paddingBlock={2.5}
-						borderRadius="10px"
-						border="1.5px dashed"
-						borderColor="outlineVariant/25"
-						bg="surfaceContainer/40"
-						cursor="pointer"
-						fontSize="sm"
-						fontWeight="600"
-						fontFamily="heading"
-						color="primary"
-						transition="all 0.2s ease"
-						_hover={{ bg: 'primary/4', borderColor: 'primary/30' }}
-						_focusWithin={{
-							outline: '2px solid',
-							outlineColor: 'primary',
-							outlineOffset: '2px',
-						}}
-					>
-						<input
-							ref={fileRef}
-							type="file"
-							accept={accept}
-							onChange={handleFileChange}
-							style={{ display: 'none' }}
-						/>
-						<Upload size={15} />
-						{isError ? 'Try again' : 'Upload'}
-					</styled.label>
+					<VStack gap={2} alignItems="stretch">
+						<styled.label
+							display="flex"
+							alignItems="center"
+							justifyContent="center"
+							gap={2}
+							paddingBlock={2.5}
+							borderRadius="10px"
+							border="1.5px dashed"
+							borderColor="outlineVariant/25"
+							bg="surfaceContainer/40"
+							cursor="pointer"
+							fontSize="sm"
+							fontWeight="600"
+							fontFamily="heading"
+							color="primary"
+							transition="all 0.2s ease"
+							_hover={{ bg: 'primary/4', borderColor: 'primary/30' }}
+							_focusWithin={{
+								outline: '2px solid',
+								outlineColor: 'primary',
+								outlineOffset: '2px',
+							}}
+						>
+							<input
+								ref={fileRef}
+								type="file"
+								accept={accept}
+								aria-label={`Upload file for ${title}`}
+								onChange={handleFileChange}
+								style={{ display: 'none' }}
+							/>
+							<Upload size={15} />
+							{isError ? 'Try again' : 'Upload'}
+						</styled.label>
+
+						{/* "I started the export" for delayed sources */}
+						{isDelayed && onExportStarted && status === 'idle' && (
+							<styled.button
+								onClick={onExportStarted}
+								display="flex"
+								alignItems="center"
+								justifyContent="center"
+								gap={1.5}
+								paddingBlock={2}
+								borderRadius="10px"
+								border="none"
+								bg="transparent"
+								cursor="pointer"
+								fontSize="xs"
+								fontWeight="500"
+								color="onSurfaceVariant/60"
+								transition="color 0.15s ease"
+								_hover={{ color: 'primary' }}
+								_focusVisible={{
+									outline: '2px solid',
+									outlineColor: 'primary',
+									outlineOffset: '2px',
+								}}
+							>
+								<Clock size={13} />I started the export — remind me later
+							</styled.button>
+						)}
+					</VStack>
 				)}
 
 				{/* How to export toggle */}
@@ -217,33 +394,6 @@ export function UploadCard({
 				>
 					<VStack gap={3} alignItems="stretch">
 						{instructions}
-
-						{/* Video placeholder */}
-						<Box
-							width="100%"
-							borderRadius="12px"
-							bg="surfaceContainerHigh"
-							overflow="hidden"
-							position="relative"
-							style={{ aspectRatio: '16/9' }}
-						>
-							<Flex position="absolute" inset={0} alignItems="center" justifyContent="center">
-								<Box
-									width="48px"
-									height="48px"
-									borderRadius="full"
-									bg="primary/80"
-									display="flex"
-									alignItems="center"
-									justifyContent="center"
-								>
-									<Play size={20} color="white" fill="white" />
-								</Box>
-							</Flex>
-						</Box>
-						<styled.span fontSize="xs" color="onSurfaceVariant/50" textAlign="center">
-							Watch the 30-second tutorial
-						</styled.span>
 					</VStack>
 				</Box>
 			)}
