@@ -1,20 +1,33 @@
 'use client'
 
 import { Flex, styled } from '@styled-system/jsx'
-import { Copy, ExternalLink, Share2 } from 'lucide-react'
-import { useState } from 'react'
+import { Copy, Download, Share2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { trackEvent } from '@/features/analytics'
 
-export function XRayCardActions({ xrayId }: { xrayId: string }) {
+type XRayCardActionsProps = {
+	xrayId: string
+	totalHours?: number
+	topApp?: string
+	cardRef?: React.RefObject<HTMLDivElement | null>
+}
+
+export function XRayCardActions({ xrayId, totalHours, topApp, cardRef }: XRayCardActionsProps) {
 	const [copied, setCopied] = useState(false)
+	const [saving, setSaving] = useState(false)
 	const shareUrl = `https://meldar.ai/xray/${xrayId}`
+
+	const shareText =
+		totalHours && topApp
+			? `I spend ${totalHours}h/day on my phone — ${topApp} is the culprit. See yours:`
+			: 'Check out my screen time breakdown'
 
 	async function handleShare() {
 		trackEvent({ name: 'xray_shared', method: 'native_share' })
 		if (navigator.share) {
 			await navigator.share({
 				title: 'My Time X-Ray',
-				text: 'Check out my screen time breakdown',
+				text: shareText,
 				url: shareUrl,
 			})
 		} else {
@@ -29,8 +42,27 @@ export function XRayCardActions({ xrayId }: { xrayId: string }) {
 		setTimeout(() => setCopied(false), 2000)
 	}
 
+	const handleSaveImage = useCallback(async () => {
+		if (!cardRef?.current || saving) return
+		setSaving(true)
+		trackEvent({ name: 'xray_shared', method: 'save_image' })
+		try {
+			const { toPng } = await import('html-to-image')
+			const dataUrl = await toPng(cardRef.current, { pixelRatio: 2 })
+			const link = document.createElement('a')
+			link.download = `time-xray-${xrayId}.png`
+			link.href = dataUrl
+			link.click()
+		} catch {
+			// Fallback to copy link
+			await navigator.clipboard.writeText(shareUrl)
+		} finally {
+			setSaving(false)
+		}
+	}, [cardRef, xrayId, saving, shareUrl])
+
 	return (
-		<Flex gap={3} justifyContent="center" paddingBlock={4}>
+		<Flex gap={2} justifyContent="center" flexWrap="wrap" paddingBlock={4}>
 			<styled.button
 				onClick={handleShare}
 				display="flex"
@@ -47,10 +79,37 @@ export function XRayCardActions({ xrayId }: { xrayId: string }) {
 				cursor="pointer"
 				transition="opacity 0.2s"
 				_hover={{ opacity: 0.8 }}
+				_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
 			>
 				<Share2 size={14} />
 				Share
 			</styled.button>
+
+			{cardRef && (
+				<styled.button
+					onClick={handleSaveImage}
+					disabled={saving}
+					display="flex"
+					alignItems="center"
+					gap={2}
+					paddingInline={4}
+					paddingBlock={2}
+					bg="surfaceContainerHigh"
+					borderRadius="full"
+					fontSize="sm"
+					fontWeight="500"
+					color="primary"
+					border="none"
+					cursor="pointer"
+					transition="opacity 0.2s"
+					_hover={{ opacity: 0.8 }}
+					_disabled={{ opacity: 0.6, cursor: 'wait' }}
+					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
+				>
+					<Download size={14} />
+					{saving ? 'Saving\u2026' : 'Save image'}
+				</styled.button>
+			)}
 
 			<styled.button
 				onClick={handleCopy}
@@ -68,6 +127,7 @@ export function XRayCardActions({ xrayId }: { xrayId: string }) {
 				cursor="pointer"
 				transition="opacity 0.2s"
 				_hover={{ opacity: 0.8 }}
+				_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
 			>
 				{copied ? (
 					<>
@@ -76,7 +136,7 @@ export function XRayCardActions({ xrayId }: { xrayId: string }) {
 					</>
 				) : (
 					<>
-						<ExternalLink size={14} />
+						<Copy size={14} />
 						Copy link
 					</>
 				)}

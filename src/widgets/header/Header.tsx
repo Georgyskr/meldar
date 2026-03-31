@@ -42,6 +42,18 @@ export function Header() {
 					</styled.a>
 				</Flex>
 				<Flex alignItems="center" gap={3}>
+					<styled.a
+						href="/discover"
+						fontSize="sm"
+						fontWeight="500"
+						color="onSurfaceVariant"
+						textDecoration="none"
+						transition="color 0.15s ease"
+						_hover={{ color: 'onSurface' }}
+						_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
+					>
+						Discover
+					</styled.a>
 					<FocusModeToggle />
 					<styled.a
 						href="/xray"

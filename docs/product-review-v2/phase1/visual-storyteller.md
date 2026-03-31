@@ -1,237 +1,137 @@
-# Visual Storyteller Review -- Phase 1 Features
+# Visual Storyteller Review — Discovery Form Overhaul
 
-## 1. Shareable Card Designs
-
-The existing Time X-Ray card (`XRayCard.tsx`) establishes a strong pattern: gradient header strip (#623153 to #FFB876), warm cream body (#faf9f6), Bricolage Grotesque numbers, Inter labels, 440px max width, `xl` border radius. This is the "Meldar receipt" format. Each new tool should follow this structural skeleton but vary the content layout inside it.
-
-### ChatGPT Conversation X-Ray Card
-
-**Header strip:** Keep the Meldar gradient. Title: "YOUR CHAT X-RAY."
-**Layout:** Single-column receipt, not the 2x3 grid used in the landing page `DataReceiptSection`. Conversations are narrative, not tabular.
-
-Content rows, top to bottom:
-- **Total conversations** (large number, Bricolage 2xl, right-aligned) with date range in `onSurfaceVariant` left-aligned
-- Divider
-- **Top 3 repeated topics** -- numbered list, each with conversation count in `primary` color. Example: "1. Python debugging -- 14 times"
-- Divider
-- **"Still unsolved" count** -- a single stat row. Left: "Topics you asked about 3+ times." Right: bold number in a warning-toned color (use `#D97706`, a warm amber that sits between the mauve and orange of the gradient -- not red, which feels punitive)
-- Divider
-- **Insight quote** in italic, same pattern as XRayCard: "You asked about meal planning 11 times but never got a working solution."
-- Footer: "meldar.ai" left, "See your full report" right in `primary`
-
-**Why not a unique visual language per tool:** Every card must be instantly recognizable as a Meldar artifact when screenshotted. A unified card shell (gradient header, cream body, meldar.ai footer) is the brand frame. The content inside varies, but the container is sacred. This is how Spotify Wrapped works -- every card looks like Wrapped, but the data is different.
-
-### Subscription Autopsy Card
-
-**Header strip:** Same Meldar gradient. Title: "YOUR SUBSCRIPTION AUTOPSY."
-**Layout:** Financial data calls for a tighter receipt aesthetic -- closer to an actual paper receipt.
-
-Content rows:
-- **Monthly total** -- Bricolage 3xl, bold, `primary` color, centered. Example: "EUR 127.40/mo"
-- **Yearly projection** -- smaller, below, in `onSurfaceVariant`. "EUR 1,528.80/year"
-- Divider (dashed, like a receipt tear line -- `border-style: dashed`, `outlineVariant/20`)
-- **Subscription list** -- left-aligned names, right-aligned monthly costs. Each row gets a status indicator:
-  - Active + used: no indicator needed
-  - Active + unused 30+ days: amber dot (#D97706)
-  - Active + unused 90+ days ("zombie"): red-ish dot (#BA1A1A, already in the codebase for negative items in `TrustSection`)
-- Divider (dashed)
-- **"Zombie total"** -- a summary row. "Unused subscriptions: EUR 34.90/mo." Number in the warning amber.
-- **Insight quote** in italic: "You've paid EUR 418 this year for apps you haven't opened."
-- Footer: same as all cards
-
-**Visual distinction from ChatGPT card:** The dashed dividers (vs solid) give it a transactional/receipt feel. The dot status indicators add a scan-and-spot pattern that makes the "waste" jump out visually without needing charts.
-
-### Actionable Screen Time Card
-
-This extends the existing `XRayCard` rather than replacing it. After the current X-Ray data, add a new section:
-
-- Divider
-- **"Your fix plan"** header in Bricolage, `primary` color
-- 3 numbered steps, each with: a one-line action in `onSurface` bold, a one-line reason in `onSurfaceVariant`. Example: "1. Set Instagram daily limit to 45 min. -- You averaged 2.1h/day last week."
-- These steps should feel like a prescription, not a lecture. Short, directive, specific.
-
-The shareable version truncates to 2 steps + "See full plan at meldar.ai."
+**Scope:** The recent visual overhaul to the discovery form: `XRayCard.tsx`, `UploadZone.tsx`, `ContextChip.tsx`, `ResultEmailCapture.tsx`, `xray-client.tsx`, `globals.css` animations, and the OG image route.
 
 ---
 
-## 2. ADHD Mode Visual Treatment
+## Overall Verdict
 
-### Guiding Principle
-
-ADHD Mode is not a separate product or a disability label. It is an alternative sensory environment for anyone who finds the default UI overwhelming. The toggle should be as casual as dark mode -- no explanation required, no medical language, no "accessibility" framing that others the user.
-
-### What Changes
-
-**Color temperature:**
-- Default surface #faf9f6 (warm cream) shifts to #f5f2ee (slightly warmer, lower contrast)
-- Primary #623153 softens to #7a4a6a (10% lighter, less saturated) -- still recognizably mauve
-- The gradient accent stays but drops opacity to ~70% so it feels like a glow rather than a beam
-- Text contrast ratios must stay above WCAG AA (4.5:1 for body, 3:1 for large text) -- softer does not mean inaccessible
-
-**Typography:**
-- Body font size increases from the current `sm`/`base` to `base`/`lg` (roughly +2px)
-- Line height increases from `relaxed` to `loose` (1.75 vs 1.625)
-- Letter spacing on body text opens slightly: `0.01em`
-- Headlines stay Bricolage but drop from `700` to `600` weight -- still bold, but less aggressive
-
-**Density:**
-- Padding on cards increases by ~25% (`padding: 8` becomes `padding: 10`)
-- Gap between sections increases proportionally
-- Fewer items visible at once -- if a list has 6 items, show 3 with a "Show more" rather than all 6
-
-**Copy tone:**
-- Same information, shorter sentences
-- Replace urgency words ("right now", "immediately", "don't miss") with calming alternatives ("whenever you're ready", "take your time", "no rush")
-- Replace exclamation marks with periods
-
-### The GIFs / Ambient Elements
-
-**Recommended style: Abstract slow-motion loops.** Not nature (too screensaver-y), not pixel art (too gamer-coded), not lava lamps (too novelty).
-
-Think: soft gradient blobs that morph very slowly. Like the iOS wallpaper animations but at 0.2x speed. Or ink diffusing in water, shot from above. Or aurora borealis abstracted into two-tone washes of the Meldar palette (mauve fading into warm amber).
-
-**Where they appear:**
-- Behind form fields during multi-step flows (quiz, upload) -- as a CSS `background` on the container, not as a foreground element. The blob should be blurred (`filter: blur(80px)`) and at ~5-8% opacity so it is felt, not watched.
-- On loading/processing states -- instead of a spinner, a slow breathing circle that expands and contracts (CSS animation, no GIF needed, `scale(1)` to `scale(1.05)` over 3 seconds, `ease-in-out`, infinite).
-- NOT on results pages. Results need clarity. The ambient elements are for transitions and waiting moments.
-
-**Implementation note:** Prefer CSS animations (`@keyframes`) and SVG filters over actual GIF files. GIFs are heavy, cannot match the color palette precisely, and introduce compression artifacts on the subtle gradients Meldar uses. A single `<div>` with `background: radial-gradient(...)` and a slow `transform: translate()` keyframe achieves the blob effect at zero network cost.
-
-### How It Feels Different Without Being Othering
-
-- The toggle is labeled "Calmer mode" or "Focus mode" -- not "ADHD Mode" in the UI. (The feature name "ADHD Mode" is internal/marketing only.)
-- It lives in a settings panel alongside other preferences (dark mode, notification frequency), not in a special "accessibility" section.
-- No tooltip or explanation attached. Dark mode doesn't explain why someone might want it. Neither does this.
-- The transition between modes is a 300ms cross-fade, not a jarring switch. Everything eases into the new state.
+The update moves meaningfully toward the brand brief. It is not generic AI slop. Several choices are genuinely distinctive. But a few areas still feel unresolved — particularly the transition between the scan phase and the result, and the OG image, which has not caught up to the card's new quality bar.
 
 ---
 
-## 3. The Discovery Hub Page (`/discover`)
+## 1. The Scan Aesthetic: Pulsing Border + Sweep Line
 
-### Current State
+**Is it distinctive or gimmicky?**
 
-Currently `meldar.ai/discover` does not exist as a built page. The landing page hero offers two entry points (XRay upload and Pain Quiz). With four tools, this needs a dedicated hub.
+Distinctive — conditionally. The implementation is restrained: `scanPulse` is a box-shadow ripple at 15% opacity (rgba(98, 49, 83, 0.15)), not a neon glow. The scan line uses the brand gradient (`transparent, #623153, #FFB876, transparent`) at only 2px height. These are calibrated choices that stay inside the Meldar color story.
 
-### Recommended Layout: Card Grid with Progressive Disclosure
+What makes it work is the *meaning* alignment. A scan line is a literal X-Ray metaphor. The product is called Time X-Ray. The animation earns its existence — it is not decoration for decoration's sake.
 
-**Not tabs.** Tabs hide content and force the user to guess which tab has what they need. Our users are non-technical -- they need to see all options at once.
+What could make it feel gimmicky: if the animation runs too long with no feedback. The scan line is on a 2-second loop (`scanLine 2s ease-in-out infinite`). If the real API takes 8-15 seconds, the user watches this loop 4-7 times. At loop 3 or 4, "scan" starts feeling like "stall." Consider whether there is a way to visually progress the scan line speed or intensity over time to signal that something is actually happening rather than repeating.
 
-**Not a single scrolling page.** Four tools is not enough content for a long scroll. It would feel thin.
+**Step indicators: strong but incomplete.** The four-step progress list (Compressing → Uploading → Detecting → Generating) is good information architecture. The `gentleBreathe` animation on the active step label (`opacity: 0.4 → 1, 1.5s infinite`) is subtler than a spinner and matches the "editorial, warm" brief. However the step indicator circles are empty when current (`isCurrent ? 'primary/15' : ...` with no visible content inside). An empty ring with a pulsing label alongside it is redundant visual language — the ring does nothing when the label already breathes.
 
-**A 2x2 card grid** on desktop, stacking to 1-column on mobile. Each card is a self-contained entry point:
-
-```
-+---------------------------+---------------------------+
-|  [Icon]                   |  [Icon]                   |
-|  Screen Time X-Ray        |  ChatGPT Conversation     |
-|  "See where your hours    |  X-Ray                    |
-|  actually go."            |  "What have you really    |
-|  [Upload screenshot ->]   |  been asking AI?"         |
-|                           |  [Upload export ->]       |
-|  ~30 seconds              |  ~2 minutes               |
-+---------------------------+---------------------------+
-|  [Icon]                   |  [Icon]                   |
-|  Subscription Autopsy     |  Pick Your Pain           |
-|  "Find the apps eating    |  "15 seconds. Zero data.  |
-|  your wallet."            |  Instant suggestions."    |
-|  [Connect accounts ->]    |  [Start quiz ->]          |
-|                           |                           |
-|  ~3 minutes               |  ~15 seconds              |
-+---------------------------+---------------------------+
-```
-
-**Card anatomy (following existing patterns from `HeroSection.tsx`):**
-- `surfaceContainerLowest` background, `xl` border radius
-- Border: `1px solid outlineVariant/20`, hover state: `primary/20`
-- 40px icon circle with the Meldar gradient (same pattern as hero cards)
-- Bricolage heading, Inter description
-- Time estimate in `2xs` uppercase, `outlineVariant` color -- this is critical for the effort escalation funnel. Users self-select based on how much time they want to invest.
-- CTA link in `primary` color with arrow icon
-
-**Page header:**
-- "Your Discovery Tools" in Bricolage, section heading size
-- Subtitle: "Each one shows you something different. Start with whichever catches your eye."
-- Below subtitle: a subtle horizontal line with the Meldar gradient (same treatment as the trust section separator)
-
-**Order of cards (top-left to bottom-right, reading order):**
-1. Screen Time X-Ray -- lowest effort, already proven
-2. ChatGPT Conversation X-Ray -- new, curiosity-driven
-3. Subscription Autopsy -- financial, slightly higher commitment
-4. Pick Your Pain -- zero-data fallback, always available
-
-**ADHD/Focus Mode variant:**
-- Grid becomes 1-column with larger cards
-- Each card shows only the headline and CTA, with description hidden behind a "Learn more" tap
-- More breathing room between cards
+**Recommendation:** Put a small animated dot or a Meldar-palette SVG spinner inside the current-step circle. Or remove the ring entirely from the current state and only show it filled (checkmark) on completion. One signal is better than two non-coordinated signals.
 
 ---
 
-## 4. Brand Consistency Across Tool Colors
+## 2. XRayCard: Does It Create the "Spotify Wrapped" Moment?
 
-### The Problem
+**Gradient header: yes.** The header gradient (`#623153 → #874a72 → #FFB876`) with the noise texture overlay at 6% opacity is the right call. The noise adds tactile depth to what would otherwise be a flat gradient — this is the kind of detail that reads as "premium" at first glance and "thoughtful" when examined. The 6% opacity is correct; higher would look dirty, lower would be invisible.
 
-Four tools could introduce four competing color identities:
-- ChatGPT green (#10a37f)
-- Subscription "money" blue or green
-- Screen Time mauve (existing)
-- ADHD pastels
+The big number (`totalHours`, Bricolage fontWeight 800, fontSize 4xl/5xl, letterSpacing -0.03em, color white) succeeds at the hero-number moment. It is large, confident, and sits in the right typographic hierarchy. The `hrs/day` label in `white/70` at `md` size creates the right contrast without competing.
 
-This fragments the brand. The landing page currently has exactly one color story: mauve-to-orange gradient on cream. Everything reads as Meldar.
+**"Your Time X-Ray" label and "meldar.ai" watermark** in the header use `xs` uppercase with `letterSpacing: 0.1em`. This is the correct treatment for a label/brand lockup — it reads as a stamp, not a headline.
 
-### The Solution: Meldar Mauve Is the Container. Tool Accents Are Interior Details.
+**Data bars: effective but the rank-1 bar competes with itself.** The top app bar uses `linear-gradient(90deg, #623153, #FFB876)`. This is a visually interesting choice — the highest bar earns the full brand gradient. But it introduces a problem: the gradient start (#623153) is very close to the `primary/25` fill used on bars 2-5. At small bar widths (< 30%), the gradient bar can look similar to the muted bars, defeating the hierarchy. The distinction is clearer when the top app dominates the chart (wide bar), ambiguous when usage is more evenly distributed.
 
-**Rule: Every card, page, and header uses the Meldar gradient and mauve palette as the structural frame.** Tool-specific colors appear only as small interior accents -- icon fills, stat highlights, chart segments.
+The `barFill` animation (`scaleX(0) → scaleX(1), 0.6s ease-out`) with staggered delays (0.1 + i * 0.08s) is a satisfying micro-moment. The bars do not just appear — they grow. This matches the "reveal" framing of the X-Ray brand.
 
-**Tool accent palette (all derived from the Meldar gradient spectrum):**
+**Stats row:** `Daily pickups` and `Top app` numbers use the same `counterUp` animation (`translateY(8px) → 0, opacity 0 → 1, 0.5s`). These numbers animate independently from the bars. The result is that the card reveals itself in layers: header first, then bars, then stats. This layering is exactly the Spotify Wrapped model — each element commands attention before the next arrives. **This works.**
 
-| Tool | Interior Accent | Rationale |
-|------|----------------|-----------|
-| Screen Time X-Ray | #623153 (mauve) | The original. Stays as-is. |
-| ChatGPT X-Ray | #8B6914 (warm ochre) | Sits on the orange end of the Meldar gradient. Avoids ChatGPT's green entirely -- we are not OpenAI's brand. |
-| Subscription Autopsy | #D97706 (amber) | Financial urgency without corporate blue. The "warning" color already natural to the gradient. |
-| Pick Your Pain | #623153 (mauve) | Same as Screen Time. It's a quiz, not a tool with its own data output. |
+**Insight quote** in italic `body.sm` at `onSurface/80` is understated. It is not visually arresting, which is intentional — it should be the quiet punctuation after the data shock. Fine.
 
-**What we explicitly avoid:**
-- ChatGPT green. Meldar is not a ChatGPT wrapper. Using their green makes us look derivative.
-- Finance blue. Every fintech uses blue. Meldar is warm, not clinical.
-- Any color outside the mauve-to-amber spectrum. The gradient is the brand. Stay inside it.
+**Is it screenshot-worthy at thumbnail size?** At 440px, the gradient header with a large white number reads strongly at small sizes. The bar chart creates a "chart spike" visual that is instantly legible as data. At thumbnail/social-card size the card reads as "something personal and striking." Yes — someone would screenshot this.
 
-**ADHD/Focus Mode colors** are not a separate palette -- they are the same palette at reduced saturation and slightly shifted lightness. The hue remains recognizably Meldar.
+**Missing at thumbnail size:** The card has no explicit date period marker ("week of March 24-30" or "7-day average"). Spotify Wrapped cards always carry the year. A shared X-Ray without a time anchor feels like an incomplete artifact. This is a content gap more than a visual gap, but it affects shareability.
 
 ---
 
-## 5. The Viral Card
+## 3. ContextChip: Chip Design
 
-### Which tool produces the most screenshot-worthy output?
+The four life-stage chips (Student, Working, Freelance, Job hunting) follow a clean selection-state pattern: border goes from `outlineVariant/20` to `primary`, bg adds `primary/6`, scale bumps to 1.03 with a shadow. This is solid interactive feedback.
 
-**Ranking by viral potential:**
+**The color accent array in the component (`#7c3aed`, `#623153`, `#b45309`, `#0f766e`) is unused.** Each option defines an `accent` property, but the component renders all chips using the brand primary color for selected state, ignoring the per-chip accent. This is the right call — using four different colors on four chips would fragment the brand. But the unused `accent` fields are dead weight that imply a different visual direction was considered and not cleaned up.
 
-**1st: Subscription Autopsy** -- "I'm paying EUR 127/month for apps I don't use" is the kind of statement that makes people screenshot, tag friends, and say "I need to check mine." Financial waste is universally relatable, mildly embarrassing, and actionable. It has the same energy as those "your Uber spend this year" screenshots that go viral on Twitter/X every December. The receipt-style card format is already optimized for this -- it looks like a bill, and bills shock people.
+**Icon treatment:** `strokeWidth={isSelected ? 2 : 1.5}` on selection is a subtle but effective touch. Stroke weight as a selection signal is uncommon enough to feel designed, not template-generated.
 
-**2nd: Screen Time X-Ray** -- Already proven with the existing implementation. "7.2 hours/day" is a confrontational number. But it has diminishing novelty -- Apple shows this natively now, so the shock factor has faded since 2018.
-
-**3rd: ChatGPT Conversation X-Ray** -- "You asked about Python debugging 47 times" is funny and self-aware, but it appeals to a narrower audience (people who use ChatGPT heavily). Within that audience, it is extremely shareable -- tech Twitter/X would love it.
-
-**4th: Pick Your Pain** -- Quiz results are shareable ("I'm a Chronic Tab Hoarder") but they lack the data shock factor. Quizzes drive engagement through participation, not through output sharing.
-
-### Recommendation for Maximum Virality
-
-**Lead with Subscription Autopsy for social media marketing.** Design the card to be portrait-oriented (1080x1350, Instagram-native), with the monthly waste total as the hero number in Bricolage 4xl. Include a "Get your own Subscription Autopsy free at meldar.ai" footer.
-
-**For OG/Twitter cards** (1200x630 landscape), keep the existing X-Ray format but add a second card variant for Subscription Autopsy with the monthly total as the dominant visual element.
-
-The ideal viral loop: User gets their Subscription Autopsy -> screenshots the card -> posts "I can't believe I'm paying EUR 127/mo for zombie apps" -> friends click through to meldar.ai/discover -> they start with Screen Time X-Ray (lowest friction) -> they try Subscription Autopsy next -> they share their own card.
+**Gap between chips:** `gap={2}` in a `flexWrap="wrap"` row. On mobile, "Job hunting" may wrap to a new line while other chips stay on the first, creating an orphaned single chip at the bottom. This is visually awkward. On a 375px phone, "Job hunting" (with icon) is ~130px wide and may not fit in line with `gap={2}` padding. Worth checking at that viewport.
 
 ---
 
-## 6. Questions for QA
+## 4. ResultEmailCapture: Warmer Email Capture
 
-1. **Focus Mode toggle persistence:** If a user enables Focus Mode and then returns in a new session, does the preference survive? Should it use `localStorage` (same pattern as cookie consent), or should it require an account to persist? If `localStorage`, what is the key name, and does clearing cookies/storage reset it?
+The previous email capture pattern (raw input + button) has been replaced with a card that has:
+- A branded icon well (36x36, `primary/6` bg, Mail icon in #623153)
+- A two-line heading/subheading pair in Bricolage/Inter
+- An input row with a gradient-fill submit button
 
-2. **Subscription Autopsy data source:** The card design assumes structured subscription data (name, monthly cost, last-used date). What is the actual data input -- bank CSV upload? Email receipt scanning? Manual entry? The card layout depends on whether we have precise "last opened" dates (which produce the zombie classification) or only billing data (which only shows cost, not usage).
+**This is better.** The icon + headline treatment gives the email capture the same structural language as the X-Ray card sections — it looks like it belongs in the same product. The gradient button (`#623153 → #874a72`) matches the UploadZone's "Choose image" button, creating visual consistency across the upload-to-capture flow.
 
-3. **ChatGPT export format stability:** ChatGPT's export format (the JSON from Settings > Data Controls > Export) has changed structure at least twice. Is there a validation/parsing layer that handles format variations, or does the card design need to account for partial/missing data fields (e.g., no conversation titles in older exports)?
+**The success state** (checkmark, "You're in.", tips copy) is appropriately low-key. It does not say "Welcome to Meldar" or clutter the moment. The `meldarFadeSlideUp 0.4s ease-out both` transition is smooth.
 
-4. **Shareable card rendering:** The existing X-Ray uses `next/og` ImageResponse for OG cards. Will the new tools follow the same server-rendered approach, or is there a plan for client-side canvas/SVG rendering (which would allow animated cards, but adds bundle size)? This affects whether the card designs can include visual elements beyond what `next/og` supports (it does not support CSS animations, blur filters, or custom fonts without explicit registration).
+**One gap:** There is no privacy signal adjacent to the email input. The upload zone has "Processed in ~3 seconds. Deleted immediately. Never stored." below it with a Shield icon. The email capture has no equivalent. For the target audience (Gen Z, privacy-conscious), adding a single `xs` line — "No spam. Weekly tips only. Unsubscribe anytime." — near the input would reduce friction. The pattern is established in the product; it just is not applied here.
 
-5. **Focus Mode and screen readers:** The visual changes (softer colors, larger text, more spacing) are purely aesthetic. But the copy changes ("whenever you're ready" vs "right now") alter the information hierarchy. Should screen reader users get Focus Mode copy by default, or should the copy variant be independent of the visual toggle? WCAG does not require calmer language, but it would be a meaningful UX choice to separate the two concerns.
+---
+
+## 5. Visual Language Consistency: Upload → Processing → Result
+
+**Upload → Processing:** Consistent. The same `surfaceContainerLowest` card, same 20px border radius, same Meldar primary colors, transitions between states within the same element. The `scanPulse` border glow on processing is a clear state change without a jarring layout shift. Clean.
+
+**Processing → Result:** This is where the coherence breaks down. The upload card fades out entirely and the result phase re-enters as a full page swap with a new `VStack gap={8}` and a `meldarFadeSlideUp 0.5s` animation. There is no visual bridge between the scanning card and the X-Ray card. The user goes from a contained 480px upload box to a full-page result layout with multiple staggered elements. It is not jarring — the fade-in is smooth — but it is a missed opportunity. The X-Ray card appearing as if it materialized from the upload zone (a position/transform transition rather than a fade) would reinforce the X-Ray metaphor more powerfully. Currently, the transition feels like a page navigation rather than a reveal.
+
+**Processing → Result timing:** The longest stagger delay is 1200ms (bottom action buttons). At that total delay, some users will have scrolled before the email capture or upsell blocks have appeared. Consider whether the stagger window is too long. 800ms total for the primary elements (card, actions, email) would be tighter without losing the cascading reveal effect.
+
+---
+
+## 6. Noise Texture Overlay
+
+At 6% opacity (`opacity={0.06}`), the SVG feTurbulence noise in the gradient header is at the correct threshold — it adds perceived texture without introducing visible grain. It is genuinely a depth-adding detail. This does not appear on any other surface in the card, which is the right call. Noise everywhere would feel chaotic; noise only in the gradient header gives that section a different tactile register from the clean cream body.
+
+**No concerns here.** This is a well-calibrated choice.
+
+---
+
+## 7. FocusAmbient Background
+
+The ambient blobs (two radial gradients in mauve and peach, animating on 35s and 40s loops) are gated behind a `focusMode` flag. They do not appear for all users, only those who have enabled focus mode. This is the correct decision — ambient motion that the user did not request is an accessibility concern.
+
+The blob colors (`rgba(98,49,83,0.08)` and `rgba(255,184,118,0.06)`) are deliberately invisible at a glance and only perceptible in the peripheral vision. This is exactly the right opacity for background ambience. The animation durations (35s, 40s, 30s) prevent the loops from feeling repetitive.
+
+---
+
+## 8. OG Image: Has Not Caught Up
+
+The `og/route.tsx` renders a 1200x630 card using `next/og` ImageResponse. The card design is structurally correct (gradient header, cream body, Meldar brand watermark) but the execution lags the in-browser card by several iterations:
+
+- **The big number is in a flex row as `xray.totalHours` + "h/day"** as plain text, not the Bricolage-weight typographic statement from the real card. It reads as "data" rather than "your number."
+- **No bar chart.** The OG image shows only 3 app names with their hour values in a plain list. The bar chart is the most visually compelling element of the X-Ray card and it is entirely absent from the social share version.
+- **Footer text** ("Get your own free X-Ray at meldar.ai") uses `color: #999` on `#faf9f6` — approximately 2.3:1 contrast ratio, below WCAG AA. This matters less for OG images (not interactive) but the text is nearly invisible at social thumbnail sizes.
+- **No noise texture, no insight quote.** The OG card is a data readout; the in-browser card is an experience. When someone shares the OG link, it conveys less of the brand than a screenshot would.
+
+The OG image is the social proof vector. If someone shares a Meldar X-Ray on a messaging platform, the unfurl card is what their contacts see. Currently that card is functional but not compelling. Improving it to more closely mirror the in-browser card (particularly adding the bar chart as SVG and increasing the hero number scale) would measurably improve link preview click-through.
+
+---
+
+## 9. Does It Feel Like Meldar or Generic AI?
+
+It feels like Meldar. The specific combination of elements — deep mauve (#623153) as the structural color, the warm amber (#FFB876) gradient terminus, Bricolage Grotesque at high weights for numbers, the warm cream surface (#faf9f6-adjacent tokens), the scan-line metaphor tied directly to the X-Ray product name — is not a generic AI product palette. The prevailing AI product aesthetic in 2024-2025 is either clean white/black (OpenAI) or electric blue/purple (Perplexity, Gemini). Meldar's mauve-to-amber on warm cream is a recognizable departure.
+
+What preserves distinctiveness: the noise texture in the gradient header, the scan line using the brand gradient rather than a generic blue, and the staggered reveal treating the result as a moment rather than a data dump.
+
+What still risks genericness: the processing step indicators (empty ring + breathing text) resemble patterns seen in dozens of AI tools. The error state (red circle with "!" icon) is entirely generic. Neither of these are the primary visual surface, but they are visible during two of the most emotionally significant moments (waiting, failing).
+
+---
+
+## Questions for QA to Verify on the Live Site
+
+1. **Scan line animation timing vs actual API latency:** What is the p50 and p95 response time for `/api/upload/screentime`? Does the 2-second `scanLine` loop feel adequately responsive, or does it loop 5+ times before a result arrives? If p95 > 10s, the looping scan starts to feel like a frozen spinner.
+
+2. **ContextChip mobile wrapping at 375px:** Does "Job hunting" chip (with Search icon) wrap to a second row on 375px viewport, creating a single orphaned chip? Check both iOS Safari and Chrome Android.
+
+3. **barFill animation in reduced-motion contexts:** The bar width is set via inline `style.width` with CSS animation on `transform: scaleX`. Does `prefers-reduced-motion` suppress the `barFill` animation? If so, do bars appear at full width immediately or at zero width (invisible data)?
+
+4. **OG image contrast at social thumbnail size:** At 200x105px (typical Slack/Telegram unfurl thumbnail), is the app list text legible? Does the gradient header communicates the Meldar brand, or does it read as an undifferentiated colored banner?
+
+5. **ResultEmailCapture layout on narrow viewport in result phase:** The email input and button use `flexDir={{ base: 'column', sm: 'row' }}`. On a 375px phone in the result phase (which already has `paddingInline={5}`), does the stacked column layout have enough vertical breathing room between the input and the stagger-revealed elements above and below it?

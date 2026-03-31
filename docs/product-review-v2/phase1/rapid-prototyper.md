@@ -566,3 +566,118 @@ All four features follow the same architecture:
 - **B:** None (reuses existing `ANTHROPIC_API_KEY` via SDK)
 - **C:** None (rule-based)
 - **D:** Optional `NEXT_PUBLIC_GIPHY_API_KEY` if switching from curated to API-based GIFs
+
+---
+
+## Codebase Audit — "Ship in 4 Hours" Lens
+
+*Added 2026-03-31 after direct codebase read. This section audits the current state of the funnel, identifies dead code, and prioritizes the minimum work to get 10 real users through to payment.*
+
+### Current State
+
+The 4-phases → 2-phases redesign (`scan` → `result`) in `xray-client.tsx` was the right call. The flow is structurally complete:
+
+```
+/ (landing) → /quiz → /xray (upload + inline result) → /xray/[id] (shareable)
+```
+
+Billing is wired: Stripe Checkout (`/api/billing/checkout`) + webhook (`/api/billing/webhook`) + thank-you page exist and work. The upsell block is connected in the result phase. The funnel is closer to launchable than the backlog implies.
+
+---
+
+### What to Ship First (Prioritized by Impact per Hour)
+
+#### 1. Create `/xray/[id]/og` route — 60 min, HIGHEST IMPACT
+
+The shareable card at `/xray/[id]` references `/xray/[id]/og` in its OpenGraph metadata (both `page.tsx` and `generateMetadata`). **That route does not exist.** Every share produces a broken preview image.
+
+The viral loop — upload → share → friend clicks → "Get your own" — only activates when the shared link has a compelling card. Without this, every share is dead traffic.
+
+**Implementation:** `src/app/xray/[id]/og/route.tsx` using Next.js `ImageResponse`. Pull `totalHours`, `topApp`, `pickups` from DB (same query already in `page.tsx`). Brand card: deep mauve gradient, Bricolage Grotesque headline, "Time X-Ray by Meldar" footer.
+
+#### 2. Fix CTA links in TiersSection and mid-page — 15 min, REVENUE-BLOCKING
+
+The plan doc (`03-frontend-ux-final.md §3`) already identified this: landing page CTAs still point to `#early-access` instead of `/xray`. Users who scroll to the Tiers section with purchase intent hit a broken CTA that scrolls them back to the hero email form. This is revenue-blocking.
+
+**Files to change:** `src/widgets/landing/TiersSection.tsx`, any `href="#early-access"` in widget files.
+
+#### 3. Pass quiz selections into the /xray URL — 45 min
+
+`PainQuiz` results send users to `/xray` with no context. The `LifeStage` chip on `/xray` is generic; it doesn't know what the user named in the quiz. The result feels like a cold restart rather than a continuation.
+
+**Fix:** When navigating from quiz results, append selected pain IDs to the URL: `/xray?pains=meal_planning,email`. In `XRayPageClient`, read `useSearchParams()` and pre-select the closest matching `LifeStage` or surface a quiz-aware contextual headline. Entirely client-side, no DB needed.
+
+#### 4. Add a Twitter/X share intent to `XRayCardActions` — 30 min
+
+The share button exists but likely only copies the link. A pre-filled tweet — "I spend X hrs/day on [app]. Got my Time X-Ray free in 30 seconds → [link]" — doubles organic share rate. One `window.open` call.
+
+#### 5. Add exit CTAs to `/discover/overthink` and `/discover/sleep` — 20 min
+
+Both quiz pages exist and work but dump the user into a dead end after completion. Add a "Now get your real numbers — 30 seconds" button pointing to `/xray` at the end of each quiz result.
+
+---
+
+### Dead Code — Delete Now
+
+**`src/features/screenshot-upload/ui/ScreenshotGuide.tsx`** is completely orphaned.
+
+Evidence:
+- Not exported from `src/features/screenshot-upload/index.ts` (barrel only exports `ContextChip`, `ResultEmailCapture`, `UploadZone`)
+- No file imports it anywhere in the codebase
+- Its instructions were folded into `UploadZone.tsx` as an inline collapsible toggle (lines 299-413)
+
+It is the old standalone guide component, superseded by the redesign. 220 lines of dead code. Delete it.
+
+---
+
+### Auth System — Defer, Do Not Touch
+
+`src/app/api/auth/` contains 6 routes: register, login, forgot-password, reset-password, verify-email, me. `src/server/identity/` has JWT signing and password hashing. There are integration tests for all routes.
+
+**Nothing in the current UI consumes any of this.** There is no `/login` page, no dashboard, no session check, no `useAuth` hook, no middleware. The auth system is pre-built for Phase 3, which the plan explicitly defers until after `/dashboard` is on the roadmap.
+
+The plan is explicit: "Identity = Stripe customer email + signed delivery tokens" for Phase 2. The billing system already captures email correctly via Stripe's `customer_email`. No auth is needed until `/dashboard` is built.
+
+**Verdict:** Correct, tested code — but frozen. No new UI should reference it until Phase 3. Do not delete; do not extend.
+
+---
+
+### Components Connected to Nothing
+
+| Component / Route | Status |
+|---|---|
+| `ScreenshotGuide.tsx` | Orphaned — not exported, not imported anywhere. Delete. |
+| `/discover` hub | Page exists at `src/app/discover/page.tsx`, not linked from landing page or header |
+| `/discover/overthink`, `/discover/sleep` | Quizzes work, no exit CTA back to `/xray` funnel |
+| `/coming-soon` | Reached when `product === 'starter'`; links to `twitter.com/meldar_ai` and `discord.gg/meldar` — verify these exist |
+| Auth system (6 API routes + identity utilities) | Built, tested, no UI consumers |
+| `/xray/[id]/og` | Referenced in metadata, does not exist |
+
+---
+
+### Fastest Path to 10 Real Users Through the Full Funnel
+
+The funnel steps and their current status:
+
+1. `/` → Hero email capture — works
+2. → `/quiz` → pick pains → see results — works
+3. → `/xray` → upload screenshot → see X-Ray — works (but cold restart, no quiz context)
+4. → Upsell: "Personal Time Audit — EUR 29" → Stripe Checkout — works
+5. → Purchase → `/thank-you` → "audit delivered in 72 hours via email" — works
+6. → Share `/xray/[id]` → friend sees OG card — BROKEN (missing og route)
+
+The three minimum fixes to make the funnel real: **OG image route** (activates viral), **CTA link fixes** (unblocks revenue), **quiz → xray context pass** (improves conversion of the warmest users).
+
+---
+
+### Questions for the QA Agent to Verify on Live Site
+
+1. Do landing page CTAs in TiersSection and any mid-page "See what eats your time" links navigate to `#early-access`, `/xray`, or something else? Specifically test the "Get started free" button in the How It Works section and all three tier buttons.
+
+2. When sharing a `/xray/[id]` URL on Twitter/X or iMessage, does it produce a rich link preview with an image? Or does it fall back to the default site OG (confirming the `/og` subroute is missing)?
+
+3. After completing the Overthink quiz at `/discover/overthink` or the Sleep quiz at `/discover/sleep`, is there a CTA pointing to `/xray`? Or does the result state dead-end?
+
+4. Does `/discover` appear anywhere in the header nav or landing page? Or is it only reachable by direct URL?
+
+5. Does clicking "AI Automation Toolkit — EUR 9.99/mo" in the upsell block correctly redirect to `/coming-soon`? And does the `/coming-soon` page load without errors (the Twitter and Discord links on that page may be placeholder URLs)?

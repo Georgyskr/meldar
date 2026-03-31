@@ -1,194 +1,155 @@
-# Product Manager Review: Multi-Tool Discovery Pivot
+# Product Manager Review: 2-Phase Discovery Flow
 
 **Date:** 2026-03-31
-**Context:** Review of four proposed features (ChatGPT Export Analyzer, Subscription Autopsy, Actionable Screen Time, ADHD Mode) as a pivot from the single-tool Screen Time mirror approach.
-**Previous work:** product-rethink SYNTHESIS.md (2026-03-30) established that the Time X-Ray is the product and the quiz should be demoted. This review evaluates the next evolution.
+**Context:** Review of the redesigned discovery form — now 2 phases (scan + result) instead of 4. Includes visual upgrades: animated staggered reveal, contextual life-stage headlines, data bar cards, deletion confirmation banner, upsell block, inline email capture after results.
+**Scope:** Does the product validate the core hypothesis? #1 risk? Key metric? PoC scope fit?
 
 ---
 
-## 1. Does This Direction Solve the "So What" Problem?
+## 1. Hypothesis Validation: Will People Upload Screenshots for Personalized Insights?
 
-**Yes -- decisively, for three of the four features.**
+**The new 2-phase flow materially improves validation probability.**
 
-The old product had a fatal flaw identified in the previous review cycle: it showed users data they already had. Apple Screen Time already tells you that you spent 6 hours on your phone. Meldar's screenshot analysis was a mirror, not a magnifying glass. The "so what" response was inevitable.
+### What the old flow got wrong (implied by the redesign)
+The previous 4-phase flow had friction distributed across multiple steps before the user received value. Trust was asked for before the payoff was clear. The redesign collapses this: one page, one action, immediate dramatic result.
 
-The new direction solves this in three distinct ways:
+### What the new flow gets right
 
-**A. ChatGPT Export Analyzer** -- This is genuinely novel. No one is showing users patterns in their OWN AI conversations. The insight "you asked about meal planning 12 times and never solved it" is something the user literally cannot see anywhere else. ChatGPT's interface shows a chronological list of chats. It does not surface repeated failures, topic clusters, or unsolved problems. This feature creates a "holy shit" moment that the Screen Time mirror never could.
+**Phase 1 (scan):** Optional life-stage context (no required fields), upload zone, explicit privacy reassurance ("Processed in ~3 seconds. Deleted immediately. Never stored."). Zero mandatory inputs before the value exchange. The `ContextChip` is smart — it's opt-in persona enrichment that improves the result quality without blocking access.
 
-**B. Subscription Autopsy** -- Dollar amounts solve the "so what" instantly. "You spent EUR 47/month on apps you haven't opened in 90 days" is concrete, actionable, and shareable. The "so what" becomes "so you're wasting EUR 564/year." This is Rocket Money / Trim territory, but the screenshot-based approach (no bank login required) dramatically lowers the trust barrier.
+**Phase 2 (result):** Staggered reveal (`RevealStagger` with 400ms-1200ms delays) turns the result into an event, not a report. Contextual headline changes based on life stage (`contextHeadlines` map in `xray-client.tsx:40-45`). Deletion banner fires immediately on result receipt, addressing the highest-anxiety moment in the flow. The `UpsellBlock` and `ResultEmailCapture` only appear after value is delivered (delays 900ms and 1100ms respectively).
 
-**C. Actionable Screen Time** -- This is the correct evolution of the existing X-Ray. The old version said "you game 6 hours." The new version says "here's how to set up Focus Mode in 2 minutes to block Cup Heroes during study hours." The value shifts from diagnosis (which Apple already does) to prescription (which nobody does from a screenshot). This solves "so what" by answering the implicit follow-up: "so what do I DO about it?"
+**The hypothesis is testable now.** The flow has: a clear entry action (upload), a defined value moment (X-Ray card reveal), and a measurable conversion point (email capture or checkout). All three are necessary to validate "people will upload screenshots for personalized insights."
 
-**D. ADHD Mode** -- This does not solve the "so what" problem. It modifies HOW other features present information. It is a UX layer, not a discovery tool. Important distinction (see section 3).
-
----
-
-## 2. What Should Ship First?
-
-**Ship A (ChatGPT Export Analyzer) first.**
-
-### The case for ChatGPT Export Analyzer as Feature #1
-
-**Unique positioning.** Based on competitive research, no consumer-facing product analyzes ChatGPT conversation exports to surface behavioral patterns. Developer tools like `quantified_chatgpt` (GitHub) exist for data visualization, and ChatGPT Exporter handles format conversion, but none of them do what Meldar proposes: reading conversation titles/content to identify repeated unsolved problems and failed automation attempts.
-
-**Perfect audience fit.** The primary audience (Gen Z, 18-28) uses ChatGPT daily. This is confirmed in the CLAUDE.md target audience definition. Asking them to export their ChatGPT data is asking them to share something they already use constantly. The trust barrier is far lower than Screen Time screenshots (which feel like surveillance) or Google Takeout (which feels like handing over your life).
-
-**Viral mechanics.** "You asked ChatGPT about budgeting 23 times this year. It never stuck." This is Spotify Wrapped-level shareable content. The format is inherently meme-able: "my ChatGPT told on me." Gen Z will screenshot their results and post them.
-
-**Validates the core thesis.** If Meldar's promise is "we find what wastes your time and fix it," the ChatGPT export proves this with the user's own words. They already told an AI what bugs them. Meldar reads that history and says "here are the 3 things you keep failing at -- let us build the fix." This is the strongest possible bridge from discovery to paid automation (EUR 79 app build).
-
-**Technical feasibility.** `conversations.json` is a structured JSON file. Parsing titles and message content is straightforward compared to Vision API calls on screenshots. The MVP can ship with title-only analysis (no message body parsing needed for topic clustering). This is the lowest-risk, highest-signal feature to build first.
-
-### Why NOT B, C, or D first
-
-**B (Subscription Autopsy)** is compelling but enters a crowded market. Rocket Money, Trim, PocketGuard, and Monarch Money all do subscription tracking. Meldar's screenshot approach is a novel entry point, but the core value (find and cancel unused subscriptions) is well-served. Differentiation is weaker.
-
-**C (Actionable Screen Time)** is the right evolution of the existing X-Ray but still depends on the same data source (Screen Time screenshots) that the previous review cycle identified as problematic. It improves the output but doesn't change the input. Ship it second, after the ChatGPT analyzer proves the multi-tool concept works.
-
-**D (ADHD Mode)** is a modifier, not a standalone feature. It should ship alongside or shortly after the first tool that generates analysis results, since it modifies how those results are presented.
-
-### Recommended shipping order
-
-1. **ChatGPT Export Analyzer** (unique, viral, validates core thesis, technically simplest)
-2. **Actionable Screen Time** (upgrades existing X-Ray from mirror to prescription)
-3. **Subscription Autopsy** (adds dollar-amount hook, different data source)
-4. **ADHD Mode** (layer across all tools once the analysis pipeline is stable)
+### What it cannot yet prove
+The hypothesis has two parts: (1) people will upload, and (2) they find the insights personalized/valuable enough to act on. The flow proves part 1 if upload rate is measured. Part 2 requires tracking email capture rate AND upsell click rate post-result — neither of which is confirmed as instrumented in GA4 based on the code reviewed.
 
 ---
 
-## 3. Is ADHD Mode a Genuine Differentiator or a Gimmick?
+## 2. Funnel Completeness for Conversion Measurement
 
-**It is a genuine differentiator -- but only if implemented with depth, not as a toggle.**
+### Current funnel state (from code)
 
-### The case for it being real
+| Step | Implemented | Measurable |
+|------|-------------|------------|
+| Land on `/xray` | Yes | Page view (GA4) |
+| Select life stage | Yes (optional) | No event tracking found |
+| Upload screenshot | Yes | No upload attempt event found |
+| Receive X-Ray result | Yes | No result_received event found |
+| Click upsell | Yes (`UpsellBlock`) | Depends on `UpsellBlock` internals (not reviewed) |
+| Submit email | Yes (`ResultEmailCapture`) | Depends on component internals |
+| Share X-Ray | Yes (`XRayCardActions`) | Depends on component internals |
+| Proceed to Stripe checkout | Yes (`/api/billing/checkout`) | Stripe dashboard only |
 
-Neurodivergent-friendly design is a documented 2026 UX trend. Apps like Tiimo (visual planning for ADHD/autistic users) and Goblin.tools (AI task decomposition for executive dysfunction) have built real user bases specifically by designing for neurodivergent brains.
+**The funnel exists structurally but conversion tracking is not verified at the component level.** The `xray-client.tsx` file has no direct GA4 event calls. If `UpsellBlock`, `ResultEmailCapture`, and `XRayCardActions` don't fire events, the funnel is a black box between upload and revenue.
 
-The ADHD Mode insight about coping mechanisms is genuinely important. If Meldar's Screen Time analysis flags 10 hours of idle games as "waste," it's wrong for a significant portion of the target audience. ADHD users often use repetitive games for emotional regulation. An AI that understands this context delivers meaningfully different (and more accurate) analysis than one that doesn't.
+### What's measurably complete
+- Email subscriptions land in `subscribers` table (source: 'xray')
+- Stripe payments create `auditOrders` rows
+- X-Ray results stored in `xrayResults` table with `id` for share tracking
+- Shareable `/xray/[id]` page with OG image exists for viral loop measurement
 
-Adjusting the Claude prompt to understand neurodivergent context is technically trivial but experientially transformative. The difference between "you waste 10 hours on games" and "you use games for about 10 hours of downtime -- here's how to protect that time while reclaiming the 3 hours of doom-scrolling that isn't serving you" is the difference between a judgmental app and a trusted companion.
-
-### The risk of it becoming a gimmick
-
-**Calming GIFs while filling forms** -- this is the gimmick part. It's a surface-level accessibility feature that signals awareness without delivering substance. If ADHD Mode is primarily about visual comfort (GIFs, softer colors, bigger buttons), it will feel performative to the neurodivergent community and invite backlash.
-
-**The toggle itself is problematic.** Asking users to self-identify as ADHD via a toggle is a design choice that many neurodivergent users will find reductive. Better approach: make the AI analysis nuanced by default (don't assume all screen time is "waste"), and offer contextual options like "this is my downtime app" on specific items in the analysis results.
-
-### Recommendation
-
-Rename it. Drop "ADHD Mode" as a label. Instead:
-
-- Make the AI analysis context-aware by default (understand that some high-usage apps serve emotional regulation, not time waste)
-- Add a "this is intentional" or "this helps me" toggle on individual items in analysis results, so any user can mark coping/comfort apps
-- Use the neurodivergent-friendly copy as the default voice (warm, non-judgmental, specific), not as an alternative mode
-
-This way, the product is neurodivergent-friendly for everyone without requiring self-identification. The differentiator is baked into the product, not bolted on as a toggle.
-
----
-
-## 4. Revenue Connection for Each Feature
-
-Current pricing from CLAUDE.md and previous reviews: Free X-Ray, EUR 29 Time Audit, EUR 79 app build.
-
-### A. ChatGPT Export Analyzer --> EUR 79 app build (strongest path)
-
-The ChatGPT analyzer surfaces repeated unsolved problems. "You asked about meal planning 12 times." The natural next step: "Want us to build the meal planner you kept asking ChatGPT to help with?" This is the strongest discovery-to-revenue bridge because the user's own conversation history proves they want this solved. The EUR 79 price anchors against the implicit cost of 12 failed attempts.
-
-**Revenue path:** Free analysis --> "Your top 3 unsolved problems" report --> "Pick one, we build the fix" --> EUR 79.
-
-### B. Subscription Autopsy --> EUR 29 audit (natural anchor)
-
-"You're spending EUR 47/month on unused subscriptions. That's EUR 564/year." The EUR 29 audit fee anchors against the savings. "Pay EUR 29, save EUR 564" is a 19x ROI pitch. This is the easiest conversion math in the entire product.
-
-**Revenue path:** Free screenshot analysis --> savings total --> "Want us to audit all your subscriptions and cancel the dead ones?" --> EUR 29.
-
-### C. Actionable Screen Time --> EUR 29 audit + EUR 79 app build (two paths)
-
-The prescription-based analysis creates two revenue paths:
-- Simple fixes (Focus Mode setup, notification management) --> EUR 29 guided audit where Meldar walks you through all the fixes
-- Complex fixes (custom automation to replace a high-usage app workflow) --> EUR 79 app build
-
-**Revenue path:** Free analysis with prescriptions --> "Want us to set all this up for you?" --> EUR 29 for quick fixes, EUR 79 for custom automation.
-
-### D. ADHD Mode --> Retention and word-of-mouth (indirect revenue)
-
-ADHD Mode doesn't drive direct revenue. It drives retention (users trust the product more, come back for more analyses) and word-of-mouth (neurodivergent communities are tight-knit and vocal about products that respect them). The revenue impact is real but indirect: higher LTV, lower churn, organic referrals.
-
-### Revenue priority
-
-B has the simplest conversion math (pay EUR 29, save EUR 564). A has the strongest emotional bridge (your own words prove you need this). C has the most upsell surface area. Ship A first for validation, then layer B for the dollar-amount hook.
+### What's missing for full funnel measurement
+- Upload attempt events (did they try and fail?)
+- Life stage selection events (which persona is most engaged?)
+- Result completion events (did they scroll to see upsells?)
+- Upsell click events (which hook triggered the purchase?)
 
 ---
 
-## 5. The #1 Risk With This Direction
+## 3. #1 Risk to the Business Hypothesis
 
-**Scope creep disguised as a platform play.**
+**The insights are rule-based, not personalized — and users will feel this within 30 seconds.**
 
-Meldar is a solo founder operation. The previous review cycle identified a focused 17-hour sprint to ship the X-Ray as the front door. This new direction proposes four features across four different data sources (ChatGPT JSON, App Store screenshots, Screen Time screenshots, and a UX mode toggle), each requiring:
+The discovery engine claims to deliver "personalized insights." The actual pipeline:
+1. Claude Haiku extracts structured data from the screenshot (real AI, real value)
+2. `generateInsights()` runs deterministic if/else logic on that data (`insights.ts`)
+3. `generateUpsells()` presumably does the same
 
-- A different data ingestion pipeline
-- A different Claude prompt for analysis
-- Different result formats and shareable cards
-- Different privacy/GDPR considerations (ChatGPT exports contain conversation content)
+The top-app insight for everyone with >2h of social media will be identical in structure: `"${hours} hours on ${app.name}" / "That's ${weeklyHours} hours a week"`. The fix steps for Instagram are hard-coded strings, the same for every user. The contextual life-stage block in the result phase adds one paragraph of personalization — but it's a string template, not inference.
 
-The risk is not that any single feature is bad. Every feature here is defensible. The risk is that building four data ingestion pipelines, four analysis prompts, four result UIs, and four sharing formats turns a focused discovery tool into a sprawling platform that a solo founder cannot maintain, debug, or iterate on quickly enough.
+**This is not "Your AI. Your app. Nobody else's." — it is a rule engine with a Vision API front door.**
 
-### Mitigation
+This matters because the primary audience (Gen Z, 18-28) has already used ChatGPT, Claude, and Perplexity. They have a baseline for what AI personalization feels like. When the "AI insights" read like the same generic advice they'd find in a wellness blog, the trust and conversion signals will be weaker than the positioning promises.
 
-Ship one feature completely before starting the next. "Completely" means: ingestion works, analysis is accurate for 80%+ of uploads, results are shareable, email capture is wired, and at least 10 real users have completed the flow. Then ship the next one.
+### Why this is #1 and not secondary
+The positioning is "Meldar = Spotify Wrapped for productivity." Spotify Wrapped works because the data IS the insight — your specific top songs, your minutes listened, your obscure discovery. The raw numbers ARE the personality. But Meldar's X-Ray follows the numbers with generic prescriptions. The raw data (7h on Instagram) is shocking. The follow-up ("turn off notifications in Settings") is generic. The gap between the data's emotional punch and the prescription's genericness is where trust leaks.
 
-Do not build the platform layer (unified dashboard, tool switcher, cross-tool insights) until at least two tools are individually validated. The temptation to build the "Meldar Discovery Hub" UI before any single tool works end-to-end is the trap.
-
-### Secondary risk: Privacy escalation
-
-ChatGPT exports contain actual conversation content -- potentially including sensitive personal information, medical questions, relationship issues, financial details. This is a significant step up from Screen Time screenshots (which show app names and durations). The privacy policy, GDPR disclosures, and Trust section copy all need updating. The "What we see / What we never see" section on the landing page must be revised for each data source.
+### Mitigation path
+Pass the full extraction to Sonnet 4.6 (as planned in `MELDAR-PLAN-FINAL.md` Phase 3) for narrative insights. Even one generated sentence per user ("Based on your pattern, Instagram is displacing commute time — you pick up your phone 120 times a day, mostly in 4 clusters") turns a report into a reflection. This is the right Phase 2 upgrade, not Phase 3.
 
 ---
 
-## 6. Competitive Check: ChatGPT Export Analysis
+## 4. The Metric That Matters Most Right Now
 
-### What exists today
+**Screenshot-to-email capture rate.**
 
-Based on research as of March 2026:
+Not upload rate (measures curiosity). Not page views (measures traffic). Not checkout rate (too far downstream with current traffic). The email capture after result delivery is the single metric that validates the core loop:
 
-**Developer/power-user tools:**
-- **quantified_chatgpt** (GitHub, open-source) -- Jupyter Notebook that converts ChatGPT conversation history into data visualizations and markdown notes. Outputs charts of usage over time, conversation lengths, topic frequency. Targets developers comfortable with Python notebooks.
-- **ChatGPT Exporter** (Chrome extension) -- Exports conversations to PDF, Markdown, Text, JSON. Pure format conversion, no analysis.
-- **ChatGPT Conversation Extractor** (Chrome extension) -- Extracts conversations with "detailed statistics." Closest to analysis, but statistics are quantitative (message counts, lengths) not behavioral (pattern detection, repeated problems).
+> User trusted the product enough to upload → received value → trusted it enough to stay connected
 
-**Knowledge base / RAG tools:**
-- Various tutorials on importing ChatGPT exports into vector databases (Qdrant, etc.) for personal knowledge bases. These are "search your old chats" tools, not "discover patterns in your behavior" tools.
+Target: **>15% of result viewers capture email.**
 
-### What does NOT exist
+Why 15%: At $0.003/call (Claude Haiku), the economics are only viable if a meaningful fraction convert to the email list for future monetization. Landing page subscribers already have intent; X-Ray subscribers have demonstrated behavior (they uploaded). The X-Ray email capture is the highest-quality lead generation event in the product.
 
-No consumer-facing product currently:
-1. Analyzes ChatGPT conversation titles to identify repeated topics or unsolved problems
-2. Detects "failed automation attempts" (e.g., "you asked ChatGPT to build you a meal planner 4 times and never followed through")
-3. Produces a shareable "ChatGPT personality card" or behavioral summary
-4. Bridges from ChatGPT analysis to building the thing the user kept asking about
-
-**This is an open lane.** The existing tools are either developer-oriented (Jupyter notebooks), format converters (Chrome extensions), or infrastructure (vector DB imports). None of them target non-technical users with behavioral insights from their AI conversation history.
-
-### Competitive moat assessment
-
-The moat is narrow but real. Any AI company could build this feature. But:
-- OpenAI is unlikely to build "here's what you failed at" into ChatGPT (bad UX for their core product)
-- Productivity apps (Notion, Todoist) have no incentive to analyze a competitor's data
-- The Chrome extension ecosystem targets power users, not Gen Z non-technical users
-
-The window is 6-12 months before someone else notices this opportunity. Ship fast.
+### Secondary metric: Share rate
+X-Ray share rate (`/xray/[id]` page views from external referrers) is the viral coefficient. One shared X-Ray = N new users who see the "Get your own X-Ray" CTA. If this number is >0 in the first 50 results, the viral loop has proof of concept.
 
 ---
 
-## 7. Questions for the QA Agent to Verify on the Live Site
+## 5. PoC Scope Assessment
 
-1. **Quiz results accuracy:** Does the current live quiz at `/quiz` still show the hardcoded `weeklyHours` values (e.g., "~4 hrs/week" for Email chaos), or have the fake hour estimates been removed as recommended in the 2026-03-30 synthesis? The quiz results page should no longer display fabricated per-item hour totals.
+**Appropriate. Not bloated. One gap.**
 
-2. **X-Ray route existence:** Does `/xray` resolve to a page, or does it 404? The previous review recommended creating this route. If the quiz results still link to `/xray` but the page doesn't exist, users hit a dead end after completing the quiz.
+### What's in scope and correct
+- Real Claude Vision extraction (not mock) — necessary to test the hypothesis
+- Rule-based insights — correct for PoC; AI-generated insights belong in Phase 2
+- Shareable URL + OG image — essential for viral loop validation
+- Stripe checkout (3 products) — revenue readiness without blocking the discovery test
+- Neon Postgres (4 tables) — minimal, schema is clean
+- Rate limiting via Upstash — production-appropriate, not over-engineered
+- Auth system (email/password, verify, reset) — this is the one scope question (see below)
 
-3. **Screen Time API status:** Does the `/api/analyze-screenshot` endpoint return real Claude Vision analysis, or is it still the mock endpoint? Upload a test screenshot and verify whether the response contains actual extracted app data or hardcoded/mock data.
+### The one scope question: Auth system
+`src/app/api/auth/` has a full auth implementation (register, login, verify-email, forgot-password, reset-password) with tests. Per `MELDAR-PLAN-FINAL.md`, auth (magic link) is Phase 3. The email/password auth built now appears ahead of plan.
 
-4. **Tier pricing display:** Does the TiersSection on the landing page show specific EUR prices (EUR 29, EUR 79), or does it still show the vague "Pay as you go" / "We handle it" labels without concrete pricing? The previous synthesis recommended simplifying to "Free X-Ray + EUR 29 audit."
+**Assessment:** Not necessarily bloated. The `xrayResults` schema already has a `userId` FK column. If the founder wants to associate X-Ray results with accounts for Phase 3's dashboard, building auth in PoC is defensible. But if no current user-facing route requires auth (all `/xray` and `/quiz` routes are public), then this is pre-built infrastructure. It adds maintenance surface area for zero current user value.
 
-5. **Hero CTA destination:** Where does the primary hero CTA button link to? If it still points to `/quiz`, the landing page funnels users into the flow that every review has recommended demoting. It should point to the X-Ray or a direct value-delivery path.
+**Verdict:** If the founder built it intentionally to prepare the Phase 3 dashboard, accept it. If it was scope creep during development, it should stay dormant — no user-visible auth flows until the dashboard is built.
+
+---
+
+## 6. Does the 2-Phase Flow Improve or Hurt the Core Loop?
+
+**Improves it. Decisively.**
+
+### What 4 phases presumably created
+Decision fatigue and unclear phase boundaries. If users had to navigate through distinct "steps" (e.g., "Step 1: context → Step 2: upload → Step 3: processing → Step 4: result"), each transition was a drop-off point. The UI likely felt like a wizard, not a product.
+
+### What 2 phases deliver
+The "scan" phase is a single screen with one primary action (upload). The optional `ContextChip` does not block progress. The "result" phase is a scroll experience — not a new page, not a step indicator, just revelatory content that appears in sequence. This mirrors how people consume Instagram Stories or Spotify Wrapped: you start watching, and value unfolds.
+
+### The staggered reveal is the most important UX improvement
+`RevealStagger` at 400ms, 500ms, 700ms, 900ms, 1100ms, 1200ms delays creates an experience, not a dump. This pacing:
+- Gives users time to absorb each insight before the next appears
+- Creates anticipation (what else is coming?)
+- Delays the upsell until the user is already invested
+
+This is textbook "value before ask." The upsell and email capture only appear after 900ms+ of revelatory content. The user is already emotionally engaged when they see the ask.
+
+### One concern: The result phase has no "back" affordance visible in the DOM
+The "Upload another screenshot" button is the reset mechanism, appearing at delay 1200ms (last item). If users feel trapped in the result phase, they may bounce instead of scrolling. The `FocusAmbient` component and full-screen `styled.main` may contribute to a "is this a popup?" disorientation on first use. This is a UX detail, not a structural flaw.
+
+---
+
+## 7. Questions for QA to Verify on the Live Site
+
+1. **End-to-end upload flow:** Upload a real iOS Screen Time screenshot at `/xray`. Does the result phase appear with actual extracted app data, or does it error? Specifically verify that the `extraction.apps` array is populated and the `XRayCard` renders app names and usage bars — not placeholder data.
+
+2. **Life stage contextual headline:** Select "student" in the `ContextChip`, upload a screenshot, and verify that the result phase shows "Is your phone eating your study time?" as the h1 headline. Then repeat without selecting a life stage and verify the fallback "Here's your X-Ray" appears.
+
+3. **Deletion banner timing:** After result renders, does the deletion confirmation banner ("Screenshot deleted. Only the extracted data remains.") appear and then disappear after ~5 seconds? Verify it is not permanently visible, which would distract from the result content.
+
+4. **Shareable URL and OG image:** After receiving a result, use `XRayCardActions` to copy or open the share link (`/xray/[id]`). Does that page load without a 404? Does the OG image endpoint (`/xray/[id]/og`) return a valid image, or does it error? Paste the URL into Twitter Card Validator or similar to confirm OG preview renders.
+
+5. **Upsell and email capture visibility:** Scroll to the bottom of a result page. Does the `UpsellBlock` appear with actionable upsells (not empty)? Does the `ResultEmailCapture` form appear? Submit a test email — verify it lands in the `subscribers` table with `source: 'xray'` and that the welcome email arrives.

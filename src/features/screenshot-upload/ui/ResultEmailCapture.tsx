@@ -1,6 +1,7 @@
 'use client'
 
-import { Flex, styled, VStack } from '@styled-system/jsx'
+import { Box, Flex, styled, VStack } from '@styled-system/jsx'
+import { Mail } from 'lucide-react'
 import { useState } from 'react'
 import { trackEvent } from '@/features/analytics'
 
@@ -28,91 +29,132 @@ export function ResultEmailCapture({ xrayId }: { xrayId: string }) {
 
 	if (status === 'success') {
 		return (
-			<VStack
-				gap={2}
+			<Box
 				width="100%"
 				maxWidth="440px"
 				marginInline="auto"
-				padding={5}
-				borderRadius="xl"
-				bg="surfaceContainerLowest"
+				padding={6}
+				borderRadius="20px"
+				bg="primary/4"
 				border="1px solid"
-				borderColor="outlineVariant/20"
+				borderColor="primary/10"
 				textAlign="center"
+				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
 			>
-				<styled.span fontSize="xl" color="primary">
-					&#10003;
-				</styled.span>
-				<styled.p textStyle="body.sm" fontWeight="500" color="onSurface">
-					Saved! We&apos;ll send you tips to cut your screen time.
-				</styled.p>
-			</VStack>
+				<VStack gap={2}>
+					<Box
+						width="40px"
+						height="40px"
+						borderRadius="full"
+						bg="primary/10"
+						display="flex"
+						alignItems="center"
+						justifyContent="center"
+						marginInline="auto"
+					>
+						<styled.span fontSize="lg" color="primary" fontWeight="700">
+							&#10003;
+						</styled.span>
+					</Box>
+					<styled.p textStyle="body.sm" fontWeight="600" color="onSurface" fontFamily="heading">
+						You&apos;re in.
+					</styled.p>
+					<styled.p textStyle="body.sm" color="onSurfaceVariant">
+						We&apos;ll send you weekly tips to take back your time.
+					</styled.p>
+				</VStack>
+			</Box>
 		)
 	}
 
 	return (
-		<VStack
-			gap={3}
+		<Box
 			width="100%"
 			maxWidth="440px"
 			marginInline="auto"
-			padding={5}
-			borderRadius="xl"
+			padding={6}
+			borderRadius="20px"
 			bg="surfaceContainerLowest"
 			border="1px solid"
-			borderColor="outlineVariant/20"
+			borderColor="outlineVariant/15"
+			boxShadow="0 2px 12px rgba(0, 0, 0, 0.03)"
 		>
-			<styled.p textStyle="body.sm" fontWeight="500" color="onSurface" textAlign="center">
-				Save your X-Ray and get weekly tips to take back your time
-			</styled.p>
-			<styled.form onSubmit={handleSubmit} width="100%">
-				<Flex gap={2} flexDir={{ base: 'column', sm: 'row' }}>
-					<styled.input
-						type="email"
-						required
-						aria-label="Your email address"
-						placeholder="you@email.com"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-						flex={1}
-						paddingInline={4}
-						paddingBlock={3}
-						bg="surface"
-						border="1px solid"
-						borderColor="outlineVariant"
-						borderRadius="md"
-						fontSize="sm"
-						color="onSurface"
-						outline="none"
-						_focus={{ borderColor: 'primary' }}
-						_placeholder={{ color: 'onSurface/40' }}
-					/>
-					<styled.button
-						type="submit"
-						disabled={status === 'loading'}
-						paddingInline={5}
-						paddingBlock={3}
-						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-						color="white"
-						fontFamily="heading"
-						fontWeight="700"
-						fontSize="sm"
-						borderRadius="md"
-						border="none"
-						cursor="pointer"
-						whiteSpace="nowrap"
-						_hover={{ opacity: 0.9 }}
-						_disabled={{ opacity: 0.7, cursor: 'not-allowed' }}
+			<VStack gap={4} alignItems="stretch">
+				<Flex gap={3} alignItems="center">
+					<Box
+						width="36px"
+						height="36px"
+						borderRadius="10px"
+						bg="primary/6"
+						display="flex"
+						alignItems="center"
+						justifyContent="center"
+						flexShrink={0}
 					>
-						{status === 'loading' ? 'Saving...' : 'Save my X-Ray'}
-					</styled.button>
+						<Mail size={16} color="#623153" strokeWidth={1.5} />
+					</Box>
+					<VStack gap={0} alignItems="flex-start">
+						<styled.p textStyle="body.sm" fontWeight="600" color="onSurface" fontFamily="heading">
+							Save your X-Ray
+						</styled.p>
+						<styled.p textStyle="body.sm" color="onSurfaceVariant/70">
+							Get weekly tips to cut your screen time
+						</styled.p>
+					</VStack>
 				</Flex>
-				{status === 'error' && (
-					<styled.p textStyle="body.sm" color="red.500" marginBlockStart={2}>
-						Something went wrong. Try again.
-					</styled.p>
-				)}
-			</styled.form>
-		</VStack>
+
+				<styled.form onSubmit={handleSubmit} width="100%">
+					<Flex gap={2} flexDir={{ base: 'column', sm: 'row' }}>
+						<styled.input
+							type="email"
+							required
+							aria-label="Your email address"
+							placeholder="you@email.com"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							flex={1}
+							paddingInline={4}
+							paddingBlock={3}
+							bg="surface"
+							border="1.5px solid"
+							borderColor="outlineVariant/20"
+							borderRadius="12px"
+							fontSize="sm"
+							color="onSurface"
+							outline="none"
+							transition="border-color 0.2s ease"
+							_focus={{ borderColor: 'primary' }}
+							_placeholder={{ color: 'onSurface/35' }}
+						/>
+						<styled.button
+							type="submit"
+							disabled={status === 'loading'}
+							paddingInline={5}
+							paddingBlock={3}
+							background="linear-gradient(135deg, #623153 0%, #874a72 100%)"
+							color="white"
+							fontFamily="heading"
+							fontWeight="700"
+							fontSize="sm"
+							borderRadius="12px"
+							border="none"
+							cursor="pointer"
+							whiteSpace="nowrap"
+							transition="all 0.2s ease"
+							boxShadow="0 2px 8px rgba(98, 49, 83, 0.2)"
+							_hover={{ opacity: 0.9, boxShadow: '0 4px 12px rgba(98, 49, 83, 0.3)' }}
+							_disabled={{ opacity: 0.7, cursor: 'not-allowed' }}
+						>
+							{status === 'loading' ? 'Saving\u2026' : 'Save my X-Ray'}
+						</styled.button>
+					</Flex>
+					{status === 'error' && (
+						<styled.p textStyle="body.sm" color="red.500" marginBlockStart={2}>
+							Something went wrong. Try again.
+						</styled.p>
+					)}
+				</styled.form>
+			</VStack>
+		</Box>
 	)
 }

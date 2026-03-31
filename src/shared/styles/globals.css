@@ -43,3 +43,96 @@
 		transform: translate(0%, 0%) scale(1);
 	}
 }
+
+/* Discovery form animations */
+
+@keyframes scanPulse {
+	0%,
+	100% {
+		box-shadow:
+			0 0 0 0 rgba(98, 49, 83, 0.15),
+			0 0 0 0 rgba(98, 49, 83, 0.08);
+	}
+	50% {
+		box-shadow:
+			0 0 0 8px rgba(98, 49, 83, 0),
+			0 0 0 16px rgba(98, 49, 83, 0);
+	}
+}
+
+@keyframes scanLine {
+	0% {
+		transform: translateY(-100%);
+		opacity: 0;
+	}
+	10% {
+		opacity: 1;
+	}
+	90% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(100%);
+		opacity: 0;
+	}
+}
+
+@keyframes barFill {
+	from {
+		transform: scaleX(0);
+	}
+	to {
+		transform: scaleX(1);
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
+@keyframes gentleBreathe {
+	0%,
+	100% {
+		opacity: 0.4;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+@keyframes phaseExit {
+	from {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: translateY(-12px) scale(0.98);
+	}
+}
+
+@keyframes counterUp {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}

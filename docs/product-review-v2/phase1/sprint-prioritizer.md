@@ -1,248 +1,162 @@
-# Sprint Prioritizer — Meldar Phase 2 Features
+# Sprint Prioritizer — Phase 1 Discovery
 
 **Date:** 2026-03-31
 **Author:** Sprint Prioritizer Agent
-**Context:** Solo founder, Next.js 16, Claude Haiku Vision ($0.007/call), Claude text API, Panda CSS, Vercel, Neon Postgres
+**Focus:** X-Ray flow redesign (4 phases → 2 phases) — what's over-built vs under-built, critical path to first revenue
 
 ---
 
-## 1. RICE Scoring
+## Files Examined
 
-### Scoring Criteria
-
-- **Reach:** Users/month who could use it in the next quarter (1-10 scale)
-- **Impact:** How much it moves conversion/retention (1-3: minimal/notable/massive)
-- **Confidence:** How well-defined is the scope? (0.5/0.8/1.0)
-- **Effort:** Developer-hours for a solo founder
-
-| Feature | Reach | Impact | Confidence | Effort (hrs) | RICE Score |
-|---|---|---|---|---|---|
-| **C. Actionable Screen Time** | 8 | 3 | 1.0 | 6 | **4.0** |
-| **B. Subscription Autopsy** | 7 | 3 | 0.8 | 10 | **1.68** |
-| **A. ChatGPT Export Analyzer** | 5 | 2 | 0.8 | 12 | **0.67** |
-| **D. ADHD Mode** | 4 | 2 | 0.5 | 16 | **0.25** |
-
-### Scoring Rationale
-
-**C. Actionable Screen Time (RICE: 4.0)** — Highest score by a wide margin. Every single X-Ray user already sees the result page. The existing pipeline (`src/server/discovery/insights.ts`, `src/server/discovery/upsells.ts`) produces generic insights like "That's 42 hours a week" and "A Time Audit can show you where to cut." These are observations, not actions. Rewriting these to say "Block TikTok during 9-5 using iOS Focus Mode — here's how" costs zero additional AI calls because the extraction data already exists. This is a pure copy + logic rewrite on existing infrastructure. Reach is 8 because it applies to every X-Ray user (your highest-intent audience).
-
-**B. Subscription Autopsy (RICE: 1.68)** — Strong second. The Vision pipeline already exists in `src/server/discovery/ocr.ts` — same pattern (upload image, Claude Haiku extracts structured data, show results). The new part is: different prompt, different Zod schema, different result card, and a "total monthly burn" calculation. Money pain is visceral and shareable. Confidence is 0.8 because App Store subscription screenshots vary more than Screen Time screenshots (different layouts per OS version, some users have 3 subscriptions, some have 30).
-
-**A. ChatGPT Export Analyzer (RICE: 0.67)** — Moderate reach because only ChatGPT power users know about `conversations.json` export. The export file can be enormous (100MB+), so you need client-side parsing + chunking before sending to Claude text API. This is meaningfully more engineering than the Vision features. Impact is 2 (notable but not massive) because the insight ("you ask ChatGPT about recipes 40% of the time") is interesting but less emotionally urgent than money or screen time.
-
-**D. ADHD Mode (RICE: 0.25)** — Lowest score. Not because it's a bad idea — it's a great positioning differentiator — but because it touches every surface of the app (copy, prompts, UI animations, potentially different result framing). Confidence is 0.5 because "neurodivergent-aware" is poorly defined without user research. The risk is building something that feels patronizing rather than helpful. This needs user interviews before engineering.
-
----
-
-## 2. Build Order
-
-### Sprint 1: Actionable Screen Time (ship in ~6 hours)
-
-**Why first:** Zero new infrastructure. Zero new AI cost. Highest RICE. Improves the experience for every existing X-Ray user immediately.
-
-**What changes:**
-- Rewrite `src/server/discovery/insights.ts` — replace vague comparisons with specific, actionable steps tied to each app category
-- Rewrite `src/server/discovery/upsells.ts` — make upsell messages reference the specific fix, not just "a time audit can help"
-- Add an `actionSteps` field to the `Insight` type in `src/entities/xray-result/model/types.ts`
-- Update `XRayCard` and the result phase in `src/app/xray/xray-client.tsx` to render action steps
-- Add life-stage-aware actions (student vs. working vs. freelance — the `lifeStage` context already exists in the X-Ray flow)
-
-**Time estimate:** 4-6 hours
-
-### Sprint 2: Subscription Autopsy (ship in ~10 hours)
-
-**Why second:** Reuses the Vision pipeline pattern. Adds a new discovery entry point with strong viral potential ("I'm paying $847/year in subscriptions I forgot about").
-
-**What changes:**
-- New prompt in `src/server/discovery/prompts.ts` for subscription screenshot extraction
-- New Zod schema in `src/entities/` for subscription data (app name, price, billing cycle, category)
-- New API route `src/app/api/upload/subscriptions/route.ts` (clone screentime route, swap prompt + schema)
-- New page `src/app/subscriptions/page.tsx` with upload flow (clone X-Ray page pattern)
-- New result card component showing: total monthly burn, biggest offenders, "zombie subscriptions" (apps with <5 min/week usage if cross-referenced with Screen Time data)
-- New shareable OG image route
-
-**Time estimate:** 8-10 hours
-
-### Sprint 3: ChatGPT Export Analyzer (ship in ~12 hours)
-
-**Why third:** Different input mechanism (JSON file, not image). Requires client-side parsing because the file can be huge. More engineering, lower emotional hook.
-
-**What changes:**
-- Client-side JSON parser that extracts conversation titles + timestamps (no messages sent to server)
-- Categorization logic (either rule-based on title keywords, or send batched titles to Claude text API)
-- New API route for title-batch analysis
-- New page `src/app/chatgpt-audit/page.tsx`
-- Result card: "You asked ChatGPT about X 40% of the time" + pattern insights + "Meldar can build an app that does X automatically"
-- Privacy-first messaging: "Your conversations never leave your device. We only see the titles."
-
-**Time estimate:** 10-14 hours
-
-### Sprint 4: ADHD Mode (ship in ~16 hours, only after user research)
-
-**Why last:** Needs research. Touches everything. Risk of getting it wrong is high.
-
-**Defer until:** At least 5 user interviews with neurodivergent users who have used the existing quizzes/X-Ray.
-
-**Time estimate:** 14-18 hours (after research is done)
+| File | Key Observations |
+|---|---|
+| `src/app/xray/xray-client.tsx` | Clean 2-phase orchestrator (`scan` → `result`). Well-structured. The `lifeStage` state is threaded through correctly. `showDeletionBanner` timeout is a nice trust signal. |
+| `src/features/screenshot-upload/ui/UploadZone.tsx` | Polished: drag/drop, compression, 4-step progress indicator, scan-line animation during processing, collapsible "Where do I find this?" guide. ~440 lines total. |
+| `src/features/screenshot-upload/ui/ContextChip.tsx` | 64 lines, clean. 4 life stages. Deselection works. Scale + shadow on hover. Proportionate. |
+| `src/entities/xray-result/ui/XRayCard.tsx` | 205 lines. Gradient header, animated data bars per app (top 5), pickups + top app stats row, insight quote. Visually the strongest component in the codebase. |
+| `src/features/screenshot-upload/ui/ResultEmailCapture.tsx` | 160 lines. Email capture with success state. Submits to `/api/subscribe` with `xrayId`. Tracked with GA. Correct. |
+| `src/shared/styles/globals.css` | 9 keyframe animations: `meldarFadeSlideUp`, `focusDrift1/2`, `scanPulse`, `scanLine`, `barFill`, `shimmer`, `gentleBreathe`, `phaseExit`, `counterUp`. `phaseExit` and `shimmer` are defined but not referenced in the components examined. |
+| `src/features/billing/ui/UpsellBlock.tsx` | Picks highest-urgency upsell from the array. Maps tier → product config with prices. 50 lines, well-contained. |
+| `src/features/billing/ui/PurchaseButton.tsx` | 89 lines. Calls `/api/billing/checkout`. Handles `comingSoon` redirect to `/coming-soon`. Tracks `checkout_initiated` GA event. **`starter` product redirects to `/coming-soon` — this is working as intended per checkout route.** |
+| `src/app/api/billing/checkout/route.ts` | Real Stripe integration with live price IDs. Handles `timeAudit` (EUR 29) and `appBuild` (EUR 79) via Stripe Checkout. `starter` product is intentionally gated behind `/coming-soon`. |
+| `src/app/api/billing/webhook/route.ts` | Signature-verified Stripe webhook. Inserts to `auditOrders`, sends purchase confirmation email via Resend, notifies founder email. Complete. |
+| `src/app/api/upload/screentime/route.ts` | Live Claude Haiku 4.5 Vision call. Rate-limited. Validates file type/size. Saves result to DB. Generates insights + upsells rule-based (zero AI cost). Returns `id` for shareable URL. |
+| `src/app/xray/[id]/page.tsx` | Server-rendered shareable page. Correct `generateMetadata` with dynamic OG images. Viral CTA at bottom ("Get your own Time X-Ray"). |
+| `src/app/xray/[id]/og/route.tsx` | Dynamic OG image via `next/og`. Shows total hours, top 3 apps, pickups. Correct 1200×630. |
+| `src/widgets/landing/HeroSection.tsx` | Updated: two-track hero ("Show me my data" → `/xray`, "I know what bugs me" → `/quiz`). No email capture in hero. CTAs are correct. |
+| `src/widgets/landing/TiersSection.tsx` | All three tiers CTA to `/quiz` — including paid tiers. This is a dead-end for revenue. |
+| `src/app/api/auth/login/route.ts` | Full password auth: JWT in httpOnly cookie, rate-limited, bcrypt password verify. |
+| `src/app/api/auth/register/route.ts` | Full register: bcrypt hash, email verification flow via Resend, JWT cookie on success. |
+| `src/server/identity/` | JWT + bcrypt password utilities exist. Tested (vitest). |
+| `src/app/dashboard/` | **Does not exist.** Auth backend is built but there is no dashboard UI or middleware. |
+| `src/features/focus-mode/` | `FocusAmbient` (animated blobs), `FocusModeToggle` (popover with Yes/No), cookie-based state. Used on `/xray` and `/quiz`. Modifies Claude prompt via `focusMode` flag on the API. |
+| `src/server/discovery/insights.ts` | 300 lines of rule-based insight + fix steps generation. Platform-aware (iOS/Android). Focus mode awareness for gaming apps. Very thorough. |
+| `src/app/thank-you/page.tsx` | Static post-purchase page. Hardcoded "Time Audit" copy regardless of product purchased (minor bug). |
+| `src/features/screenshot-upload/ui/ScreenshotGuide.tsx` | File exists but is **not imported anywhere** — the guide was inlined into `UploadZone.tsx`. Dead file. |
 
 ---
 
-## 3. What to Cut from the Current Codebase
+## Over-Built (Cut or Defer)
 
-### KEEP
+### 1. Focus Mode — defer until user-validated
 
-| Component | Location | Reason |
-|---|---|---|
-| **PainQuiz** | `src/features/quiz/ui/PainQuiz.tsx` | Core discovery entry point. 15-second engagement, zero data required. Feeds users into X-Ray. Keep. |
-| **ScreenTimeUpload** | `src/features/quiz/ui/ScreenTimeUpload.tsx` | Older upload component, but referenced from the quiz flow. Keep until Subscription Autopsy ships and you unify upload components. |
-| **X-Ray full flow** | `src/app/xray/`, `src/features/screenshot-upload/`, `src/server/discovery/` | The core product. Keep and improve (Sprint 1). |
-| **Pain library** | `src/entities/pain-points/model/data.ts` | 12 researched pain points. Used by PainQuiz and suggestion mapping. Keep. |
+**What it is:** A cookie-based "focus mode" that (a) renders animated ambient blobs on the page background and (b) adds a prompt addendum to Claude that reframes gaming apps as focus tools.
 
-### CUT (or sunset after replacement ships)
+**Why it's over-built right now:**
+- The feature requires users to discover and click a `FocusModeToggle` in the header, understand the popover, then answer Yes/No. This is 3 interactions before value.
+- The prompt addendum only affects gaming apps (specifically a hardcoded set of 10 games). The vast majority of users won't see any difference in their result.
+- The ambient blobs (`FocusAmbient`) are a visual-only effect that adds DOM weight and continuous CSS animation on both `/xray` and `/quiz` — even for users who never enabled focus mode (the component checks `if (!focusMode) return null`, so the render is cheap, but the component is imported regardless).
+- No analytics instrumentation to measure whether focus mode users convert better.
+- `FocusModeToggle` is shown in the header globally but focus mode only meaningfully affects one API call.
 
-| Component | Location | Reason |
-|---|---|---|
-| **OverthinkQuiz** | `src/features/discovery-quizzes/ui/OverthinkQuiz.tsx`, `src/app/discover/overthink/` | Fun but low conversion. 8 questions is too long for a discovery quiz. The data it produces (yearly hours lost to indecision) doesn't connect to any Meldar product action. It funnels to X-Ray anyway — skip the middleman. **Cut after Sprint 1 ships.** |
-| **SleepDebtQuiz** | `src/features/discovery-quizzes/ui/SleepDebtQuiz.tsx`, `src/app/discover/sleep/` | Same problem. 5 questions, produces a "sleep debt score" that Meldar can't act on. Neither quiz captures email or drives purchase. They're content marketing without a conversion mechanism. **Cut after Sprint 1 ships.** |
-| **discovery-quizzes feature barrel** | `src/features/discovery-quizzes/index.ts` | Remove when both quizzes are cut. |
-| **DiscoveryCard entity** | `src/entities/discovery-card/` | Only used by OverthinkQuiz and SleepDebtQuiz. Remove with them. |
+**Recommendation:** Defer the toggle UI and the ambient blobs. Keep the `focusMode` cookie + prompt addendum as a backend flag — it's 3 lines and costs nothing. Reintroduce the toggle UI when there's data showing gaming-heavy users drop off without it.
 
-### WHY CUT THE DISCOVERY QUIZZES
+### 2. Auth system — 3 phases too early
 
-The overthink and sleep quizzes share a pattern: ask questions, show a scary number, link to X-Ray. But they have three problems:
+**What it is:** Full password auth (`register`, `login`, `verify-email`, `forgot-password`, `reset-password`) with JWT cookies, bcrypt, Resend verification emails, and tests.
 
-1. **No data capture.** Neither quiz collects email or creates a DB record. The user's result vanishes on page close.
-2. **No product connection.** "You lose 280 hours/year to indecision" is interesting but Meldar doesn't sell a decision-making tool. The X-Ray and Subscription Autopsy connect directly to automations Meldar can build.
-3. **Maintenance cost.** Each quiz is ~260 lines of client-side code with hardcoded copy. Two quizzes = two things to maintain that don't convert.
+**Why it's over-built right now:**
+- The plan's Phase 3 says auth is weeks 7-10. The codebase is in Phase 1 (week 1-2).
+- There is no `/login` or `/register` page, no middleware protecting any route, and no dashboard. The backend auth code is complete but has no UI consumer.
+- Auth creates a signup friction that directly conflicts with the core "zero friction" positioning. Every X-Ray user currently completes the flow without any account.
+- The `users` table exists in the schema with `passwordHash`, `verifyToken`, `xrayUsageCount` etc. but nothing writes to `users` during the normal X-Ray flow.
+- The 4 auth API routes + test files represent ~500 lines of code that are completely inert in production.
 
-**Alternative:** If you want the "fun quiz" traffic, replace both with a single 3-question "What's eating your time?" quiz that captures email at the end and maps directly to the pain library. That's a 30-minute rebuild, not a keep.
+**Recommendation:** Leave the auth code in place (it's correct and will be needed), but don't wire it to any UI until Phase 3. Do not add login/register buttons or pages in Phase 1 or Phase 2. The current "identity = email captured post-X-Ray" model is correct for now.
 
----
+### 3. `ScreenshotGuide.tsx` — dead file
 
-## 4. Dependencies
+`src/features/screenshot-upload/ui/ScreenshotGuide.tsx` exists but is never imported. The guide was inlined into `UploadZone.tsx`. This is pure dead code.
 
-```
-Sprint 1: Actionable Screen Time
-  └── No dependencies. Uses existing extraction pipeline, existing types, existing UI.
+**Recommendation:** Delete it.
 
-Sprint 2: Subscription Autopsy
-  ├── Depends on: nothing technically (parallel to Sprint 1)
-  ├── BUT: ship Sprint 1 first because it improves the experience
-  │   for users who arrive via Subscription Autopsy → X-Ray upsell
-  └── Nice-to-have: cross-reference subscription apps with Screen Time data
-      (requires user to have done both — defer to v2)
+### 4. `phaseExit` and `shimmer` keyframes — unused
 
-Sprint 3: ChatGPT Export Analyzer
-  ├── Depends on: nothing technically
-  └── Nice-to-have: pattern matching against pain library to suggest automations
-      (uses existing src/entities/pain-points/model/data.ts)
+Both are defined in `globals.css` but not referenced in any component examined. Minor cleanup candidate.
 
-Sprint 4: ADHD Mode
-  ├── Hard dependency: user research (5+ interviews)
-  ├── Hard dependency: Sprint 1 (actionable insights are the baseline ADHD Mode modifies)
-  └── Touches: prompts.ts, insights.ts, all result card components, possibly header/footer
-```
+### 5. Staggered delay totals ~1.2 seconds before last element appears
 
-### Cross-Feature Dependencies
+The result phase uses `RevealStagger` with delays: 400ms → 500ms → 700ms → 900ms → 1100ms → 1200ms. The UpsellBlock (the primary revenue CTA) appears at 900ms delay. Email capture at 1100ms. The final action buttons at 1200ms.
 
-- **Subscription Autopsy + X-Ray cross-reference:** If a user has done both, you can flag "You pay $9.99/month for Headspace but use it 0 minutes/day." This requires matching subscription app names to Screen Time app names. Defer to v2 — ship each standalone first.
-- **ChatGPT Analyzer + Pain Library:** ChatGPT conversation titles can map to pain points ("meal planning," "email drafts," "resume help"). The existing `APP_TO_PAIN` map in `src/server/discovery/suggestions.ts` can be extended with keyword patterns. Low effort, high value — do this during Sprint 3.
+On a fast connection this is fine. On a slow mobile connection where the API call took 4-5 seconds already, adding another 1.2 seconds of animation delay before the purchase CTA appears is measurable conversion friction.
+
+**Recommendation:** Keep the `XRayCard` reveal (600ms, dramatic). Cut or halve the delays on everything after it. UpsellBlock should appear no later than 400ms after the card.
 
 ---
 
-## 5. The ADHD Mode Implementation Question
+## Under-Built (Blocking Revenue)
 
-### Recommendation: URL parameter (`?mode=adhd`) with cookie persistence
+### 1. Tier CTAs don't reach Stripe
 
-**Not a toggle** — toggles add UI complexity to every page and imply the user switches back and forth. ADHD mode is a lens, not a setting.
+The `TiersSection.tsx` has all three tier cards — "Time X-Ray" (free), "Starter" (pay as you go), "Concierge" (we handle it). All three CTA buttons link to `/quiz`. For the Starter tier, the CTA text is "Join the waitlist" but it navigates to `/quiz`, not to a purchase or email capture flow.
 
-**Not a separate page** — duplicating pages is a maintenance nightmare. You'd need `/xray` and `/xray-adhd`, `/subscriptions` and `/subscriptions-adhd`, etc.
+**This is the single highest-priority fix.** A user who scrolls to the Tiers section and clicks "Join the waitlist" on the Starter card should either:
+- Hit a Stripe Checkout session (`timeAudit` at EUR 29 is the closest live product)
+- OR land on an email capture with Founding 50 messaging
 
-**Not a cookie alone** — cookies aren't shareable. The viral hook of ADHD mode is "send this link to your ADHD friend."
+Instead they get the quiz, which has no purchase path at the end.
 
-### How it works:
+**Fix:** Change the Starter tier CTA href to `/xray` (which leads to the full funnel including UpsellBlock → Stripe). Change the Concierge tier CTA to an email capture or `mailto:` link.
 
-1. User arrives via `meldar.ai/xray?mode=adhd` (from a social post, friend's link, or landing page toggle)
-2. App reads `mode=adhd` from URL params
-3. Sets a cookie `meldar-mode=adhd` so subsequent pages maintain the mode
-4. A React context provider (`ADHDModeProvider`) wraps the app and exposes `useADHDMode()` hook
-5. Components conditionally render:
-   - **Copy changes:** shorter sentences, more direct, emoji-friendly, no walls of text
-   - **UI changes:** higher contrast on key actions, larger tap targets, progress indicators on everything, celebration animations on completion
-   - **AI prompt changes:** system prompts in `src/server/discovery/prompts.ts` get an ADHD-aware suffix ("keep output under 3 bullet points, use encouraging tone, highlight the single most important action")
-   - **Optional GIF layer:** small celebration GIFs on result reveal (use CSS animations, not actual GIF files — lighter, more accessible)
+### 2. `/thank-you` page is hardcoded to "Time Audit"
 
-### Where it lives in FSD:
+`src/app/thank-you/page.tsx` says "Your Time Audit is on its way" regardless of which product was purchased. If someone buys `appBuild` (EUR 79), they see the wrong confirmation copy.
 
-```
-src/features/adhd-mode/
-  index.ts
-  model/context.tsx          # ADHDModeProvider + useADHDMode hook
-  lib/get-initial-mode.ts    # reads URL param + cookie
-```
+**Fix:** Read `session_id` from the URL query param (already in the `success_url` pattern), or just genericize the copy to "Your order is confirmed."
 
-### Risk mitigation:
+### 3. No `/audit/[token]` delivery page
 
-- Ship a "lite" version first: only change copy and AI prompt suffix. No GIFs, no UI changes.
-- A/B test engagement (do ADHD mode users complete X-Ray at higher rates?)
-- Get feedback from actual neurodivergent users before expanding
+The plan lists `/audit/[token]` as a Phase 2 page — the post-purchase delivery surface where the founder delivers the actual Time Audit. The `auditOrders` table has a `status` column (`paid` | `in_progress` | `delivered`) and `deliveredAt` timestamp, but there is no page to deliver to.
 
----
+Currently, when someone pays EUR 29, they get:
+1. A Stripe Checkout page
+2. A confirmation email from Resend saying "within 72 hours"
+3. The `/thank-you` page
 
-## 6. What Can Be Built in 4 Hours? (Absolute MVP for Each)
+There is no delivery mechanism. The founder has to manually email the audit. This is acceptable as a manual process for the first 10 orders, but it's a gap.
 
-### A. ChatGPT Export Analyzer — 4-Hour MVP
+**Recommendation:** Not blocking for first revenue. Manual delivery via email is fine at PoC scale. Build `/audit/[token]` in Phase 2.
 
-- Single page with a file drop zone (reuse `UploadZone` pattern from `src/features/screenshot-upload/`)
-- Client-side: `JSON.parse()` the file, extract `mapping[].title` from conversations.json
-- Client-side: group titles by simple keyword matching (food, code, writing, health, work, school)
-- Display: pie chart or bar list showing category breakdown + "Your top ChatGPT topic: X"
-- No AI call needed for MVP — pure client-side keyword matching on titles
-- No DB storage, no shareable link, no email capture
+### 4. `quiz → xray` handoff exists but is not prominent on the quiz results page
 
-**What's missing from full version:** Claude text API for smarter categorization, shareable result card, email capture, pain library mapping, OG image
+`PainQuiz` results show pain point cards. The CTA to go deeper ("Get your real numbers — 30 seconds") presumably links to `/xray`, but the quiz results are the second most-trafficked surface after the landing page. Reading the plan and comparing to code, this CTA exists, but it's worth verifying it's visible and compelling enough to drive upload intent.
 
-### B. Subscription Autopsy — 4-Hour MVP
+### 5. No OG image for `/quiz` or `/`
 
-- Clone `src/app/api/upload/screentime/route.ts` and swap the prompt
-- New prompt in `prompts.ts`: "Extract subscription app names and monthly costs from this App Store/Google Play screenshot"
-- New Zod schema: `{ subscriptions: { name: string, monthlyCost: number }[], totalMonthly: number }`
-- Single page with upload zone + result showing total monthly/yearly cost and list of subscriptions
-- Reuse `UploadZone` component with different copy
-- No cross-reference with Screen Time, no shareable link, no OG image
-
-**What's missing from full version:** zombie subscription detection, shareable card, category breakdown, cancel links, email capture
-
-### C. Actionable Screen Time — 4-Hour MVP (this is the full version)
-
-- Rewrite `generateInsights()` in `src/server/discovery/insights.ts` to return actionable steps instead of vague comparisons
-- Rewrite `generateUpsells()` in `src/server/discovery/upsells.ts` to reference specific fixes
-- Add `actionSteps: string[]` to the `Insight` type
-- Update `XRayCard` to render action steps under each insight
-- Done. The existing pipeline, upload flow, DB storage, and shareable links all still work.
-
-**What's missing:** Nothing critical. Life-stage-specific actions and richer formatting are nice-to-haves.
-
-### D. ADHD Mode — 4-Hour MVP
-
-- Create `ADHDModeProvider` context that reads `?mode=adhd` URL param
-- Add cookie persistence for mode
-- Change copy in X-Ray result page only (shorter, punchier, 1 action per insight instead of 3)
-- Add a single system prompt suffix in `prompts.ts` for ADHD-aware extraction
-- No GIFs, no UI changes, no landing page changes
-
-**What's missing:** All the UI/UX differentiation that makes it actually feel different. Without visual changes, it's just slightly different copy — not worth shipping as a "mode."
+The plan calls out `/xray/[id]/og` as the viral surface — and that's built and correct. But the landing page and quiz page don't have custom OG images. This is minor but affects social sharing of the root URL.
 
 ---
 
-## 7. Questions for QA Agent
+## Critical Path to Revenue
 
-1. **Screen Time prompt accuracy:** The existing `SCREEN_TIME_SYSTEM_PROMPT` in `src/server/discovery/prompts.ts` was built for Screen Time screenshots. If we clone this pattern for Subscription Autopsy, we need to test: does Claude Haiku reliably extract subscription names + prices from App Store screenshots across iOS 16, 17, and 18? The subscription settings UI changed significantly between versions. What's the error rate we should expect?
+Ordered by unblocking the EUR 29 `timeAudit` purchase:
 
-2. **ChatGPT export file size limits:** The `conversations.json` export from ChatGPT can be 50-200MB for power users. The 4-hour MVP parses this client-side in the browser. At what file size does `JSON.parse()` in a browser tab start failing or freezing? Should we recommend users export only recent conversations, or do we need a streaming JSON parser (`oboe.js` or similar)?
+1. **Fix `TiersSection.tsx` CTAs** — Starter "Join the waitlist" → `/xray`. Concierge → email or `mailto:`. This unblocks the purchase path for users who scroll to the pricing section. ~30 minutes.
 
-3. **Actionable insights liability:** Sprint 1 changes insights from observations ("5.2 hours on TikTok") to instructions ("Block TikTok during work hours using iOS Focus Mode"). If we give platform-specific instructions (iOS Focus Mode, Android Digital Wellbeing), do we need to verify these instructions are correct for the user's detected platform version? The X-Ray already detects `platform: 'ios' | 'android'` — is that sufficient, or do we need OS version detection?
+2. **Fix `/thank-you` copy** — Genericize or make product-aware. ~15 minutes.
 
-4. **ADHD Mode naming and sensitivity:** Is "ADHD Mode" the right user-facing name? Alternatives: "Focus Mode" (conflicts with iOS Focus Mode), "Quick Mode," "Short Mode." Should we do a quick poll with the existing subscriber list before naming it? The risk of getting the name wrong is alienating the exact audience we're trying to serve.
+3. **Verify Stripe price IDs are live in production** — `price_1TGgkpE6hO9BfX87JM1IzXi0` (timeAudit) and `price_1TGgljE6hO9BfX87akbRkjWB` (appBuild) in `src/shared/config/stripe.ts`. If these are test-mode IDs, no real payment can happen. QA must verify.
 
-5. **Discovery quiz removal and SEO:** The overthink quiz at `/discover/overthink` and sleep quiz at `/discover/sleep` may have been indexed by search engines or shared on social media. Before removing them, should we check Google Search Console for impressions/clicks on these URLs? If they drive any organic traffic, we should 301 redirect them to `/xray` rather than returning 404s. Can QA verify whether these pages are in the sitemap (`src/app/sitemap.ts`) and whether they have any backlinks?
+4. **Verify `STRIPE_WEBHOOK_SECRET` is set in Vercel env** — Without it, every Stripe webhook returns 401. `auditOrders` never gets written. Founder notification email never fires. The purchase appears to succeed from the user's perspective (Stripe charges them) but the backend has no record.
+
+5. **Verify Claude Vision integration is live** — `src/server/discovery/ocr.ts` calls `claude-haiku-4-5-20251001`. If `ANTHROPIC_API_KEY` is missing in Vercel env, every upload returns 500. No X-Ray = no funnel.
+
+6. **Verify Neon DB connection string is set** — Without `DATABASE_URL`, every DB write (`xrayResults`, `auditOrders`, `subscribers`) fails silently or throws. Shareable X-Ray URLs won't work.
+
+7. **Cut staggered delay on UpsellBlock** — Move from 900ms to 300ms. Minor code change, measurable impact on purchase CTA visibility.
+
+8. **Delete dead files** — `ScreenshotGuide.tsx`, unused keyframes. Not revenue-blocking but reduces confusion.
+
+---
+
+## Questions for QA Agent
+
+1. **Are the Stripe price IDs live-mode IDs?** Check `src/shared/config/stripe.ts` — the three price IDs (`price_1TGgkp...`, `price_1TGglj...`, `price_1TGh4O...`). Test by clicking "Get your X-Ray" on `/xray`, uploading a real screenshot, and attempting the EUR 29 checkout. Does it reach a real Stripe Checkout page? Does the URL say `checkout.stripe.com` or is there an error?
+
+2. **Does the upload flow complete successfully on the live site?** Go to `meldar.ai/xray`, upload an actual iPhone Screen Time screenshot, and confirm: (a) the analysis completes without a 500 error, (b) a result card appears with real app names, (c) the shareable URL (`/xray/[id]`) works after page reload. This verifies `ANTHROPIC_API_KEY`, `DATABASE_URL`, and the Claude Haiku integration are all wired correctly in Vercel.
+
+3. **What do the Tiers CTAs actually do on the live site?** On `meldar.ai`, scroll to the pricing section. Click "Get your free X-Ray" (Time X-Ray tier), "Join the waitlist" (Starter tier), and the Concierge CTA. Document where each one navigates. The current code sends all three to `/quiz` — confirm whether this is what the live site does, or if an older version was deployed.
+
+4. **Does the deletion banner appear after upload?** After uploading a screenshot, the `showDeletionBanner` is set to `true` for 5 seconds. Confirm it appears on mobile (the primary device for Screen Time screenshots). The banner is `position: relative` inside the result flow — verify it's visible and not clipped.
+
+5. **Is the Focus Mode toggle visible in the header on mobile?** `FocusModeToggle` renders `<span display={{ base: 'none', md: 'inline' }}>Focus</span>` — the text hides on mobile but the button with the Sparkles icon remains. Confirm the icon-only button is tappable and the popover doesn't clip offscreen on a 375px-wide phone.

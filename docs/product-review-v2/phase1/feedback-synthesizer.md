@@ -1,8 +1,52 @@
 # Feedback Synthesizer: Patterns Across All Reviews
 
 **Date:** 2026-03-31
-**Sources:** 15 review files, 5 product-rethink docs, 6 discovery-brainstorm docs + 6 grilling docs, 6 data-rethink docs, BACKLOG.md
-**Purpose:** Find what keeps surfacing, what the pivots reveal, and whether the current direction finally resolves the recurring problems.
+**Sources:** 15 review files (docs/reviews/), 5 product-rethink docs, 6 discovery-brainstorm docs + 6 grilling docs, BACKLOG.md
+**Current update scope:** 4-phase → 2-phase redesign of the discovery form (xray-client.tsx, UploadZone.tsx, XRayCard.tsx)
+**Purpose:** Find what keeps surfacing, what the pivots reveal, and whether this update finally resolves the recurring problems.
+
+---
+
+## 0. What "This Update" Changed (4 Phases → 2 Phases)
+
+The redesign collapsed the flow from 4 phases (quiz → upload zone modal → analyzing → result) to 2 named phases (`scan` / `result`). New additions in this update:
+
+| Component | What it does | Was this previously requested? |
+|---|---|---|
+| `ContextChip` | Optional life-stage selector (Student / Working / Freelance / Job-hunting) | Partially — PM and Nudge Engine asked for quiz context to carry into X-Ray; this is a lightweight substitute |
+| `XRayCardReveal` / `RevealStagger` | Staggered fade-slide-up animations for the result phase | YES — UX Researcher (F37) and Visual Storyteller both rated this highest priority |
+| `FocusAmbient` | Ambient background effect during scan phase | New addition, no prior request |
+| `ResultEmailCapture` | Post-result email capture below the upsell | YES — PM called this "non-negotiable", flagged by 7+ reviewers |
+| Contextual insight card | Life-stage-specific framing of total hours | YES — Nudge Engine and UX Researcher both asked for personalized reaction cues |
+| Drag-and-drop handlers | `onDragOver` / `onDragLeave` / `onDrop` on the label | YES — F4 (UX Researcher), Product-Rethink SYNTHESIS |
+| Collapsible instructions guide | "Where do I find this?" toggle replaces always-visible platform instructions | YES — F13 (UX Researcher), reduces noise |
+| Bar chart in XRayCard | Proportional horizontal bars per app, gradient on #1, `barFill` animation | YES — Visual Storyteller rated this critical #2 ("pure text cards don't go viral") |
+| Scan line animation | Moving gradient line during processing state | New addition, fulfills Visual Storyteller's "scanning animation" request |
+
+### What was addressed by this update
+
+- **F4 (drag-and-drop):** Fixed. Visual feedback via `dragging` state (border turns primary, box shadow).
+- **F37 (no reveal animation):** Fixed. `XRayCardReveal` + `RevealStagger` with 400–1200ms stagger chain.
+- **Visual data representation in XRayCard:** Fixed. Proportional bars, staggered `barFill` animation, gradient on top app.
+- **Email capture on result page (PM non-negotiable):** Fixed. `ResultEmailCapture` appears after the upsell.
+- **Partial emotional reaction cues (F38):** Partially fixed. Life-stage contextual block adds personal weight for users who select a stage. Users who skip the chip still see no reaction cue beyond the insight cards.
+- **Platform instructions noise (F13):** Fixed. Collapsible toggle reduces cognitive load.
+
+### What was NOT addressed (still open after this update)
+
+See Section 1 for the complete persistent backlog. The top items that remain open after this specific update:
+
+1. **Accessibility cluster** (C1–C4, S1 — Accessibility Review): Zero accessibility attributes added. Upload input has no `aria-label`. Progress steps have no `aria-live`. Error state has no `role="alert"`. Focus is not moved to result after upload. The new `ContextChip` buttons also lack `aria-pressed`.
+
+2. **PurchaseButton silent failure** (UX-01, E2E Tester; F21 UX Researcher): Button hangs on "Redirecting…" indefinitely if the checkout API returns an error.
+
+3. **Rate limiting on subscribe and checkout** (flagged by 4 reviewers — see Section 1.3): `ResultEmailCapture` adds a new call site to the unprotected `/api/subscribe` endpoint.
+
+4. **OG image: system font + no caching** (Visual Storyteller critical #1, Frontend Perf P2/P3): Still uses `system-ui`. No cache headers. This is the viral loop's most-visible asset.
+
+5. **No urgency mechanisms** (Nudge Engine 2/10): No founding counter, no deadline, no X-Ray expiry timer. The update adds personalization but zero urgency.
+
+---
 
 ---
 
@@ -263,12 +307,20 @@ Based on accumulated feedback across all reviews:
 
 ## 7. Questions for the QA Agent
 
-1. **Has the `analyze-screenshot` mock route actually been deleted yet?** Multiple reviews flagged it. The BACKLOG mentions removing the dead Sentry dependency but does not mention this route. Is it still accessible in production at `meldar.ai/api/analyze-screenshot`?
+### Specific to "this update" (the 4→2 phase redesign)
 
-2. **What is the current state of rate limiting?** Specifically: (a) Are Upstash Redis credentials configured in any environment? (b) Has the subscribe route been wired to use `subscribeLimit`? (c) Does the `checkRateLimit` function still fail open (return `{ success: true }`) when Redis is unavailable?
+1. **Does drag-and-drop actually work on desktop Chrome and Safari?** The update added `onDragOver`/`onDragLeave`/`onDrop` handlers. Test: drag a PNG file onto the upload zone. Does the border change to primary (`#623153`) and a glow appear? Does the file upload and process to a result? Previous version said "Drop your screenshot" but dropping did nothing (F4).
 
-3. **Has the `expiresAt` filtering been added to the X-Ray read paths?** The Data Engineer review called this a "5-minute fix" for the GDPR-critical issue of serving expired X-Ray results. Has `getXRay()` been updated to filter by `expiresAt > NOW()`? Has a Vercel cron purge endpoint been created?
+2. **Does `RevealStagger` actually reveal content?** The component sets `opacity: 0` inline and relies on CSS `animation`. If the named keyframe `meldarFadeSlideUp` is not defined in globals.css or the browser has `prefers-reduced-motion` enabled, all result-phase content remains invisible. Verify: (a) All staggered elements appear within ~2 seconds after upload completes. (b) Test with DevTools animations disabled — does content still appear?
 
-4. **Is the quiz results page still showing fabricated hour totals?** The product-rethink consensus was to remove these immediately. Has the `weeklyHours` summation been removed from the quiz results display? Has the results page copy been rewritten to use the curiosity-gap framing?
+3. **Does the OG image route exist and serve a branded image?** E2E Tester flagged this as BUG-01 (HIGH). Test: generate a real X-Ray, take the `id`, navigate to `/xray/{id}/og`. Does it return a 200 with a valid image? Share the X-Ray URL in Twitter/Slack — does the card preview show actual content or a broken image?
 
-5. **What actually changed in the codebase since these reviews were written?** The reviews are dated 2026-03-30. The most recent commit is `chore: deploy` (0b751ed). Did that deploy include any of the fixes identified across these 30+ documents, or is the entire backlog still pending?
+4. **Does the PurchaseButton recover from a server error?** Open DevTools, intercept `/api/billing/checkout`, return a 500. Click the upsell CTA. Does the button show an error message, or does it hang on "Redirecting…" forever? (UX-01, F21 — flagged as direct revenue loss path across two review rounds.)
+
+5. **Is upload rate limiting active in production?** The security and AI engineer reviews both flagged that `checkRateLimit` returns `{ success: true }` when Upstash Redis env vars are absent. Verify: (a) Are `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` set in Vercel production env? (b) Does a 6th upload attempt within 60 seconds from the same IP return 429, not 200?
+
+### Carried over from prior round (still unresolved)
+
+6. **Has the `analyze-screenshot` mock route been deleted?** Flagged by 4 reviewers. Still accessible in production at `/api/analyze-screenshot` — returns hardcoded fake data with no validation.
+
+7. **Is the GDPR purge cron job running?** The privacy policy states "30 days, then automatically purged." No cron endpoint exists. Test: check Vercel cron tab for any scheduled functions. Check `xray_results` table for rows with `expires_at` in the past.

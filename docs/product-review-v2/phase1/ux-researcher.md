@@ -1,312 +1,199 @@
-# UX Research Review: Phase 2 Features
+# UX Research Review: Discovery Form Redesign (4-phase → 2-phase)
 
 **Reviewer:** UX Researcher
 **Date:** 2026-03-31
-**Scope:** ChatGPT Export Analyzer, Subscription Autopsy, Actionable Screen Time, ADHD Mode
-**Target:** Gen Z / Gen Alpha (18-28), mobile-first, ChatGPT-fluent, failed at AI tools before
+**Scope:** The X-Ray upload flow redesign — from 4 phases (intro > guide > context > upload) to 2 phases (scan > result). ScreenshotGuide promoted to a collapsible inline toggle. Context chips made optional and inline.
+**Target:** Gen Z / Gen Alpha (18-28), 78% mobile, ChatGPT-fluent, failed at AI tools before
 
 ---
 
-## 1. Friction Analysis by Feature
+## 1. Flow Comparison: What Changed
 
-### A. ChatGPT Export Analyzer
+### Before (4-phase)
+The original flow had a dedicated `ScreenshotGuide` phase — a step-by-step modal/card with platform toggle (iPhone / Android), pagination through 4 steps, progress dots, and a final "Got it — upload my screenshot" CTA that dismissed it and revealed the upload zone.
 
-| Step | Action | Time | Platform | Drop-off Risk |
-|------|--------|------|----------|---------------|
-| 1 | Open ChatGPT settings | 10s | Mobile/Desktop | Low |
-| 2 | Navigate to Data controls | 10s | Mobile/Desktop | Medium - non-obvious menu location |
-| 3 | Tap "Export data" | 5s | Mobile/Desktop | Low |
-| 4 | Wait for email from OpenAI | 1-30 min | Email | **CRITICAL** - user leaves the flow entirely |
-| 5 | Download zip from email | 15s | Mobile/Desktop | High on mobile - zip handling is clunky |
-| 6 | Extract conversations.json | 10-30s | Desktop easy, mobile hard | **CRITICAL on mobile** - iOS Files app, no native unzip in some Android |
-| 7 | Upload to Meldar | 10s | Mobile/Desktop | Low if they got this far |
+### After (2-phase: scan → result)
+The guide is now a collapsible toggle ("Where do I find this?") that sits below the upload zone. Context chips are inline above the upload zone with the label "I'm currently…". The upload zone is the first thing users see when they land on `/xray`.
 
-**Total time:** 2-35 minutes (variable due to email wait)
-**Total steps:** 7 deliberate actions across 3 different apps
-**Predicted completion rate:** 15-25% of those who start
-
-**Where users abandon:**
-- **Step 4 (email wait):** This is the killer. The user leaves Meldar, opens email, waits. There is no guarantee they come back. Push notifications do not exist yet. The mental model breaks: "I was on a website, now I'm waiting for an email from a different company."
-- **Step 6 (extract zip):** On mobile, extracting a specific JSON file from a zip is a multi-step sub-task. Many Gen Z users have never manually handled zip files on their phones.
-- **Between steps 3 and 4:** The user has no confirmation from Meldar that anything is happening. They initiated an action on OpenAI's side. Meldar has no visibility into whether the export was requested.
-
-### B. Subscription Autopsy
-
-| Step | Action | Time | Platform | Drop-off Risk |
-|------|--------|------|----------|---------------|
-| 1 | Open Settings on phone | 5s | Mobile only | Low |
-| 2 | Tap Apple ID / Google Play subscriptions | 10s | Mobile | Low-Medium (path varies by OS version) |
-| 3 | Screenshot the list | 5s | Mobile | Low |
-| 4 | Upload to Meldar | 10s | Mobile/Desktop | Low |
-
-**Total time:** 30-45 seconds
-**Total steps:** 4 simple actions, all on one device
-**Predicted completion rate:** 60-75%
-
-**Where users abandon:**
-- **Step 2:** The navigation path to subscriptions changes between iOS versions. iOS 17 moved it. Some users have subscriptions split across Apple ID and individual apps. The guide needs to account for this.
-- Very low friction overall. This is the easiest new feature to complete.
-
-### C. Actionable Screen Time
-
-| Step | Action | Time | Platform | Drop-off Risk |
-|------|--------|------|----------|---------------|
-| 1 | Same as current Screen Time flow | 30s | Mobile | Same as current |
-
-**Total time:** Same as existing flow (~30 seconds)
-**Total steps:** Same as existing (context chip > guide > upload)
-**Predicted completion rate:** Same as current, possibly higher if output is better
-
-**No additional friction.** This is a backend/output improvement, not a flow change. The UX win here is entirely in the quality of the result, not the input. Current result card (`XRayCard`) shows hours and app names. If "Actionable" means showing specific recommendations ("You open Instagram 47 times/day. Try: move it to page 3 of your home screen"), the result page gets more complex but the input stays the same.
-
-**Risk:** If the actionable output is too long or too prescriptive, it could feel preachy. Gen Z responds to observation + agency, not lecturing. Frame suggestions as options, not instructions.
-
-### D. ADHD Mode
-
-| Step | Action | Time | Platform | Drop-off Risk |
-|------|--------|------|----------|---------------|
-| 1 | Toggle ADHD Mode | 2s | Mobile/Desktop | Low |
-
-**Total time:** No additional time
-**Total steps:** 1 toggle, then the experience adapts around the user
-**Predicted completion rate:** N/A (it's a mode, not a funnel)
-
-**No friction if the toggle is discoverable.** The question is where the toggle lives, how the mode changes the experience, and whether it helps or patronizes (see Section 3).
+**Net change in user-visible complexity:** Simpler on first glance, but the hand-holding is now optional rather than mandatory.
 
 ---
 
-## 2. The ChatGPT Export Problem
+## 2. Is the 2-Phase Flow Actually Simpler?
 
-### Why 5+ steps and an email wait is (almost) too much
+**Short answer: Yes, for users who already know what to do. No, for first-timers.**
 
-The current Screen Time flow works because it follows a pattern Gen Z already knows: screenshot something on your phone, upload it. The entire loop happens in under 60 seconds on one device.
+The 4-phase flow forced every user through the screenshot guide, which was friction for the 30-40% who already know where Screen Time lives. Removing the mandatory guide pass is the right call for returning users, tech-comfortable users, and anyone coming from organic search ("how do I see my screen time").
 
-The ChatGPT export breaks every rule of that pattern:
+However, the 4-phase flow also guaranteed that first-timers received instructions before they hit a blank upload zone. The collapsible toggle now relies on two things the original flow did not: (1) the user noticing the toggle exists, and (2) the user clicking it before giving up.
 
-1. **Cross-app orchestration.** The user must coordinate between Meldar (browser), ChatGPT (browser/app), and email. Each app switch is a context switch. Each context switch is a chance to get distracted or forget.
-2. **Asynchronous wait.** The email can take minutes or hours. OpenAI does not guarantee a timeframe. During this wait, the user has left Meldar entirely. There is no way to bring them back without push notifications (which Meldar does not have).
-3. **File management on mobile.** Downloading a zip, finding the right JSON file, and uploading it requires file system literacy that many Gen Z users lack. iOS makes this particularly painful.
-4. **No progress visibility.** Meldar cannot show a progress bar or status update because the export is happening on OpenAI's servers. The user is flying blind.
+**The critical assumption being made:** "If a user doesn't know how to find Screen Time, they will click 'Where do I find this?' before abandoning."
 
-### How to make it feel worth it
-
-**Strategy: Front-load the payoff, back-load the effort.**
-
-1. **Show a preview before they start.** Before asking the user to export, show them a sample ChatGPT analysis: "Here's what Sarah learned about her ChatGPT usage." Make the result feel tangible and desirable before they commit to the effort. Use a real-looking (anonymized) example that shows surprising insights ("You asked ChatGPT to write 43 emails for you last month. That's 3 hours of your life you got back - but you also asked it to explain the same concept 11 times. Maybe a bookmark would help?").
-
-2. **Break the wait with a "we'll text you" option.** When the user requests the export, offer to notify them when it's time to upload. This could be email (you already have Resend) or SMS. The message: "Your ChatGPT data is ready to analyze. Come back when you get the email from OpenAI." Include a deep link back to the upload step so they don't have to navigate from scratch.
-
-3. **In-flow instruction with live screenshots.** The current `ScreenshotGuide` pattern (step-by-step with platform toggle) should be replicated for the ChatGPT export, but with actual screenshots of the ChatGPT UI at each step. Generic text instructions like "Go to Data controls" mean nothing if the user can't find the menu. Show them exactly what to tap.
-
-4. **Desktop-first for this feature.** Unlike Screen Time (inherently mobile), ChatGPT export is much easier on desktop. The zip download and JSON extraction are trivial on a laptop. Acknowledge this in the UI: "This works best on a computer. We'll send you a link to continue on desktop." This is the one feature where steering users away from mobile actually reduces friction.
-
-5. **Auto-detect the file.** When the user uploads the zip, don't ask them to extract `conversations.json` first. Accept the entire zip and extract it server-side (or client-side with JSZip). This eliminates the hardest mobile step.
-
-6. **Position it as a "level up" in the effort escalation funnel.** The current funnel goes: quiz (15s) > screenshot (30s) > Takeout (3 min). ChatGPT export fits between screenshot and Takeout in effort. Frame it as: "You've already seen your screen time. Want to go deeper? See what your ChatGPT conversations reveal about how you actually work."
+This assumption is questionable. Mobile users on the target demographic do not typically read secondary UI. They tap the primary CTA, get stuck, and leave. The toggle is helpful for users who get stuck and think to look for help — but many users will simply not upload anything and leave without realizing a guide exists.
 
 ---
 
-## 3. ADHD Mode UX
+## 3. Will Users Know How to Take a Screen Time Screenshot?
 
-### What the GIFs should look like
+**No. The majority of first-time users will not.**
 
-**Visual language:** Slow, looping, low-saturation animations. Think: a cat slowly blinking, rain on a window, a candle flame, kinetic sand being sliced. NOT: flashy memes, fast cuts, or anything with text overlays.
+The hero copy ("Upload a Screen Time screenshot") and the upload zone label ("Drop your Screen Time screenshot") both assume the user already has a screenshot ready. There is no indication that the user needs to leave the page, navigate into device settings, and take a photo before returning.
 
-**Format:** Subtle cinemagraphs or micro-animations, not full-motion GIFs. Keep file sizes under 500KB. Use `<video>` with autoplay/muted/loop for better performance than actual GIF format. Consider using Lottie animations for even lighter weight.
+The prior `ScreenshotGuide` explicitly walked users through this prerequisite. The new design treats it as a secondary concern hidden behind a toggle.
 
-**Color palette:** Stay within the brand's warm cream (#faf9f6) and mauve (#623153) range. Desaturate any real-world GIFs to match. Avoid high-contrast or rapidly changing colors.
+**Specific failure mode:** A user reads "Drop your Screen Time screenshot," taps "Choose image," opens their camera roll, and finds no such screenshot. They are now stuck with the file picker open, no guidance visible, and no indication that they need to take a new screenshot first. The "Where do I find this?" toggle is not visible while the native file picker is open. The user closes the picker without uploading and may not return.
 
-### Where they appear
-
-1. **During upload processing.** Replace the current step-by-step text progress (`STEPS` array in `UploadZone.tsx`) with a calming animation and a single line of reassuring text. Current: "Compressing image / Uploading screenshot / Detecting apps / Generating your X-Ray" (4 steps ticking by). ADHD Mode: A slow, breathing animation with "Working on your X-Ray..." and no numbered steps. The numbered steps create anxiety about whether it's stuck.
-
-2. **During the ChatGPT export wait.** A full-screen calming visual with a message like "We'll let you know when it's ready. You can close this page." This is the most natural place for a calming GIF - the user is literally waiting with nothing to do.
-
-3. **On form inputs.** Small decorative animations next to input fields (email capture, quiz selections) to reduce the "I'm filling out a form" feeling. Keep them peripheral, not competing with the input itself.
-
-4. **NOT on result screens.** The X-Ray result card is a moment of engagement, not anxiety. Adding calming GIFs there would dilute the impact of the data.
-
-### How the toggle works
-
-**Placement:** In the site header, as a small icon button (a brain icon or infinity loop). Not in a settings page - ADHD users won't dig for it. It should be visible on every page, always one tap away.
-
-**Persistence:** Store the preference in localStorage (same pattern as cookie consent). Persist across sessions. Don't ask why they're enabling it.
-
-**Behavior changes in ADHD Mode:**
-
-| Element | Standard Mode | ADHD Mode |
-|---------|--------------|-----------|
-| Copy length | Full paragraphs | Bullet points, shorter sentences |
-| Progress indicators | Multi-step numbered list | Single reassuring line + animation |
-| Auto-advance | User must click "Next" | Auto-advance after brief pause (with cancel) |
-| Form labels | Standard | More conversational ("What's your email?" vs "Email address") |
-| Results | Full detail first | TL;DR first, "Show more" for detail |
-| Animations | Standard transitions | Slower, smoother, more fluid |
-| Color intensity | Full brand palette | Slightly reduced contrast, warmer |
-
-### Is it patronizing or genuinely helpful?
-
-**It is helpful IF:**
-- The toggle is optional, unlabeled beyond "calm mode" or "focus mode" (not "ADHD Mode" in the UI - that's a clinical label that some users find stigmatizing and others find affirming, so let the marketing name it but let the UI stay neutral)
-- It changes the experience meaningfully, not just cosmetically
-- It doesn't assume the user is incapable - it just assumes they prefer less noise
-- It's available to everyone, not gated behind a diagnostic question
-
-**It risks being patronizing IF:**
-- The GIFs are too childish (bouncing cartoons, baby animals)
-- The copy becomes oversimplified to the point of condescension
-- It adds a "You're in ADHD Mode!" banner or acknowledgment on every page
-- Enabling it triggers a modal explaining what ADHD is
-
-**Recommendation:** Call it "Focus Mode" in the UI. Market it as "ADHD-friendly" in blog posts and social media. Let the user discover and name the experience themselves. The toggle should feel like switching a reading app to "night mode" - a personal preference, not a medical accommodation.
+**On Android, the situation is worse.** "Screen Time" is Apple-specific terminology. Android's equivalent is "Digital Wellbeing" (Google Pixel) or varies by OEM (Samsung uses "Digital Wellbeing" inside One UI, some older devices have it in a different location). A user reading "Screen Time screenshot" on Android may not know this applies to them at all.
 
 ---
 
-## 4. Mobile Flow Analysis
+## 4. Is the "Where Do I Find This?" Toggle Discoverable?
 
-### A. ChatGPT Export - Mobile: POOR
+**Marginally, not reliably.**
 
-- **Zip download:** iOS downloads zips to Files app, requiring users to navigate there, tap the zip, find conversations.json, then share it to Safari/Meldar. Many Gen Z users have never opened the Files app.
-- **Cross-app flow:** ChatGPT app > Settings (in-app) > email app > download > Files > Safari/Meldar. That's 5 app switches.
-- **Recommendation:** This feature should explicitly recommend desktop. On mobile, show: "This is easier on a computer. Want us to email you a link?" Send a deep link to the upload page via Resend.
+The toggle is positioned below the upload zone with `marginBlockStart={3}` — so roughly 12px below the upload area border. On a 390px-wide iPhone screen, the upload zone itself is `minHeight="220px"`, and the header + context chips add ~160px above it. The toggle sits at approximately 550px from the top of the page (plus the fixed header at ~72px). On most mobile viewports the toggle is visible without scrolling, but barely.
 
-### B. Subscription Autopsy - Mobile: EXCELLENT
+**The discoverability problem is not position — it is salience.** The toggle text is `fontSize="xs"`, `color="onSurfaceVariant/60"`, and styled as a secondary text button with no border, background, or iconographic anchor beyond a small ChevronDown. It reads as a footnote, not as a help resource.
 
-- **This is a mobile-native flow.** You're already on your phone, looking at subscriptions on your phone, screenshotting your phone. The upload zone's drag-and-drop (which doesn't apply on mobile) gracefully falls back to the file picker via the `<input type="file">` in `UploadZone.tsx`.
-- **iOS-specific note:** The share sheet allows direct upload from the screenshot preview (tap screenshot thumbnail > Share > choose Meldar if it's a PWA, or open in Safari and paste). But most users will just open the upload page and tap "Choose image" from their camera roll.
-- **Android-specific note:** Digital Wellbeing subscription view varies by OEM. Samsung, Pixel, and OnePlus all show subscriptions differently. The guide needs to handle this or keep instructions generic.
+Compare to the `ScreenshotGuide` it replaced: that component had a header bar with a platform toggle (visually distinct), step indicator dots, a visual mockup area, step text, and a prominent "Next" / "Got it" CTA. Users were guided, not left to self-serve.
 
-### C. Actionable Screen Time - Mobile: GOOD (Same as current)
-
-- The current flow is already mobile-first. The `UploadZone.tsx` component handles file selection via native file picker. The `ScreenshotGuide.tsx` auto-detects platform via user agent and shows iOS or Android steps.
-- No changes needed to the input flow. The output (actionable recommendations) should be formatted for mobile-width screens - the current `XRayCard` is already constrained to `maxWidth="440px"`, which works.
-
-### D. ADHD Mode - Mobile: GOOD (if implemented correctly)
-
-- Toggle placement matters more on mobile. A header icon button works if the header isn't already crowded. Current header (`src/widgets/header/`) likely has logo + CTA. Adding a focus mode toggle as a small icon is fine.
-- GIF/animation performance: Mobile devices have less GPU headroom. Use `will-change: transform` sparingly. Prefer CSS animations over video where possible. Test on low-end Android devices (the target audience doesn't all have iPhone 15 Pros).
-- Touch targets: The toggle button must be at least 44x44px per Apple HIG / WCAG 2.5.5.
+**Specific discoverability risk on mobile:** On Android Chrome and iOS Safari, the label "Where do I find this?" sits immediately below the upload zone border. Users who tap the upload zone and get a file picker will not see the toggle while the picker is open. Users who scroll past the upload zone (common on mobile — users scroll to see if there's more) may skip over the toggle entirely.
 
 ---
 
-## 5. The Screenshot Guide Problem
+## 5. What Happens When a User Lands Directly on /xray (No Quiz Context)?
 
-### What's wrong with the current ScreenshotGuide.tsx
+`xray-client.tsx` initializes with `lifeStage = null`. The page renders the scan phase with:
+- The "Your Time X-Ray" headline
+- The "One screenshot. Under a minute." subheadline
+- The context chip row labeled "I'm currently…"
+- The upload zone
 
-The current guide (`src/features/screenshot-upload/ui/ScreenshotGuide.tsx`) shows 4 generic steps for iOS:
+There is no quiz-derived context. The context chips are entirely optional — skipping them is the default path unless the user takes deliberate action to select one.
 
-1. Open Settings
-2. Tap Screen Time
-3. See All App & Website Activity
-4. Select "Week" and screenshot
+**UX problems with the cold entry:**
 
-**The problem:** The actual iOS Screen Time UI (as of iOS 17/18) has **4 scrollable sections** within "See All App & Website Activity":
+1. **No onboarding context.** Users arriving from a share link (e.g., `/xray` linked in a tweet) get no explanation of what Meldar is, why they should trust it with a screenshot, or what the result will look like. The only copy visible is "One screenshot. Under a minute. See where your time actually goes." This is a value proposition compressed to a tagline — it may not be enough to motivate upload from a cold, skeptical user.
 
-1. **Most Used** - app list with time bars (this is what Meldar needs)
-2. **Pickups** - how many times you picked up your phone
-3. **Notifications** - which apps send the most notifications
-4. **Most Used (by category)** - Entertainment, Social, Productivity, etc.
+2. **The context chips are confusing without framing.** The label "I'm currently…" is an incomplete sentence above four chips. Without the quiz flow's framing ("We'll tailor your results to your situation"), the chips feel arbitrary. A cold user may not understand what selecting "Student" or "Freelance" changes, and therefore skip the chips entirely — reducing the personalization quality of their result.
 
-The current guide says "Take a screenshot of the app list" but doesn't tell users WHICH section to screenshot, or that they might need to scroll. If the user screenshots the Pickups section, the Vision AI gets different data than expected. If they screenshot only the top 3 apps (visible without scrolling), the analysis is incomplete.
+3. **No social proof.** The landing page has a "2,847 people surveyed" data point and the quiz has its own framing. The `/xray` cold entry has neither. For a first-time visitor, there is nothing that says "other people have done this and found it valuable."
 
-### How to fix it
-
-**1. Replace text steps with annotated screenshots.**
-
-The current `visual` field in `IOS_STEPS` just shows a text label ("Settings", "Screen Time", etc.) inside a grey box. Replace these with actual annotated screenshots (or high-fidelity mockups) of each iOS screen. Store as optimized WebP images in `/public/guides/`. This is the single biggest improvement possible.
-
-**2. Add a "what to capture" step specifically for the scrollable sections.**
-
-After "See All App & Website Activity," add a step that says:
-- "You'll see a scrollable page with multiple sections. We need the **Most Used** section at the top."
-- "Scroll until you can see all your apps, then screenshot."
-- "If your list is long, take 2 screenshots - we can handle both."
-- Show an annotated mockup with the "Most Used" section highlighted and the other sections dimmed.
-
-**3. Support multi-screenshot upload.**
-
-The current `UploadZone.tsx` accepts only a single file (`const file = e.target.files?.[0]`). If the app list requires scrolling, users need to upload 2-3 screenshots. Change the input to `multiple` and adjust the API to accept an array. This is critical for users with 20+ apps showing in Screen Time.
-
-**4. Add version-specific paths.**
-
-iOS 17 changed the Screen Time navigation. iOS 18 changed it again. The guide should ask "Which iOS version?" (or better, detect it from the user agent where possible) and show the correct path. The current guide assumes a single path that may not match the user's device.
-
-**5. Handle the "Week" vs "Day" toggle explicitly.**
-
-Step 4 says "Toggle to Week view" but doesn't explain where the toggle is or what it looks like. Some users may not realize there's a Day/Week toggle at the top of the screen. Show it.
-
-**6. Android parity.**
-
-The Android guide is equally generic. Digital Wellbeing UI varies significantly across Samsung (with One UI overlay), Pixel (stock Android), and other OEMs. At minimum, offer Samsung and Pixel variants.
+4. **No preview of the result.** The landing page's DataReceiptSection shows what the output looks like (Spotify Wrapped-style card). `/xray` shows nothing until the user uploads. For a cold visitor, this is a leap of faith.
 
 ---
 
-## 6. Trust & Privacy for ChatGPT Conversations
+## 6. Mobile Experience (78% of Target Is Mobile)
 
-### Why this is different from Screen Time
+### Upload Zone
+The upload zone's primary interaction on desktop is drag-and-drop, but on mobile this is irrelevant. The actual mobile interaction is tapping the styled label to trigger the file picker. The upload zone does degrade gracefully — the `<input type="file">` inside the `<label>` works on mobile. However:
 
-Screen Time screenshots show **aggregated, anonymous data**: app names and hours. There's nothing personally identifying. A screenshot of "Instagram: 3h 22m" tells you nothing about what the person looked at.
+- The `minHeight="220px"` on the styled label creates a large tap target, which is good.
+- The "Choose image" button is rendered as a `<styled.span>` visually styled as a button inside the label. This is accessible because the entire label is the tap target, but the button-like element has no interactive affordance beyond visual styling.
+- There is no indication that "Choose image" will open the camera roll vs. camera vs. files. On iOS, tapping an `<input type="file" accept="image/*">` offers a choice between "Photo Library," "Take Photo or Video," and "Browse." This is a good native affordance, but users expecting a camera roll picker may be confused by the camera option appearing.
 
-ChatGPT conversations contain **the user's actual thoughts, questions, fears, and work.** People ask ChatGPT about:
-- Medical symptoms they haven't told their doctor
-- Relationship problems
-- Job interview prep (including complaints about their current employer)
-- Financial questions
-- Creative writing that feels deeply personal
-- Homework and academic work they may not want traced
+### Context Chips
+The chip row uses `flexWrap="wrap"` and `gap={2}`. On a 390px screen, four chips with `paddingInline={4}` and `paddingBlock="10px"` will likely fit in two rows of two. Tap targets are adequate at ~44px height.
 
-Uploading `conversations.json` to Meldar is, psychologically, like handing someone your diary and your browser history simultaneously.
+**Problem:** There is no visual affordance indicating that chips are toggleable beyond the border change on selection. Users unfamiliar with chip UI patterns may tap once, not see the border change as an affordance of "I selected this," and move on without a chip selected.
 
-### How to earn that trust
+### The Guide Toggle on Mobile
+As discussed in Section 4, the guide toggle is `fontSize="xs"` with low-contrast color. On mobile, small secondary text is frequently missed. Touch target for the toggle is `paddingBlock={2}` (8px) plus the text line height — likely ~28-32px total, which is below the WCAG 2.5.5 minimum of 44px.
 
-**1. Show them what's in the file before they upload.**
+### Processing State
+During upload, the scan line animation (`scanLine 2s ease-in-out infinite`) and the `scanPulse` animation on the upload zone require GPU compositing. On low-end Android devices this may cause dropped frames. The `gentleBreathe` animation on the current step label adds another composited layer. Three simultaneous animations during a network request is potentially too many for a budget Android device.
 
-Add a client-side preview step. After the user selects `conversations.json`, parse it in the browser (not on the server) and show:
-- Number of conversations
-- Date range
-- Topics detected (client-side keyword matching, not AI)
-- A sample of conversation titles (which are visible in the file)
-
-Let the user see what they're about to share. This mirrors the "Meldar doesn't watch you. You show Meldar." positioning.
-
-**2. Client-side processing where possible.**
-
-If any analysis can happen in the browser without sending the file to a server, do it there. Show a clear indicator: "This data is being analyzed on your device. Nothing has been uploaded yet." Even if some processing must happen server-side (for Claude Vision or other AI analysis), minimize what gets sent.
-
-**3. Explicit data lifecycle.**
-
-Currently, the Screen Time flow shows "Processed in ~3 seconds. Deleted immediately. Never stored." For ChatGPT data, this needs to be more specific:
-- "Your conversations are analyzed in [X] seconds."
-- "The raw file is deleted immediately after analysis."
-- "We keep only the summary statistics (number of conversations, topic categories, time patterns). We never store the text of your conversations."
-- "You can delete everything at [link]."
-
-**4. Opt-in granularity.**
-
-Let users exclude specific conversations or date ranges before upload. A simple "Select which months to include" or "Exclude conversations containing [keyword]" gives the user control and reduces the feeling of handing over everything.
-
-**5. Third-party audit language.**
-
-Meldar is a Finnish company under GDPR. Lean into this. "We're a Finnish company. European privacy law isn't optional for us - it's how we're built." This is already partially present in `TrustSection.tsx` ("European law requires it, and we like it that way") but should be repeated specifically in the ChatGPT upload flow.
-
-**6. Social proof for this specific action.**
-
-"2,847 people have analyzed their ChatGPT history with Meldar. Average analysis time: 4 seconds. Zero data breaches." (Only show real numbers when you have them. Fabricated social proof destroys trust faster than no social proof.)
-
-**7. Let them see the raw API call.**
-
-For the most privacy-conscious users (and this audience skews that way), offer a "See exactly what we send to our servers" toggle that shows the network request payload. This is a power-user feature but it sends a strong signal about transparency.
+### Result Phase
+The result phase scrolls a sequence of staggered-reveal elements (`RevealStagger` with delays from 400ms to 1200ms). On mobile, users may tap or scroll before the animations complete, which could create jarring scroll-animation conflicts. The page has no "scroll to top after result reveal" behavior — on a mobile viewport, after upload, the result phase renders below the fold from where the scan phase was.
 
 ---
 
-## 7. Questions for QA
+## 7. Most Likely Drop-Off Points
 
-1. **Multi-screenshot upload:** If we support multiple screenshots for the Screen Time flow (to capture long app lists that require scrolling), does the current `/api/upload/screentime` endpoint handle multiple files? Does the Vision AI correctly stitch or merge data from overlapping screenshots? What happens if the user uploads a duplicate?
+Ranked by estimated impact, highest risk first:
 
-2. **Zip file handling:** If we accept raw zip uploads for the ChatGPT export (instead of requiring the user to extract conversations.json), what is the maximum file size the Vercel serverless function can handle? ChatGPT exports can be hundreds of megabytes for heavy users. Should extraction happen client-side instead?
+### 1. Before upload — "I don't have a screenshot" (Estimated drop: 35-50% of cold users)
+The highest drop-off will be users who arrive, tap "Choose image," find no Screen Time screenshot in their camera roll, and leave without uploading. The guide toggle is invisible during the file picker interaction. There is no pre-upload messaging that says "You'll need to take a screenshot first — here's how."
 
-3. **Focus Mode persistence:** If Focus Mode (ADHD Mode) state is stored in localStorage (same pattern as cookie consent in `useConsentState`), does clearing cookies/storage reset it? Should there be a server-side preference if the user is eventually authenticated? Does Focus Mode need to be covered in the cookie consent flow since it stores data in localStorage?
+### 2. Context chip confusion — "What does selecting these do?" (Estimated drop: ~10%)
+Users may hesitate at the chip row, unsure if they must select one before uploading. If they interpret the chips as mandatory and none of the options fit their situation (e.g., a retiree, a parent, a part-time student — none of which are options), they may abandon. The "optional" nature of the chips is not communicated.
 
-4. **iOS version detection:** The current `ScreenshotGuide.tsx` detects platform via `navigator.userAgent` (`/android/i.test`). Can we also detect iOS version reliably from the user agent string to show version-specific screenshot instructions? How many iOS version variants do we need to support (16, 17, 18)?
+### 3. Post-upload result scroll depth (Estimated non-engagement: 40-60% of result viewers)
+The result phase has 8 sequential staggered elements from `XRayCard` down to `ResultEmailCapture`. Mobile users who see the card but don't scroll past it will miss the email capture (the conversion event). There is no sticky CTA and no indication of what's below.
 
-5. **Client-side JSON parsing:** For the ChatGPT export preview (showing conversation count, date range, topics before upload), what is the performance impact of parsing a large `conversations.json` (potentially 50MB+) in the browser? Should we use a Web Worker to avoid blocking the main thread? What's the fallback for low-memory mobile devices?
+### 4. Error recovery (Low frequency, high abandonment rate)
+The error state shows an error message and a "Try again" button inside the upload zone. However, if the error is "Analysis failed. Try again," users don't know whether to:
+- Re-upload the same screenshot
+- Take a different screenshot
+- Try the guide toggle to see if they did something wrong
+
+The error message gives no actionable guidance about what to do differently.
+
+### 5. Cold /xray entry without context (Moderate drop)
+As detailed in Section 5, cold visitors lack the social proof, result preview, and product context that quiz-flow visitors have. Conversion from cold `/xray` entry to actual upload is likely lower than from quiz flow.
+
+---
+
+## 8. Context Chip Labeling: Is "I'm Currently…" Clear Enough?
+
+**No. It's grammatically clear but purpose-unclear.**
+
+The label reads "I'm currently…" followed by chips: Student, Working, Freelance, Job hunting. A user who doesn't know what this changes will skip it. The quiz flow gave chips a purpose ("We'll tailor your results to your situation"). The scan phase gives chips no stated purpose.
+
+Additionally, the chips have no "not applicable" or "skip" option visible. A user who doesn't fit any of the four options has no affordance for acknowledging this. They may select the closest option (potentially skewing the personalized insight), or skip chips entirely (losing personalization).
+
+**The invisible selection deselect:** There is no deselect affordance. Once a chip is selected (border highlights), there is no indication that tapping it again deselects it. The `toggle` function doesn't exist here — `onSelect` only sets a value, never clears it. Users who tap a chip by accident cannot undo the selection.
+
+Examining `ContextChip.tsx` line 19-21: `onSelect: (stage: LifeStage) => void` — the handler sets state but there is no `null` option. This is a functional gap: the component does not support deselection.
+
+---
+
+## 9. Error Recovery Flows
+
+The error state in `UploadZone.tsx` (lines 256-296) shows:
+- An orange "!" icon
+- The error message string
+- A "Try again" button that calls `reset()`
+
+`reset()` sets state back to `idle`, clears the error message, and resets the file input. This is technically correct but communicatively insufficient.
+
+**Problems:**
+
+1. "Analysis failed. Try again." is the fallback error message when the server returns an error without a specific message. It gives the user no diagnostic information. Is the file format wrong? Is the screenshot too small? Is the service temporarily down? The user cannot know.
+
+2. The "Try again" button resets to `idle` but does not re-trigger the guide. If the failure was caused by uploading the wrong screenshot (e.g., the user photographed their iPhone home screen instead of the Screen Time data), the guide toggle is available again — but the user has no reason to look at it.
+
+3. There is no error differentiation between client-side errors (file compression failure), network errors (fetch failed), and server-side analysis errors (Vision AI couldn't parse the screenshot). All three surface the same UX.
+
+4. The rate-limit error case is handled server-side (`rate-limit.ts` exists in the repo) but the error message that surfaces to users ("Analysis failed. Try again.") does not tell users they've hit a rate limit or when they can try again.
+
+---
+
+## 10. Summary: Did the Redesign Improve the Flow?
+
+| Dimension | Before (4-phase) | After (2-phase) | Verdict |
+|-----------|-----------------|-----------------|---------|
+| First-time user hand-holding | Mandatory guide before upload | Optional guide toggle | Regression for new users |
+| Returning user friction | Had to click through guide every time | Goes straight to upload | Improvement |
+| Mobile discoverability of guide | Visible as a distinct phase | Hidden behind small toggle | Regression |
+| Context collection | Separate phase with clear purpose | Inline chips with unclear purpose | Regression in clarity |
+| Page simplicity | 4 visible phases | 2 phases | Improvement |
+| Cold entry (/xray without quiz) | Same issue existed | Same issue exists | No change |
+| Time to first interaction | Slower (must complete guide) | Faster | Improvement |
+| Conversion for users without a screenshot | Guide taught them to get one | Guide is hidden | Regression |
+
+**Net assessment:** The redesign is faster for users who already know the product. It is likely worse for first-time visitors. Given that the primary growth vector is sharing X-Ray cards (cold /xray entries), optimizing for returning users at the expense of first-time users may be the wrong trade-off at this stage.
+
+---
+
+## 11. Questions for QA
+
+1. **File picker on mobile:** When a user taps "Choose image" on iOS Safari, does the native sheet offer "Take Photo or Video" as an option? If so, what happens when a user takes a live photo of their screen instead of uploading an existing screenshot — does the Vision AI analysis still work, or does it fail because the angle/glare is wrong?
+
+2. **Chip deselection:** Is there a way to deselect a context chip once selected? The `ContextChip` component's `onSelect` handler only accepts a `LifeStage` value and never passes `null`. Can a user undo a chip selection, and does the result headline correctly return to "Here's your X-Ray" when no chip is selected?
+
+3. **Guide toggle visibility during file picker:** On both iOS Safari and Android Chrome, is the "Where do I find this?" guide toggle visible after the file picker is dismissed without selecting a file? Does the user's scroll position reset, or does the viewport stay where it was when they tapped "Choose image"?
+
+4. **Result phase scroll behavior on mobile:** After upload completes and `handleResult` is called, does the page scroll to the top to show the result phase headline, or does the viewport stay at the upload zone position? If the result renders below the fold from the user's current scroll position, will they see the staggered reveal animations?
+
+5. **Error message specificity:** When the Vision AI cannot identify a Screen Time screenshot (e.g., the user uploads a photo of their cat), what error message does the server return — is it the generic "Analysis failed. Try again." or does the API return a specific message that helps the user understand they uploaded the wrong type of image?

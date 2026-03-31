@@ -30,6 +30,10 @@ export function PainQuiz() {
 
 	if (state === 'results') {
 		const picks = painLibrary.filter((p) => selected.has(p.id))
+		// Persist selections so /xray can read them
+		if (typeof sessionStorage !== 'undefined') {
+			sessionStorage.setItem('meldar-quiz-picks', JSON.stringify(picks.map((p) => p.id)))
+		}
 		return <QuizResults picks={picks} />
 	}
 

@@ -49,6 +49,7 @@ export default defineConfig({
 				colors: {
 					/* Stitch palette */
 					primary: { value: '#623153' },
+					primaryMid: { value: '#874a72' },
 					primaryDark: { value: '#481b3c' },
 					onPrimary: { value: '#ffffff' },
 					primaryContainer: { value: '#623153' },
