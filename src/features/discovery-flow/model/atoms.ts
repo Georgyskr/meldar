@@ -17,6 +17,16 @@ export const profileDataAtom = atomWithStorage<{
 	aiToolsUsed: string[]
 } | null>('meldar-profile', null)
 
+export type UploadPreviewData = {
+	apps?: Array<{ name: string; usageMinutes?: number; category?: string }>
+	totalScreenTimeMinutes?: number
+	pickups?: number
+	subscriptions?: Array<{ name: string; price?: string; frequency?: string }>
+	metrics?: Array<{ name: string; value: string; unit?: string }>
+	events?: Array<{ title: string; day?: string; time?: string }>
+	[key: string]: unknown
+}
+
 export const uploadStatusAtom = atomWithStorage<
 	Record<
 		string,
@@ -24,6 +34,7 @@ export const uploadStatusAtom = atomWithStorage<
 			status: 'idle' | 'uploading' | 'processing' | 'done' | 'waiting' | 'error'
 			errorMessage?: string
 			uploadCount?: number
+			preview?: UploadPreviewData
 		}
 	>
 >('meldar-uploads', {})

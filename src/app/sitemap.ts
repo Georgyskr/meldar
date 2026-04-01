@@ -11,12 +11,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 0.9,
 		},
 		{
-			url: `${SITE_CONFIG.url}/xray`,
-			lastModified: new Date(),
-			changeFrequency: 'monthly',
-			priority: 0.7,
-		},
-		{
 			url: `${SITE_CONFIG.url}/privacy-policy`,
 			lastModified: new Date(),
 			changeFrequency: 'yearly',

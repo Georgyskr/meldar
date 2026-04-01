@@ -461,7 +461,13 @@ export async function POST(request: NextRequest) {
 			})
 			.where(eq(discoverySessions.id, sessionId))
 
-		return NextResponse.json({ success: true, platform: platformParsed.data })
+		// Return extracted data for frontend preview ("wow" moment)
+		const extractedPreview = Object.values(updateData)[0]
+		return NextResponse.json({
+			success: true,
+			platform: platformParsed.data,
+			preview: extractedPreview,
+		})
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Unknown error'
 		console.error('Upload processing failed:', message)

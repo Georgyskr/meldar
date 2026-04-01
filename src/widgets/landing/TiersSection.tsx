@@ -3,39 +3,39 @@ import { Check } from 'lucide-react'
 
 const tiers = [
 	{
-		label: 'Time X-Ray',
+		label: 'Free Analysis',
 		headline: 'Free',
-		desc: 'See where your time actually goes. Upload your data or just answer a few questions. Either way, you get a report that shows what\u2019s eating your hours.',
+		desc: 'See where your time actually goes. Upload your data or answer a few questions. Get a personalized report showing what to build first.',
 		features: [
-			'Answer a quick quiz or upload your data',
-			'Screen Time screenshot analysis',
-			'Shareable Data Receipt with your real numbers',
+			'Quick profile + screenshot analysis',
+			'1 personalized app recommendation',
+			'4 free learning modules',
 		],
-		cta: 'Get your free X-Ray',
+		cta: 'Start free',
 		highlighted: false,
 	},
 	{
 		label: 'Starter',
-		headline: 'Pay as you go',
-		desc: 'We set everything up and build your first automation. Hand by hand. You pay only for what you use.',
+		headline: 'EUR 9.99/mo',
+		desc: 'Deep data analysis from ChatGPT, Claude, and Google. SOPs, video tutorials, and a personalized curriculum to build your own apps.',
 		features: [
-			'Guided setup \u2014 we walk you through it',
-			'Deeper data analysis from Google Takeout',
-			'Your first personal app, built for you',
+			'Deep data parsing (3/month)',
+			'All SOPs and video tutorials',
+			'Personalized learning curriculum',
 		],
-		cta: 'Join the waitlist',
+		cta: 'Start free trial',
 		highlighted: true,
 	},
 	{
-		label: 'Concierge',
-		headline: 'We handle it',
-		desc: 'Tell us what you need. Our AI designs it, builds it, and hands it to you. You watch the progress live.',
+		label: 'Build',
+		headline: 'EUR 79',
+		desc: 'We build it for you. Handcrafted GitHub repo with Claude Code setup, cover letter, and agent config. You own everything.',
 		features: [
-			'Real-time build progress',
-			'Pick your favorite design',
-			'You own everything we create',
+			'Handcrafted repo + setup',
+			'Cover letter + agent config',
+			'You take it, you run it',
 		],
-		cta: 'Join the waitlist',
+		cta: 'Get it built',
 		highlighted: false,
 	},
 ]
@@ -49,7 +49,7 @@ export function TiersSection() {
 						Pick how deep you want to go
 					</styled.h2>
 					<styled.p textStyle="body.lead" color="onSurfaceVariant" maxWidth="480px">
-						Start with the free X-Ray. Go further when you\u2019re ready.
+						Start free. Go further when you\u2019re ready.
 					</styled.p>
 				</VStack>
 
@@ -121,7 +121,7 @@ export function TiersSection() {
 							</VStack>
 
 							<styled.a
-								href="/quiz"
+								href="/start"
 								display="block"
 								width="100%"
 								marginBlockStart={12}

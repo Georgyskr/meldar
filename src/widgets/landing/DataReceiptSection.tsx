@@ -15,7 +15,7 @@ export function DataReceiptSection() {
 			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12}>
 				<VStack textAlign="center" gap={4} maxWidth="600px" marginInline="auto">
 					<styled.span textStyle="label.upper" color="primary">
-						Your Time X-Ray
+						Your Data Analysis
 					</styled.span>
 					<styled.h2 textStyle="heading.section" color="onSurface">
 						This is what your data looks like when it works for you
@@ -90,7 +90,7 @@ export function DataReceiptSection() {
 							meldar.ai
 						</styled.span>
 						<styled.span fontSize="2xs" color="primary" fontWeight="500">
-							Get your own X-Ray &rarr;
+							Get your own analysis &rarr;
 						</styled.span>
 					</Flex>
 				</Box>

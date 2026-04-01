@@ -8,13 +8,13 @@ const steps = [
 	},
 	{
 		num: '02',
-		title: 'See your Time X-Ray',
-		desc: 'Drop the file into Meldar. It never leaves your device. In seconds, you see your real numbers: which apps eat your hours, what you search for over and over, where your week actually goes. The gap between what you think and what\u2019s real is the aha moment.',
+		title: 'See your real numbers',
+		desc: 'Drop the file into Meldar. It never leaves your device. In seconds, you see which apps eat your hours, what you search for over and over, where your week actually goes. The gap between what you think and what\u2019s real is the aha moment.',
 	},
 	{
 		num: '03',
 		title: 'Pick a fix. We build it.',
-		desc: 'Your X-Ray shows a ranked list: "This wastes the most time. Here\u2019s what we\u2019d build to fix it." Tap the one you want. Meldar builds your personal app. You approve it before it goes live. Done.',
+		desc: 'Your analysis shows a ranked list: "This wastes the most time. Here\u2019s what you should build to fix it." Pick the one you want. Meldar teaches you how to build it yourself. Or we build it for you.',
 	},
 ]
 

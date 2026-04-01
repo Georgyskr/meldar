@@ -36,15 +36,15 @@ export function HeroSection() {
 					color="onSurfaceVariant"
 					maxWidth="520px"
 				>
-					Upload a Screen Time screenshot. Get your personal Time X-Ray in 30 seconds. Free,
-					instant, private.
+					Find out what to build with AI. Answer a few questions, upload your data, get personalized
+					recommendations. Free to start.
 				</styled.p>
 			</Box>
 
 			<Grid columns={{ base: 1, md: 2 }} gap={4} maxWidth="640px">
 				{/* Track A: Show me my data */}
 				<styled.a
-					href="/xray"
+					href="/start"
 					display="flex"
 					flexDir="column"
 					gap={3}
@@ -78,7 +78,7 @@ export function HeroSection() {
 					</styled.span>
 					<Flex alignItems="center" gap={1} marginBlockStart="auto">
 						<styled.span fontSize="sm" fontWeight="600" color="primary">
-							Get your X-Ray
+							Start here
 						</styled.span>
 						<ArrowRight size={14} color="#623153" />
 					</Flex>
@@ -86,7 +86,7 @@ export function HeroSection() {
 
 				{/* Track B: I know what I need */}
 				<styled.a
-					href="/quiz"
+					href="/start"
 					display="flex"
 					flexDir="column"
 					gap={3}

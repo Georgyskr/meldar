@@ -3,6 +3,7 @@
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { Check, ChevronDown, ChevronUp, Clock, type LucideIcon, Upload, X } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
+import type { UploadPreviewData } from '../model/atoms'
 
 export type UploadStatus = 'idle' | 'uploading' | 'processing' | 'done' | 'waiting' | 'error'
 
@@ -17,16 +18,12 @@ type UploadCardProps = {
 	errorMessage?: string
 	onFile: (file: File) => void
 	instructions: ReactNode
-	/** Whether this source is a delayed export (shows "I started the export" button) */
 	isDelayed?: boolean
-	/** Called when user marks a delayed source as "export started" */
 	onExportStarted?: () => void
-	/** Called when user says they have the file ready (from waiting state) */
 	onFileReady?: () => void
-	/** Maximum number of files this source accepts (defaults to 1) */
 	maxFiles?: number
-	/** Number of files already uploaded for this source */
 	uploadCount?: number
+	preview?: UploadPreviewData
 }
 
 export function UploadCard({
@@ -45,6 +42,7 @@ export function UploadCard({
 	onFileReady,
 	maxFiles = 1,
 	uploadCount = 0,
+	preview,
 }: UploadCardProps) {
 	const [showGuide, setShowGuide] = useState(false)
 	const fileRef = useRef<HTMLInputElement>(null)
@@ -397,6 +395,256 @@ export function UploadCard({
 					</VStack>
 				</Box>
 			)}
+
+			{/* Preview: the "wow" moment — show what we extracted */}
+			{(isDone || isPartiallyDone) && preview && <UploadPreview data={preview} />}
 		</Box>
 	)
+}
+
+function UploadPreview({ data }: { data: UploadPreviewData }) {
+	// Screen time apps
+	if (data.apps && data.apps.length > 0) {
+		const topApps = data.apps.slice(0, 5)
+		const maxMin = topApps[0]?.usageMinutes || 1
+		return (
+			<Box
+				paddingInline={5}
+				paddingBlockEnd={4}
+				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
+			>
+				<styled.span
+					fontSize="xs"
+					fontWeight="600"
+					fontFamily="heading"
+					color="primary"
+					textTransform="uppercase"
+					letterSpacing="0.05em"
+					display="block"
+					marginBlockEnd={2}
+				>
+					What we found
+				</styled.span>
+				{data.totalScreenTimeMinutes && (
+					<Flex
+						gap={2}
+						alignItems="baseline"
+						marginBlockEnd={3}
+						style={{ animation: 'staggerFadeIn 0.3s ease-out 0.1s both' }}
+					>
+						<styled.span
+							fontFamily="heading"
+							fontWeight="800"
+							fontSize="xl"
+							color="onSurface"
+							letterSpacing="-0.02em"
+						>
+							{Math.round((data.totalScreenTimeMinutes / 60) * 10) / 10}h
+						</styled.span>
+						<styled.span fontSize="xs" color="onSurfaceVariant/60">
+							total screen time/day
+						</styled.span>
+					</Flex>
+				)}
+				<VStack gap={1} width="100%">
+					{topApps.map((app, i) => {
+						const barWidth = Math.max(((app.usageMinutes ?? 0) / maxMin) * 100, 4)
+						return (
+							<Flex
+								key={app.name}
+								alignItems="center"
+								gap={2}
+								width="100%"
+								style={{
+									animation: `staggerFadeIn 0.3s ease-out ${0.15 + i * 0.07}s both`,
+								}}
+							>
+								<styled.span
+									fontSize="xs"
+									color="onSurfaceVariant/60"
+									width="80px"
+									flexShrink={0}
+									overflow="hidden"
+									textOverflow="ellipsis"
+									whiteSpace="nowrap"
+								>
+									{app.name}
+								</styled.span>
+								<Box flex={1} height="4px" borderRadius="full" bg="outlineVariant/10">
+									<Box
+										height="100%"
+										borderRadius="full"
+										background={i === 0 ? 'linear-gradient(90deg, #623153, #FFB876)' : 'primary/20'}
+										style={{
+											width: `${barWidth}%`,
+											animation: `barFill 0.5s ease-out ${0.2 + i * 0.07}s both`,
+										}}
+									/>
+								</Box>
+								<styled.span
+									fontSize="xs"
+									fontWeight="600"
+									fontFamily="heading"
+									color={i === 0 ? 'primary' : 'onSurfaceVariant/60'}
+									width="32px"
+									textAlign="right"
+									flexShrink={0}
+								>
+									{app.usageMinutes
+										? app.usageMinutes >= 60
+											? `${Math.round((app.usageMinutes / 60) * 10) / 10}h`
+											: `${app.usageMinutes}m`
+										: ''}
+								</styled.span>
+							</Flex>
+						)
+					})}
+				</VStack>
+				{data.pickups && (
+					<styled.span
+						fontSize="xs"
+						color="onSurfaceVariant/50"
+						marginBlockStart={2}
+						display="block"
+						style={{ animation: 'staggerFadeIn 0.3s ease-out 0.5s both' }}
+					>
+						{data.pickups} pickups/day
+					</styled.span>
+				)}
+			</Box>
+		)
+	}
+
+	// Subscriptions
+	if (data.subscriptions && data.subscriptions.length > 0) {
+		return (
+			<Box
+				paddingInline={5}
+				paddingBlockEnd={4}
+				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
+			>
+				<styled.span
+					fontSize="xs"
+					fontWeight="600"
+					fontFamily="heading"
+					color="primary"
+					textTransform="uppercase"
+					letterSpacing="0.05em"
+					display="block"
+					marginBlockEnd={2}
+				>
+					What we found
+				</styled.span>
+				<VStack gap={1} width="100%">
+					{data.subscriptions.slice(0, 6).map((sub, i) => (
+						<Flex
+							key={sub.name}
+							justifyContent="space-between"
+							alignItems="center"
+							width="100%"
+							style={{ animation: `staggerFadeIn 0.3s ease-out ${0.1 + i * 0.06}s both` }}
+						>
+							<styled.span fontSize="xs" color="onSurface">
+								{sub.name}
+							</styled.span>
+							<styled.span fontSize="xs" fontWeight="600" fontFamily="heading" color="primary">
+								{sub.price}
+								{sub.frequency ? `/${sub.frequency}` : ''}
+							</styled.span>
+						</Flex>
+					))}
+				</VStack>
+			</Box>
+		)
+	}
+
+	// Health metrics / calendar events / other
+	if (data.metrics && data.metrics.length > 0) {
+		return (
+			<Box
+				paddingInline={5}
+				paddingBlockEnd={4}
+				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
+			>
+				<styled.span
+					fontSize="xs"
+					fontWeight="600"
+					fontFamily="heading"
+					color="primary"
+					textTransform="uppercase"
+					letterSpacing="0.05em"
+					display="block"
+					marginBlockEnd={2}
+				>
+					What we found
+				</styled.span>
+				<VStack gap={1} width="100%">
+					{data.metrics.slice(0, 5).map((m, i) => (
+						<Flex
+							key={m.name}
+							justifyContent="space-between"
+							width="100%"
+							style={{ animation: `staggerFadeIn 0.3s ease-out ${0.1 + i * 0.06}s both` }}
+						>
+							<styled.span fontSize="xs" color="onSurfaceVariant">
+								{m.name}
+							</styled.span>
+							<styled.span fontSize="xs" fontWeight="600" color="onSurface">
+								{m.value}
+								{m.unit ? ` ${m.unit}` : ''}
+							</styled.span>
+						</Flex>
+					))}
+				</VStack>
+			</Box>
+		)
+	}
+
+	if (data.events && data.events.length > 0) {
+		return (
+			<Box
+				paddingInline={5}
+				paddingBlockEnd={4}
+				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
+			>
+				<styled.span
+					fontSize="xs"
+					fontWeight="600"
+					fontFamily="heading"
+					color="primary"
+					textTransform="uppercase"
+					letterSpacing="0.05em"
+					display="block"
+					marginBlockEnd={2}
+				>
+					{data.events.length} events this week
+				</styled.span>
+				<VStack gap={1} width="100%">
+					{data.events.slice(0, 4).map((e, i) => (
+						<Flex
+							key={`${e.title}-${e.day}-${e.time}`}
+							gap={2}
+							alignItems="center"
+							width="100%"
+							style={{ animation: `staggerFadeIn 0.3s ease-out ${0.1 + i * 0.06}s both` }}
+						>
+							<styled.span fontSize="xs" color="onSurfaceVariant/50" width="40px" flexShrink={0}>
+								{e.day || ''}
+							</styled.span>
+							<styled.span fontSize="xs" color="onSurface" flex={1}>
+								{e.title}
+							</styled.span>
+							{e.time && (
+								<styled.span fontSize="xs" color="onSurfaceVariant/60" flexShrink={0}>
+									{e.time}
+								</styled.span>
+							)}
+						</Flex>
+					))}
+				</VStack>
+			</Box>
+		)
+	}
+
+	return null
 }

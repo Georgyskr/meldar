@@ -28,7 +28,7 @@ const faqSchema = {
 			name: 'What does Meldar cost?',
 			acceptedAnswer: {
 				'@type': 'Answer',
-				text: 'The Time X-Ray is free. When you use AI to build things, most people spend $5-20 a month with a small convenience fee.',
+				text: 'The analysis is free. When you use AI to build things, most people spend $5-20 a month with a small convenience fee.',
 			},
 		},
 		{
@@ -65,7 +65,7 @@ export default function HomePage() {
 						'@type': 'Offer',
 						price: '0',
 						priceCurrency: 'USD',
-						description: 'Free Time X-Ray. Pay only for what you use.',
+						description: 'Free analysis. Pay only for what you use.',
 					},
 					author: {
 						'@type': 'Organization',

@@ -45,11 +45,11 @@ export function FinalCtaSection() {
 				</styled.h2>
 
 				<styled.p textStyle="body.lead" color="white/80" maxWidth="480px">
-					Take your data back. See your Time X-Ray. Use it for yourself.
+					Take your data back. See what to build. Do it yourself.
 				</styled.p>
 
 				<styled.a
-					href="/xray"
+					href="/start"
 					display="inline-flex"
 					alignItems="center"
 					gap={2}
@@ -65,7 +65,7 @@ export function FinalCtaSection() {
 					transition="opacity 0.2s ease"
 					_hover={{ opacity: 0.9 }}
 				>
-					Get your free Time X-Ray
+					Start here — it&apos;s free
 					<ArrowRight size={18} />
 				</styled.a>
 			</VStack>

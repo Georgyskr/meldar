@@ -446,6 +446,7 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 				return
 			}
 
+			const responseData = await res.json()
 			const newCount = prevCount + 1
 			setSources((prev) => ({
 				...prev,
@@ -453,6 +454,7 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 					status: 'done',
 					uploadCount: newCount,
 					errorMessage: undefined,
+					preview: responseData.preview ?? prev[platformId]?.preview,
 				},
 			}))
 		} catch {
@@ -505,6 +507,7 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 					onFileReady={() => handleFileReady(source.id)}
 					maxFiles={maxFiles}
 					uploadCount={uploadCount}
+					preview={sources[source.id]?.preview}
 				/>
 			</Box>
 		)
