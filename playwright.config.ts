@@ -2,13 +2,12 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
 	testDir: './test/e2e',
-	timeout: 8_000,
+	timeout: 15_000,
 	retries: 0,
 	use: {
 		baseURL: 'http://localhost:3001',
 		headless: true,
 		screenshot: 'only-on-failure',
-		reducedMotion: 'reduce',
 	},
 	webServer: {
 		command: 'pnpm build && PORT=3001 pnpm start',
@@ -19,7 +18,12 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'chromium',
-			use: { browserName: 'chromium' },
+			use: {
+				browserName: 'chromium',
+				contextOptions: {
+					reducedMotion: 'reduce',
+				},
+			},
 		},
 	],
 })

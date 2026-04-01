@@ -119,11 +119,17 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 	const allLocked = slotStates.every((s) => s.locked)
 	const lockedCount = slotStates.filter((s) => s.locked).length
 
+	// Respect prefers-reduced-motion — skip animation delays when motion is reduced
+	const animDelay =
+		typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+			? 0
+			: 350
+
 	function lockSingle(value: string) {
 		setSlotStates((prev) => prev.map((s, i) => (i === activeSlot ? { locked: true, value } : s)))
 		setShowOtherInput(false)
 		setOtherText('')
-		setTimeout(() => setActiveSlot((a) => a + 1), 350)
+		setTimeout(() => setActiveSlot((a) => a + 1), animDelay)
 	}
 
 	function toggleMulti(option: string) {
@@ -146,7 +152,7 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 		setMultiSelected(new Set())
 		setShowOtherInput(false)
 		setOtherText('')
-		setTimeout(() => setActiveSlot((a) => a + 1), 350)
+		setTimeout(() => setActiveSlot((a) => a + 1), animDelay)
 	}
 
 	function handleOtherSubmit() {
