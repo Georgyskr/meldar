@@ -25,7 +25,7 @@ import {
 export function StartClient() {
 	const [phase, setPhase] = useAtom(phaseAtom)
 	const [sessionId, setSessionId] = useAtom(sessionIdAtom)
-	const [, setProfileData] = useAtom(profileDataAtom)
+	const [profileData, setProfileData] = useAtom(profileDataAtom)
 	const [analysis, setAnalysis] = useAtom(analysisAtom)
 	const [, setUploadStatus] = useAtom(uploadStatusAtom)
 	const [adaptiveFollowUps, setAdaptiveFollowUps] = useAtom(adaptiveFollowUpsAtom)
@@ -51,7 +51,7 @@ export function StartClient() {
 		}
 	}, [focusTrigger])
 
-	const isResuming = sessionId !== null && phase !== 'profile'
+	const isResuming = profileData !== null && phase !== 'profile'
 
 	function transitionTo(next: 'profile' | 'data' | 'adaptive' | 'results') {
 		setTransitioning(true)
@@ -75,46 +75,65 @@ export function StartClient() {
 		transitionTo('profile')
 	}
 
-	async function handleProfileComplete(data: ProfileData) {
-		setError('')
+	function handleProfileComplete(data: ProfileData) {
+		// Quiz data stays in localStorage only — no network call until user opts in and uploads
+		setProfileData(data)
+		transitionTo('data')
+	}
+
+	/** Create session in Neon lazily — called on first upload after user opts in */
+	async function ensureSession(): Promise<string | null> {
+		if (sessionId) return sessionId
+
+		const profile = profileData
+		if (!profile) return null
+
 		try {
 			const res = await fetch('/api/discovery/session', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					occupation: data.occupation,
-					ageBracket: data.ageBracket,
-					quizPicks: data.painPicks,
-					aiComfort: data.aiComfort,
-					aiToolsUsed: data.aiToolsUsed,
+					occupation: profile.occupation,
+					customOccupation: profile.customOccupation,
+					ageBracket: profile.ageBracket,
+					quizPicks: profile.painPicks,
+					customPain: profile.customPain,
+					aiComfort: profile.aiComfort,
+					aiToolsUsed: profile.aiToolsUsed,
 				}),
 			})
 
 			if (!res.ok) {
 				setError('Failed to save your answers. Please try again.')
-				return
+				return null
 			}
 
 			const { sessionId: newSessionId } = await res.json()
 			setSessionId(newSessionId)
-			setProfileData(data)
-			transitionTo('data')
+			return newSessionId
 		} catch {
 			setError('Connection failed. Please try again.')
+			return null
 		}
 	}
 
 	async function handleRequestResults() {
-		if (!sessionId) return
 		setAnalyzing(true)
 		setError('')
 
 		try {
+			const sid = sessionId || (await ensureSession())
+			if (!sid) {
+				setError('Failed to create session. Please try again.')
+				setAnalyzing(false)
+				return
+			}
+
 			// First, check for adaptive follow-ups
 			const adaptiveRes = await fetch('/api/discovery/adaptive', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ sessionId }),
+				body: JSON.stringify({ sessionId: sid }),
 			})
 
 			if (adaptiveRes.ok) {
@@ -138,12 +157,18 @@ export function StartClient() {
 	}
 
 	async function runAnalysis(adaptiveAnswers?: Record<string, string>) {
-		if (!sessionId) return
 		setAnalyzing(true)
 		setError('')
 
 		try {
-			const payload: Record<string, unknown> = { sessionId }
+			const sid = sessionId || (await ensureSession())
+			if (!sid) {
+				setError('Failed to create session. Please try again.')
+				setAnalyzing(false)
+				return
+			}
+
+			const payload: Record<string, unknown> = { sessionId: sid }
 			if (adaptiveAnswers && Object.keys(adaptiveAnswers).length > 0) {
 				payload.adaptiveAnswers = adaptiveAnswers
 			}
@@ -240,6 +265,7 @@ export function StartClient() {
 						borderRadius="12px"
 						textAlign="center"
 						style={{ animation: 'meldarFadeSlideUp 0.3s ease-out both' }}
+						data-testid="error-banner"
 					>
 						<styled.span textStyle="body.sm" color="red.600" fontWeight="500">
 							{error}
@@ -301,11 +327,11 @@ export function StartClient() {
 					>
 						{phase === 'profile' && <QuickProfile onComplete={handleProfileComplete} />}
 
-						{phase === 'data' && sessionId && (
+						{phase === 'data' && (
 							<DataUploadHub
-								sessionId={sessionId}
+								ensureSession={ensureSession}
 								onGenerateResults={handleRequestResults}
-								onSkip={runAnalysis}
+								onSkip={() => runAnalysis()}
 							/>
 						)}
 

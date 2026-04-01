@@ -31,7 +31,7 @@ type SourceConfig = {
 }
 
 type DataUploadHubProps = {
-	sessionId: string
+	ensureSession: () => Promise<string | null>
 	onGenerateResults: () => void
 	onSkip: () => void
 }
@@ -340,8 +340,9 @@ const INSTRUCTION_MAP: Record<string, () => ReactNode> = {
 
 /* ─── Main component ─── */
 
-export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUploadHubProps) {
+export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: DataUploadHubProps) {
 	const [sources, setSources] = useAtom(uploadStatusAtom)
+	const [optedIn, setOptedIn] = useState(false)
 
 	function getStatus(id: string): UploadStatus {
 		return sources[id]?.status ?? 'idle'
@@ -394,6 +395,8 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 		INSTANT_SOURCES.some((s) => s.id === id) || id === 'adaptive'
 
 	async function handleFile(platformId: string, file: File) {
+		if (!optedIn) return
+
 		const prevCount = sources[platformId]?.uploadCount ?? 0
 		setSources((prev) => ({
 			...prev,
@@ -401,9 +404,23 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 		}))
 
 		try {
+			// Lazy session creation — first upload triggers Neon write
+			const sid = await ensureSession()
+			if (!sid) {
+				setSources((prev) => ({
+					...prev,
+					[platformId]: {
+						...prev[platformId],
+						status: 'error',
+						errorMessage: 'Could not create session. Try again.',
+					},
+				}))
+				return
+			}
+
 			const formData = new FormData()
 			formData.append('platform', platformId)
-			formData.append('sessionId', sessionId)
+			formData.append('sessionId', sid)
 
 			// For image screenshots: try client-side OCR first (cheaper + more private)
 			let usedOcr = false
@@ -491,6 +508,7 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 			<Box
 				key={source.id}
 				style={{ animation: `staggerFadeIn 0.4s ease-out ${index * 0.1}s both` }}
+				data-testid={`upload-card-${source.id}`}
 			>
 				<UploadCard
 					title={source.title}
@@ -530,6 +548,66 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 					The more you add, the sharper your results
 				</styled.p>
 			</VStack>
+
+			{/* Opt-in: data doesn't leave device until user agrees */}
+			{!optedIn && (
+				<Box
+					width="100%"
+					padding={5}
+					borderRadius="16px"
+					bg="surfaceContainerLowest"
+					border="1.5px solid"
+					borderColor="primary/15"
+				>
+					<Flex gap={3} alignItems="flex-start">
+						<styled.input
+							id="data-opt-in"
+							type="checkbox"
+							checked={optedIn}
+							onChange={(e) => setOptedIn(e.target.checked)}
+							width="20px"
+							height="20px"
+							flexShrink={0}
+							marginBlockStart="2px"
+							cursor="pointer"
+							accentColor="#623153"
+						/>
+						<styled.label
+							htmlFor="data-opt-in"
+							textStyle="body.sm"
+							color="onSurfaceVariant"
+							lineHeight="1.5"
+							cursor="pointer"
+						>
+							I agree that my uploaded data will be processed by Meldar to generate personalized
+							recommendations. Data is analyzed and deleted — never stored raw.{' '}
+							<styled.a
+								href="/privacy-policy"
+								target="_blank"
+								color="primary"
+								textDecoration="underline"
+								textDecorationColor="primary/30"
+								_hover={{ textDecorationColor: 'primary' }}
+								rel="noopener"
+							>
+								Privacy Policy
+							</styled.a>{' '}
+							&middot;{' '}
+							<styled.a
+								href="/terms"
+								target="_blank"
+								color="primary"
+								textDecoration="underline"
+								textDecorationColor="primary/30"
+								_hover={{ textDecorationColor: 'primary' }}
+								rel="noopener"
+							>
+								Terms of Service
+							</styled.a>
+						</styled.label>
+					</Flex>
+				</Box>
+			)}
 
 			{/* Section 1: Quick scans */}
 			<VStack gap={4} width="100%">
@@ -673,6 +751,7 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 						outlineColor: 'primary',
 						outlineOffset: '2px',
 					}}
+					data-testid="start-trial-button"
 				>
 					<Lock size={14} />
 					{trialLoading ? 'Redirecting...' : 'Start free trial'}
@@ -708,6 +787,7 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 						outlineColor: 'primary',
 						outlineOffset: '2px',
 					}}
+					data-testid="generate-results-button"
 				>
 					Generate my results
 				</styled.button>
@@ -731,6 +811,7 @@ export function DataUploadHub({ sessionId, onGenerateResults, onSkip }: DataUplo
 						outlineColor: 'primary',
 						outlineOffset: '2px',
 					}}
+					data-testid="skip-button"
 				>
 					Skip — just use my quiz answers
 				</styled.button>

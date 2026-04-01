@@ -87,6 +87,9 @@ src/
 - Each FSD slice has a barrel `index.ts` as its public API. Import from barrels, not internal files.
 - `styled-system` imports use `@styled-system/*` path alias.
 
+### Engineering Standards
+See `AGENTS.md` for coding rules, testing standards, and review process requirements.
+
 ### Components
 - Default to React Server Components. Only `"use client"` when interactive behavior requires it.
 - Park UI components added via CLI: `npx @park-ui/cli add <component>`

@@ -26,6 +26,11 @@ export default defineConfig({
 			bg: 'primaryContainer',
 			color: 'onPrimaryContainer',
 		},
+		// Programmatic focus (tabIndex={-1}) should never show a ring.
+		// Only keyboard focus (:focus-visible) should show focus indicators.
+		'[tabindex="-1"]:focus:not(:focus-visible)': {
+			outline: 'none',
+		},
 	},
 
 	theme: {

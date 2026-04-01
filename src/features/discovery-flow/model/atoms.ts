@@ -11,8 +11,10 @@ export const phaseAtom = atomWithStorage<'profile' | 'data' | 'adaptive' | 'resu
 
 export const profileDataAtom = atomWithStorage<{
 	occupation: string
+	customOccupation?: string
 	ageBracket: string
 	painPicks: string[]
+	customPain?: string
 	aiComfort: number
 	aiToolsUsed: string[]
 } | null>('meldar-profile', null)

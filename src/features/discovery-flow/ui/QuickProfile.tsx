@@ -1,15 +1,27 @@
 'use client'
 
-import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
-import { BookOpen, Briefcase, Check, Laptop, type LucideIcon, Search } from 'lucide-react'
+/**
+ * QuickProfile — Slots Machine variant.
+ *
+ * 5 slot rows on a dark board. Each answer locks into place.
+ * Multi-select for pain points + AI tools. "Other" text input.
+ * ADHD mode toggle with video placeholder.
+ * On md+ screens: slot board left, options right (no scrolling).
+ * Locked slots collapse to compact chips on hover/click.
+ */
+
+import { Box, Flex, styled, VStack } from '@styled-system/jsx'
+import { Brain, Check, ChevronDown, Lock, PenLine } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { painLibrary } from '@/entities/pain-points/model/data'
 import { preloadOcr } from '@/features/discovery-flow/lib/ocr-client'
 
 export type ProfileData = {
 	occupation: string
+	customOccupation?: string
 	ageBracket: string
 	painPicks: string[]
+	customPain?: string
 	aiComfort: number
 	aiToolsUsed: string[]
 }
@@ -18,578 +30,565 @@ type QuickProfileProps = {
 	onComplete: (data: ProfileData) => void
 }
 
-const OCCUPATION_OPTIONS: { id: string; label: string; subtitle: string; icon: LucideIcon }[] = [
-	{ id: 'student', label: 'Student', subtitle: 'Classes, exams, side projects', icon: BookOpen },
-	{ id: 'working', label: 'Working', subtitle: '9-to-5, meetings, commute', icon: Briefcase },
-	{ id: 'freelance', label: 'Freelance', subtitle: 'Clients, invoices, hustle', icon: Laptop },
+type SlotConfig = {
+	id: string
+	label: string
+	prompt: string
+	mode: 'single' | 'multi'
+	options: string[]
+	hasOther?: boolean
+	minPicks?: number
+	maxPicks?: number
+}
+
+const SLOTS: SlotConfig[] = [
 	{
-		id: 'job-hunting',
-		label: 'Job hunting',
-		subtitle: 'Applications, interviews, waiting',
-		icon: Search,
+		id: 'occupation',
+		label: 'YOU ARE',
+		prompt: 'What do you do?',
+		mode: 'single',
+		options: ['Student', 'Working', 'Freelance', 'Job hunting', 'Creator'],
+		hasOther: true,
+	},
+	{
+		id: 'age',
+		label: 'AGE',
+		prompt: 'How old are you?',
+		mode: 'single',
+		options: ['16-20', '21-25', '26-30', '30+'],
+	},
+	{
+		id: 'pain',
+		label: 'PAIN POINTS',
+		prompt: 'What bugs you most? Pick 2-3.',
+		mode: 'multi',
+		options: painLibrary.slice(0, 6).map((p) => `${p.emoji} ${p.title}`),
+		hasOther: true,
+		minPicks: 2,
+		maxPicks: 3,
+	},
+	{
+		id: 'comfort',
+		label: 'AI LEVEL',
+		prompt: 'How AI-savvy are you?',
+		mode: 'single',
+		options: [
+			'\u{1F937} Never tried',
+			'\u{1F914} A few times',
+			'\u{1F4AA} Weekly',
+			"\u{1F9E0} Can't stop",
+		],
+	},
+	{
+		id: 'tools',
+		label: 'AI TOOLS',
+		prompt: 'Which AI tools do you use?',
+		mode: 'multi',
+		options: ['ChatGPT', 'Claude', 'Gemini', 'DeepSeek', 'Copilot', 'None'],
+		minPicks: 1,
+		maxPicks: 6,
 	},
 ]
 
-const AGE_BRACKET_OPTIONS = ['16-20', '21-25', '26-30', '30+'] as const
+const COMFORT_MAP: Record<string, number> = {
+	'\u{1F937} Never tried': 1,
+	'\u{1F914} A few times': 2,
+	'\u{1F4AA} Weekly': 3,
+	"\u{1F9E0} Can't stop": 4,
+}
 
-const FEATURED_PAIN_IDS = [
-	'email-chaos',
-	'meal-planning',
-	'expense-tracking',
-	'social-posting',
-	'job-applications',
-	'copy-paste-hell',
-]
-
-const AI_COMFORT_OPTIONS = [
-	{ value: 1, label: 'Never tried it', emoji: '\u{1F937}' },
-	{ value: 2, label: 'Tried it a few times', emoji: '\u{1F914}' },
-	{ value: 3, label: 'Use it weekly', emoji: '\u{1F4AA}' },
-	{ value: 4, label: "Can't live without it", emoji: '\u{1F9E0}' },
-] as const
-
-const AI_TOOLS = [
-	{ id: 'chatgpt', label: 'ChatGPT' },
-	{ id: 'claude', label: 'Claude' },
-	{ id: 'gemini', label: 'Gemini' },
-	{ id: 'deepseek', label: 'DeepSeek' },
-	{ id: 'copilot', label: 'Copilot' },
-	{ id: 'none', label: 'None' },
-] as const
-
-const MAX_PAIN_PICKS = 3
-const MIN_PAIN_PICKS = 2
+type SlotState = { locked: boolean; value: string }
 
 export function QuickProfile({ onComplete }: QuickProfileProps) {
-	const [step, setStep] = useState(0)
-	const [transitioning, setTransitioning] = useState(false)
-	const [occupation, setOccupation] = useState('')
+	const [slotStates, setSlotStates] = useState<SlotState[]>(
+		SLOTS.map(() => ({ locked: false, value: '' })),
+	)
+	const [activeSlot, setActiveSlot] = useState(0)
+	const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set())
+	const [showOtherInput, setShowOtherInput] = useState(false)
+	const [otherText, setOtherText] = useState('')
+	const [adhdMode, setAdhdMode] = useState(false)
+	const [boardExpanded, setBoardExpanded] = useState(true)
+	const otherInputRef = useRef<HTMLInputElement>(null)
 
-	// Preload Tesseract WASM while user fills quiz — ready by upload phase
 	useEffect(() => {
 		preloadOcr()
 	}, [])
-	const [ageBracket, setAgeBracket] = useState('')
-	const [painPicks, setPainPicks] = useState<string[]>([])
-	const [aiComfort, setAiComfort] = useState(0)
-	const [aiToolsUsed, setAiToolsUsed] = useState<string[]>([])
 
-	const stepContainerRef = useRef<HTMLDivElement>(null)
-	const [stepFocusTrigger, setStepFocusTrigger] = useState(0)
+	const config = SLOTS[activeSlot]
+	const allLocked = slotStates.every((s) => s.locked)
+	const lockedCount = slotStates.filter((s) => s.locked).length
 
-	const featuredPains = painLibrary.filter((p) => FEATURED_PAIN_IDS.includes(p.id))
+	function lockSingle(value: string) {
+		setSlotStates((prev) => prev.map((s, i) => (i === activeSlot ? { locked: true, value } : s)))
+		setShowOtherInput(false)
+		setOtherText('')
+		setTimeout(() => setActiveSlot((a) => a + 1), 350)
+	}
 
-	/** Focus the step heading after each step transition for a11y */
-	// biome-ignore lint/correctness/useExhaustiveDependencies: stepFocusTrigger is an intentional re-run trigger
-	useEffect(() => {
-		if (stepContainerRef.current) {
-			const heading = stepContainerRef.current.querySelector('h2, [tabindex]')
-			if (heading instanceof HTMLElement) {
-				heading.focus({ preventScroll: true })
+	function toggleMulti(option: string) {
+		setMultiSelected((prev) => {
+			const next = new Set(prev)
+			if (option === 'None') return next.has('None') ? new Set() : new Set(['None'])
+			next.delete('None')
+			if (next.has(option)) {
+				next.delete(option)
+			} else if (!config?.maxPicks || next.size < config.maxPicks) {
+				next.add(option)
 			}
+			return next
+		})
+	}
+
+	function lockMulti() {
+		const value = [...multiSelected].join(', ')
+		setSlotStates((prev) => prev.map((s, i) => (i === activeSlot ? { locked: true, value } : s)))
+		setMultiSelected(new Set())
+		setShowOtherInput(false)
+		setOtherText('')
+		setTimeout(() => setActiveSlot((a) => a + 1), 350)
+	}
+
+	function handleOtherSubmit() {
+		if (!otherText.trim()) return
+		if (config?.mode === 'single') {
+			lockSingle(otherText.trim())
+		} else {
+			setMultiSelected((prev) => new Set([...prev, otherText.trim()]))
+			setOtherText('')
+			setShowOtherInput(false)
 		}
-	}, [stepFocusTrigger])
-
-	function advanceStep(nextStep?: number) {
-		setTransitioning(true)
-		setTimeout(() => {
-			setStep((s) => nextStep ?? s + 1)
-			setTransitioning(false)
-			setStepFocusTrigger((n) => n + 1)
-		}, 250)
-	}
-
-	function selectOccupation(id: string) {
-		setOccupation(id)
-		setTimeout(() => advanceStep(1), 300)
-	}
-
-	function selectAgeBracket(value: string) {
-		setAgeBracket(value)
-		setTimeout(() => advanceStep(2), 300)
-	}
-
-	function togglePain(id: string) {
-		setPainPicks((prev) => {
-			if (prev.includes(id)) return prev.filter((p) => p !== id)
-			if (prev.length >= MAX_PAIN_PICKS) return prev
-			return [...prev, id]
-		})
-	}
-
-	function selectComfort(value: number) {
-		setAiComfort(value)
-		setTimeout(() => advanceStep(4), 300)
-	}
-
-	function toggleTool(id: string) {
-		setAiToolsUsed((prev) => {
-			if (id === 'none') return prev.includes('none') ? [] : ['none']
-			const without = prev.filter((t) => t !== 'none')
-			if (without.includes(id)) return without.filter((t) => t !== id)
-			return [...without, id]
-		})
 	}
 
 	function handleDone() {
-		onComplete({ occupation, ageBracket, painPicks, aiComfort, aiToolsUsed })
+		const occupation = slotStates[0].value
+		const isCustomOccupation = !SLOTS[0].options.includes(occupation)
+		const ageBracket = slotStates[1].value
+		const painRaw = slotStates[2].value.split(', ')
+		const painPicks = painRaw
+			.map((p) => {
+				const match = painLibrary.find((lib) => `${lib.emoji} ${lib.title}` === p)
+				return match?.id ?? p
+			})
+			.filter(Boolean)
+		const customPains = painRaw.filter(
+			(p) => !painLibrary.some((lib) => `${lib.emoji} ${lib.title}` === p),
+		)
+		const comfortValue = COMFORT_MAP[slotStates[3].value] ?? 1
+		const tools = slotStates[4].value.split(', ').map((t) => t.toLowerCase())
+
+		onComplete({
+			occupation: isCustomOccupation ? 'other' : occupation.toLowerCase(),
+			customOccupation: isCustomOccupation ? occupation : undefined,
+			ageBracket,
+			painPicks,
+			customPain: customPains.length > 0 ? customPains.join(', ') : undefined,
+			aiComfort: comfortValue,
+			aiToolsUsed: tools,
+		})
 	}
 
+	const canLockMulti = config?.mode === 'multi' && multiSelected.size >= (config.minPicks ?? 1)
+
+	// Auto-complete when all locked
+	useEffect(() => {
+		if (allLocked) handleDone()
+	}, [allLocked])
+
 	return (
-		<VStack gap={6} width="100%" maxWidth="560px" marginInline="auto">
-			{/* Dot indicators */}
-			<Flex gap={2} justifyContent="center">
-				{[0, 1, 2, 3, 4].map((i) => (
-					<Box
-						key={`step-${i}`}
-						width={step === i ? '24px' : '8px'}
-						height="8px"
-						borderRadius="full"
-						bg={i <= step ? 'primary' : 'outlineVariant/20'}
-						transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-					/>
-				))}
+		<VStack gap={4} width="100%">
+			{/* Top bar: step counter + ADHD toggle */}
+			<Flex width="100%" justifyContent="space-between" alignItems="center">
+				<styled.span
+					fontSize="xs"
+					fontWeight="600"
+					color="onSurfaceVariant/40"
+					textTransform="uppercase"
+					letterSpacing="0.06em"
+					data-testid="step-counter"
+				>
+					Step {Math.min(activeSlot + 1, SLOTS.length)} of {SLOTS.length}
+				</styled.span>
+				<styled.button
+					onClick={() => setAdhdMode((v) => !v)}
+					display="flex"
+					alignItems="center"
+					gap={1.5}
+					paddingInline={3}
+					paddingBlock="6px"
+					borderRadius="full"
+					border="1.5px solid"
+					borderColor={adhdMode ? 'primary/30' : 'outlineVariant/20'}
+					bg={adhdMode ? 'primary/8' : 'transparent'}
+					color={adhdMode ? 'primary' : 'onSurfaceVariant/50'}
+					fontSize="xs"
+					fontWeight="600"
+					fontFamily="heading"
+					cursor="pointer"
+					transition="all 0.2s ease"
+					_hover={{ borderColor: 'primary/40' }}
+					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
+					aria-pressed={adhdMode}
+					data-testid="adhd-toggle"
+				>
+					<Brain size={12} />
+					ADHD mode
+				</styled.button>
 			</Flex>
 
-			{/* Step container with slide animation */}
-			<Box
-				ref={stepContainerRef}
-				width="100%"
-				style={{
-					animation: transitioning
-						? 'slideOutToLeft 0.25s ease-in forwards'
-						: 'slideInFromRight 0.35s ease-out both',
-				}}
-			>
-				{/* Step 0: Occupation */}
-				{step === 0 && (
-					<VStack gap={5} width="100%">
-						<VStack gap={2} textAlign="center">
-							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
-								What do you do?
-							</styled.h2>
-							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
-								Just the basics. No LinkedIn required.
-							</styled.p>
-						</VStack>
+			{/* ADHD video placeholder */}
+			{adhdMode && (
+				<Box
+					width="100%"
+					borderRadius="14px"
+					overflow="hidden"
+					border="1px solid"
+					borderColor="outlineVariant/10"
+					position="relative"
+					style={{
+						aspectRatio: '21/9',
+						maxHeight: '140px',
+						animation: 'meldarFadeSlideUp 0.3s ease-out both',
+					}}
+				>
+					<Box
+						position="absolute"
+						inset={0}
+						background="linear-gradient(135deg, #623153, #874a72, #FFB876, #874a72, #623153)"
+						backgroundSize="400% 400%"
+						style={{ animation: 'focusVideoGradient 6s ease infinite' }}
+					/>
+					<Flex position="absolute" inset={0} alignItems="center" justifyContent="center">
+						<styled.span fontSize="xs" color="white/25" fontWeight="500">
+							satisfying video goes here
+						</styled.span>
+					</Flex>
+				</Box>
+			)}
 
-						<VStack gap={3} width="100%">
-							{OCCUPATION_OPTIONS.map((opt, i) => {
-								const isSelected = occupation === opt.id
-								const IconComponent = opt.icon
-								return (
-									<styled.button
-										key={opt.id}
-										onClick={() => selectOccupation(opt.id)}
-										display="flex"
-										alignItems="center"
-										gap={4}
-										width="100%"
-										padding={5}
-										borderRadius="16px"
-										border="2px solid"
-										borderColor={isSelected ? 'primary' : 'outlineVariant/15'}
-										bg={isSelected ? 'primary/6' : 'surfaceContainerLowest'}
-										cursor="pointer"
-										transition="border-color 0.2s ease, background 0.2s ease"
-										textAlign="left"
-										_hover={{
-											borderColor: isSelected ? 'primary' : 'outlineVariant/40',
-											bg: isSelected ? 'primary/6' : 'surfaceContainer',
-										}}
-										_focusVisible={{
-											outline: '2px solid',
-											outlineColor: 'primary',
-											outlineOffset: '2px',
-										}}
-										aria-pressed={isSelected}
-										style={{
-											animation: isSelected
-												? 'bouncySelect 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
-												: `staggerFadeIn 0.4s ease-out ${i * 0.08}s both`,
-										}}
+			{/* Main area: md+ = side by side, mobile = stacked */}
+			<Flex
+				width="100%"
+				gap={4}
+				flexDir={{ base: 'column', md: 'row' }}
+				alignItems={{ base: 'stretch', md: 'flex-start' }}
+			>
+				{/* LEFT: Slot board */}
+				<Box
+					width={{ base: '100%', md: '240px' }}
+					flexShrink={0}
+					padding={4}
+					borderRadius="16px"
+					bg="inverseSurface"
+					boxShadow="0 4px 24px rgba(0, 0, 0, 0.15)"
+					position={{ base: 'relative', md: 'sticky' }}
+					top={{ md: '100px' }}
+				>
+					{/* Collapse toggle on mobile when some are locked */}
+					{lockedCount > 0 && (
+						<styled.button
+							onClick={() => setBoardExpanded((v) => !v)}
+							display={{ base: 'flex', md: 'none' }}
+							alignItems="center"
+							justifyContent="space-between"
+							width="100%"
+							bg="transparent"
+							border="none"
+							cursor="pointer"
+							paddingBlock={1}
+							marginBlockEnd={boardExpanded ? 2 : 0}
+						>
+							<styled.span fontSize="xs" color="white/40">
+								{lockedCount}/{SLOTS.length} locked
+							</styled.span>
+							<ChevronDown
+								size={14}
+								color="rgba(255,255,255,0.3)"
+								style={{
+									transform: boardExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+									transition: 'transform 0.2s ease',
+								}}
+							/>
+						</styled.button>
+					)}
+
+					{/* Slot rows — always visible on md+, collapsible on mobile */}
+					<VStack gap={1.5} display={{ base: boardExpanded ? 'flex' : 'none', md: 'flex' }}>
+						{SLOTS.map((slot, i) => {
+							const state = slotStates[i]
+							const isActive = i === activeSlot && !allLocked
+							return (
+								<Flex
+									key={slot.id}
+									width="100%"
+									alignItems="center"
+									gap={2}
+									paddingInline={3}
+									paddingBlock={2}
+									borderRadius="8px"
+									bg={state.locked ? 'white/6' : isActive ? 'white/4' : 'white/1'}
+									border="1px solid"
+									borderColor={state.locked ? 'primary/30' : isActive ? 'white/10' : 'transparent'}
+									transition="all 0.2s ease"
+									style={state.locked ? { animation: 'bouncySelect 0.25s ease' } : undefined}
+								>
+									<styled.span
+										fontSize="10px"
+										fontWeight="700"
+										color={state.locked ? '#FFB876' : isActive ? 'white/40' : 'white/15'}
+										textTransform="uppercase"
+										letterSpacing="0.08em"
+										width="65px"
+										flexShrink={0}
+										data-testid={`slot-label-${slot.id}`}
 									>
-										<Box
-											width="44px"
-											height="44px"
-											borderRadius="12px"
-											bg={isSelected ? 'primary/10' : 'surfaceContainer'}
+										{slot.label}
+									</styled.span>
+									<styled.span
+										flex={1}
+										fontSize="xs"
+										fontWeight={state.locked ? '600' : '400'}
+										fontFamily="heading"
+										color={state.locked ? 'white/90' : 'white/15'}
+										overflow="hidden"
+										textOverflow="ellipsis"
+										whiteSpace="nowrap"
+									>
+										{state.locked ? state.value : isActive ? '\u25B6' : '\u2022\u2022\u2022'}
+									</styled.span>
+									{state.locked && <Lock size={10} color="#FFB876" />}
+								</Flex>
+							)
+						})}
+					</VStack>
+
+					{/* Progress bar */}
+					<Box width="100%" marginBlockStart={3}>
+						<Box width="100%" height="3px" borderRadius="full" bg="white/6">
+							<Box
+								height="100%"
+								borderRadius="full"
+								background="linear-gradient(90deg, #623153, #FFB876)"
+								transition="width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)"
+								style={{ width: `${(lockedCount / SLOTS.length) * 100}%` }}
+							/>
+						</Box>
+					</Box>
+				</Box>
+
+				{/* RIGHT: Options panel */}
+				<Box flex={1} minWidth={0}>
+					{!allLocked && config && (
+						<VStack
+							gap={4}
+							width="100%"
+							style={{ animation: 'meldarFadeSlideUp 0.25s ease-out both' }}
+						>
+							<VStack gap={1}>
+								<styled.span
+									fontSize="xs"
+									fontWeight="700"
+									color="primary"
+									textTransform="uppercase"
+									letterSpacing="0.08em"
+								>
+									{config.label}
+								</styled.span>
+								<styled.h2
+									fontFamily="heading"
+									fontSize={{ base: 'lg', md: 'xl' }}
+									fontWeight="800"
+									color="onSurface"
+									lineHeight="1.2"
+									data-testid="step-prompt"
+								>
+									{config.prompt}
+								</styled.h2>
+							</VStack>
+
+							<Flex gap={2} flexWrap="wrap">
+								{config.options.map((opt) => {
+									const isSelected = config.mode === 'multi' ? multiSelected.has(opt) : false
+									return (
+										<styled.button
+											key={opt}
+											onClick={() =>
+												config.mode === 'single' ? lockSingle(opt) : toggleMulti(opt)
+											}
 											display="flex"
 											alignItems="center"
-											justifyContent="center"
-											flexShrink={0}
-										>
-											<IconComponent
-												size={22}
-												color={isSelected ? '#623153' : '#81737a'}
-												strokeWidth={1.5}
-											/>
-										</Box>
-										<VStack gap={0.5} alignItems="flex-start">
-											<styled.span
-												fontFamily="heading"
-												fontWeight="600"
-												fontSize="md"
-												color="onSurface"
-											>
-												{opt.label}
-											</styled.span>
-											<styled.span fontSize="xs" color="onSurfaceVariant/60" lineHeight="1.4">
-												{opt.subtitle}
-											</styled.span>
-										</VStack>
-									</styled.button>
-								)
-							})}
-						</VStack>
-					</VStack>
-				)}
-
-				{/* Step 1: Age bracket */}
-				{step === 1 && (
-					<VStack gap={5} width="100%">
-						<VStack gap={2} textAlign="center">
-							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
-								How old are you?
-							</styled.h2>
-							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
-								Helps us pick the right examples.
-							</styled.p>
-						</VStack>
-
-						<Flex gap={3} flexWrap="wrap" justifyContent="center" width="100%">
-							{AGE_BRACKET_OPTIONS.map((age, i) => {
-								const isSelected = ageBracket === age
-								return (
-									<styled.button
-										key={age}
-										onClick={() => selectAgeBracket(age)}
-										display="flex"
-										alignItems="center"
-										justifyContent="center"
-										paddingInline={6}
-										paddingBlock={3.5}
-										borderRadius="full"
-										border="2px solid"
-										borderColor={isSelected ? 'primary' : 'outlineVariant/20'}
-										bg={isSelected ? 'primary/6' : 'surfaceContainerLowest'}
-										color={isSelected ? 'primary' : 'onSurfaceVariant'}
-										fontFamily="heading"
-										fontWeight="600"
-										fontSize="md"
-										cursor="pointer"
-										minWidth="80px"
-										transition="border-color 0.2s ease, background 0.2s ease, transform 0.2s ease"
-										_hover={{
-											borderColor: isSelected ? 'primary' : 'outlineVariant/50',
-											bg: isSelected ? 'primary/6' : 'surfaceContainer',
-											transform: 'scale(1.05)',
-										}}
-										_focusVisible={{
-											outline: '2px solid',
-											outlineColor: 'primary',
-											outlineOffset: '2px',
-										}}
-										aria-pressed={isSelected}
-										style={{
-											animation: isSelected
-												? 'bouncySelect 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
-												: `staggerFadeIn 0.3s ease-out ${i * 0.05}s both`,
-										}}
-									>
-										{age}
-									</styled.button>
-								)
-							})}
-						</Flex>
-					</VStack>
-				)}
-
-				{/* Step 2: Pain tiles */}
-				{step === 2 && (
-					<VStack gap={5} width="100%">
-						<VStack gap={2} textAlign="center">
-							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
-								What bugs you most?
-							</styled.h2>
-							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
-								Pick up to {MAX_PAIN_PICKS}. Be honest.
-							</styled.p>
-						</VStack>
-
-						<Grid columns={{ base: 2, md: 3 }} gap={3} width="100%">
-							{featuredPains.map((pain, i) => {
-								const isSelected = painPicks.includes(pain.id)
-								return (
-									<styled.button
-										key={pain.id}
-										onClick={() => togglePain(pain.id)}
-										display="flex"
-										flexDirection="column"
-										alignItems="flex-start"
-										gap={2}
-										padding={4}
-										borderRadius="16px"
-										border="2px solid"
-										borderColor={isSelected ? 'primary' : 'outlineVariant/15'}
-										bg={isSelected ? 'primary/6' : 'surfaceContainerLowest'}
-										cursor="pointer"
-										transition="border-color 0.2s ease, background 0.2s ease"
-										position="relative"
-										textAlign="left"
-										minHeight="120px"
-										_hover={{
-											borderColor: isSelected ? 'primary' : 'outlineVariant/40',
-											bg: isSelected ? 'primary/6' : 'surfaceContainer',
-										}}
-										_focusVisible={{
-											outline: '2px solid',
-											outlineColor: 'primary',
-											outlineOffset: '2px',
-										}}
-										aria-pressed={isSelected}
-										style={{
-											animation: isSelected
-												? 'bouncySelect 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
-												: `staggerFadeIn 0.4s ease-out ${i * 0.06}s both`,
-										}}
-									>
-										{/* Checkmark */}
-										{isSelected && (
-											<Box
-												position="absolute"
-												top={2}
-												right={2}
-												width="22px"
-												height="22px"
-												borderRadius="full"
-												bg="primary"
-												display="flex"
-												alignItems="center"
-												justifyContent="center"
-											>
-												<Check size={13} color="white" strokeWidth={3} />
-											</Box>
-										)}
-										<styled.span fontSize="2xl">{pain.emoji}</styled.span>
-										<VStack gap={0.5} alignItems="flex-start">
-											<styled.span
-												fontFamily="heading"
-												fontWeight="700"
-												fontSize="sm"
-												color="onSurface"
-												lineHeight="1.2"
-											>
-												{pain.title}
-											</styled.span>
-											<styled.span fontSize="xs" color="onSurfaceVariant/60" lineHeight="1.4">
-												{pain.description}
-											</styled.span>
-										</VStack>
-									</styled.button>
-								)
-							})}
-						</Grid>
-
-						{/* Bottom bar */}
-						<Flex
-							width="100%"
-							justifyContent="space-between"
-							alignItems="center"
-							paddingBlockStart={2}
-						>
-							<styled.span textStyle="body.sm" color="onSurfaceVariant/60">
-								{painPicks.length} of {MAX_PAIN_PICKS} picked
-							</styled.span>
-							<styled.button
-								onClick={() => advanceStep(3)}
-								disabled={painPicks.length < MIN_PAIN_PICKS}
-								paddingInline={6}
-								paddingBlock={3}
-								borderRadius="12px"
-								border="none"
-								background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-								color="white"
-								fontFamily="heading"
-								fontWeight="700"
-								fontSize="sm"
-								cursor="pointer"
-								transition="all 0.2s ease"
-								_hover={{ opacity: 0.9 }}
-								_disabled={{ opacity: 0.4, cursor: 'not-allowed' }}
-								_focusVisible={{
-									outline: '2px solid',
-									outlineColor: 'primary',
-									outlineOffset: '2px',
-								}}
-								style={
-									painPicks.length >= MIN_PAIN_PICKS
-										? { animation: 'pulseGlow 2s ease-in-out infinite' }
-										: undefined
-								}
-							>
-								Next
-							</styled.button>
-						</Flex>
-					</VStack>
-				)}
-
-				{/* Step 3: AI Comfort */}
-				{step === 3 && (
-					<VStack gap={5} width="100%">
-						<VStack gap={2} textAlign="center">
-							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
-								How AI-savvy are you?
-							</styled.h2>
-							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
-								No wrong answer. Just curious.
-							</styled.p>
-						</VStack>
-
-						<VStack gap={3} width="100%">
-							{AI_COMFORT_OPTIONS.map((opt, i) => {
-								const isSelected = aiComfort === opt.value
-								return (
-									<styled.button
-										key={opt.value}
-										onClick={() => selectComfort(opt.value)}
-										display="flex"
-										alignItems="center"
-										gap={4}
-										width="100%"
-										padding={5}
-										borderRadius="16px"
-										border="2px solid"
-										borderColor={isSelected ? 'primary' : 'outlineVariant/15'}
-										bg={isSelected ? 'primary/6' : 'surfaceContainerLowest'}
-										cursor="pointer"
-										transition="border-color 0.2s ease, background 0.2s ease"
-										textAlign="left"
-										_hover={{
-											borderColor: isSelected ? 'primary' : 'outlineVariant/40',
-											bg: isSelected ? 'primary/6' : 'surfaceContainer',
-										}}
-										_focusVisible={{
-											outline: '2px solid',
-											outlineColor: 'primary',
-											outlineOffset: '2px',
-										}}
-										aria-pressed={isSelected}
-										style={{
-											animation: isSelected
-												? 'bouncySelect 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
-												: `staggerFadeIn 0.4s ease-out ${i * 0.08}s both`,
-										}}
-									>
-										<styled.span fontSize="2xl">{opt.emoji}</styled.span>
-										<styled.span
+											gap={2}
+											paddingInline={4}
+											paddingBlock={3}
+											borderRadius="14px"
+											border="2px solid"
+											borderColor={isSelected ? 'primary' : 'outlineVariant/15'}
+											bg={isSelected ? 'primary/8' : 'surfaceContainerLowest'}
 											fontFamily="heading"
 											fontWeight="600"
-											fontSize="md"
-											color="onSurface"
+											fontSize="sm"
+											color={isSelected ? 'primary' : 'onSurface'}
+											cursor="pointer"
+											transition="all 0.15s ease"
+											_hover={{
+												borderColor: 'primary/40',
+												transform: 'scale(1.03)',
+												boxShadow: '0 2px 8px rgba(98, 49, 83, 0.08)',
+											}}
+											_focusVisible={{
+												outline: '2px solid',
+												outlineColor: 'primary',
+												outlineOffset: '2px',
+											}}
+											aria-pressed={isSelected}
+											style={isSelected ? { animation: 'bouncySelect 0.25s ease' } : undefined}
+											data-testid={`option-${opt
+												.replace(/[^\w]+/g, '-')
+												.replace(/^-|-$/g, '')
+												.toLowerCase()}`}
 										>
-											{opt.label}
-										</styled.span>
-									</styled.button>
-								)
-							})}
-						</VStack>
-					</VStack>
-				)}
+											{isSelected && <Check size={14} strokeWidth={3} />}
+											{opt}
+										</styled.button>
+									)
+								})}
 
-				{/* Step 4: AI Tools */}
-				{step === 4 && (
-					<VStack gap={5} width="100%">
-						<VStack gap={2} textAlign="center">
-							<styled.h2 tabIndex={-1} textStyle="heading.section" color="onSurface">
-								Which AI tools have you used?
-							</styled.h2>
-							<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
-								Pick all that apply.
-							</styled.p>
-						</VStack>
-
-						<Flex gap={3} flexWrap="wrap" justifyContent="center" width="100%">
-							{AI_TOOLS.map((tool, i) => {
-								const isSelected = aiToolsUsed.includes(tool.id)
-								return (
+								{/* "Other" button */}
+								{config.hasOther && !showOtherInput && (
 									<styled.button
-										key={tool.id}
-										onClick={() => toggleTool(tool.id)}
+										onClick={() => {
+											setShowOtherInput(true)
+											setTimeout(() => otherInputRef.current?.focus(), 100)
+										}}
 										display="flex"
 										alignItems="center"
-										gap={2}
-										paddingInline={5}
+										gap={1.5}
+										paddingInline={4}
 										paddingBlock={3}
-										borderRadius="full"
-										border="2px solid"
-										borderColor={isSelected ? 'primary' : 'outlineVariant/20'}
-										bg={isSelected ? 'primary/6' : 'surfaceContainerLowest'}
-										color={isSelected ? 'primary' : 'onSurfaceVariant'}
+										borderRadius="14px"
+										border="2px dashed"
+										borderColor="outlineVariant/20"
+										bg="transparent"
 										fontFamily="heading"
-										fontWeight="600"
+										fontWeight="500"
 										fontSize="sm"
+										color="onSurfaceVariant/50"
 										cursor="pointer"
-										transition="border-color 0.2s ease, background 0.2s ease, transform 0.2s ease"
-										_hover={{
-											borderColor: isSelected ? 'primary' : 'outlineVariant/50',
-											bg: isSelected ? 'primary/6' : 'surfaceContainer',
-											transform: 'scale(1.05)',
-										}}
+										_hover={{ borderColor: 'primary/30', color: 'primary' }}
 										_focusVisible={{
 											outline: '2px solid',
 											outlineColor: 'primary',
 											outlineOffset: '2px',
 										}}
-										aria-pressed={isSelected}
-										style={{
-											animation: isSelected
-												? 'bouncySelect 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
-												: `staggerFadeIn 0.3s ease-out ${i * 0.05}s both`,
+										data-testid="option-something-else"
+									>
+										<PenLine size={14} />
+										Something else
+									</styled.button>
+								)}
+							</Flex>
+
+							{/* "Other" text input */}
+							{showOtherInput && (
+								<Flex
+									gap={2}
+									width="100%"
+									style={{ animation: 'meldarFadeSlideUp 0.2s ease-out both' }}
+								>
+									<styled.input
+										ref={otherInputRef}
+										value={otherText}
+										onChange={(e) => setOtherText(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter') {
+												e.preventDefault()
+												handleOtherSubmit()
+											}
+										}}
+										flex={1}
+										paddingInline={4}
+										paddingBlock={3}
+										borderRadius="14px"
+										border="2px solid"
+										borderColor="primary/30"
+										bg="surfaceContainerLowest"
+										fontSize="sm"
+										fontFamily="heading"
+										color="onSurface"
+										placeholder={
+											config.mode === 'single' ? 'Type your answer...' : 'Add a custom option...'
+										}
+										_focus={{ borderColor: 'primary' }}
+										_placeholder={{ color: 'onSurface/30' }}
+									/>
+									<styled.button
+										onClick={handleOtherSubmit}
+										disabled={!otherText.trim()}
+										paddingInline={4}
+										paddingBlock={3}
+										borderRadius="14px"
+										border="none"
+										bg="primary"
+										color="white"
+										fontFamily="heading"
+										fontWeight="700"
+										fontSize="sm"
+										cursor="pointer"
+										_hover={{ opacity: 0.9 }}
+										_disabled={{ opacity: 0.4, cursor: 'not-allowed' }}
+										_focusVisible={{
+											outline: '2px solid',
+											outlineColor: 'primary',
+											outlineOffset: '2px',
 										}}
 									>
-										{isSelected && <Check size={14} strokeWidth={3} />}
-										{tool.label}
+										{config.mode === 'single' ? 'Lock in' : 'Add'}
 									</styled.button>
-								)
-							})}
-						</Flex>
+								</Flex>
+							)}
 
-						{/* Done button */}
-						<Flex width="100%" justifyContent="center" paddingBlockStart={2}>
-							<styled.button
-								onClick={handleDone}
-								disabled={aiToolsUsed.length === 0}
-								paddingInline={8}
-								paddingBlock={3}
-								borderRadius="12px"
-								border="none"
-								background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-								color="white"
-								fontFamily="heading"
-								fontWeight="700"
-								fontSize="sm"
-								cursor="pointer"
-								transition="all 0.2s ease"
-								_hover={{ opacity: 0.9 }}
-								_disabled={{ opacity: 0.4, cursor: 'not-allowed' }}
-								_focusVisible={{
-									outline: '2px solid',
-									outlineColor: 'primary',
-									outlineOffset: '2px',
-								}}
-								style={
-									aiToolsUsed.length > 0
-										? { animation: 'pulseGlow 2s ease-in-out infinite' }
-										: undefined
-								}
-							>
-								Done
-							</styled.button>
-						</Flex>
-					</VStack>
-				)}
-			</Box>
+							{/* Lock button for multi-select */}
+							{config.mode === 'multi' && (
+								<styled.button
+									onClick={lockMulti}
+									disabled={!canLockMulti}
+									width="100%"
+									paddingBlock={3}
+									borderRadius="14px"
+									border="none"
+									background={
+										canLockMulti
+											? 'linear-gradient(135deg, #623153, #FFB876)'
+											: 'surfaceContainerHighest'
+									}
+									color={canLockMulti ? 'white' : 'onSurface/30'}
+									fontFamily="heading"
+									fontWeight="700"
+									fontSize="sm"
+									cursor={canLockMulti ? 'pointer' : 'not-allowed'}
+									transition="all 0.2s ease"
+									boxShadow={canLockMulti ? '0 4px 16px rgba(98, 49, 83, 0.2)' : 'none'}
+									_hover={canLockMulti ? { opacity: 0.9 } : {}}
+									_focusVisible={{
+										outline: '2px solid',
+										outlineColor: 'primary',
+										outlineOffset: '2px',
+									}}
+									style={
+										canLockMulti ? { animation: 'pulseGlow 2s ease-in-out infinite' } : undefined
+									}
+									data-testid="lock-button"
+								>
+									<Flex alignItems="center" justifyContent="center" gap={2}>
+										<Lock size={16} />
+										Lock in {multiSelected.size} pick{multiSelected.size !== 1 ? 's' : ''}
+									</Flex>
+								</styled.button>
+							)}
+						</VStack>
+					)}
+				</Box>
+			</Flex>
 		</VStack>
 	)
 }
