@@ -404,7 +404,7 @@ export function UploadCard({
 
 function UploadPreview({ data }: { data: UploadPreviewData }) {
 	// Screen time apps
-	if (data.apps && data.apps.length > 0) {
+	if (Array.isArray(data.apps) && data.apps.length > 0) {
 		const topApps = data.apps.slice(0, 5)
 		const maxMin = topApps[0]?.usageMinutes || 1
 		return (
@@ -516,7 +516,7 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 	}
 
 	// Subscriptions
-	if (data.subscriptions && data.subscriptions.length > 0) {
+	if (Array.isArray(data.subscriptions) && data.subscriptions.length > 0) {
 		return (
 			<Box
 				paddingInline={5}
@@ -559,7 +559,7 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 	}
 
 	// Health metrics / calendar events / other
-	if (data.metrics && data.metrics.length > 0) {
+	if (Array.isArray(data.metrics) && data.metrics.length > 0) {
 		return (
 			<Box
 				paddingInline={5}
@@ -600,7 +600,7 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 		)
 	}
 
-	if (data.events && data.events.length > 0) {
+	if (Array.isArray(data.events) && data.events.length > 0) {
 		return (
 			<Box
 				paddingInline={5}

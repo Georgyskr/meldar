@@ -335,84 +335,23 @@ export function UploadZone({
 							bg="surfaceContainer/50"
 							style={{ animation: 'meldarFadeSlideUp 0.3s ease-out both' }}
 						>
-							<Flex gap={6} flexDir={{ base: 'column', sm: 'row' }}>
-								<VStack gap={2} flex={1} alignItems="flex-start">
-									<styled.span
-										fontSize="xs"
-										fontWeight="700"
-										fontFamily="heading"
-										color="onSurface"
-										textTransform="uppercase"
-										letterSpacing="0.05em"
-									>
-										iPhone
-									</styled.span>
-									<styled.ol
-										listStyleType="none"
-										padding={0}
-										margin={0}
-										display="flex"
-										flexDir="column"
-										gap={1}
-									>
-										<styled.li textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-											1. Settings &rarr; Screen Time
-										</styled.li>
-										<styled.li textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-											2. See All App &amp; Website Activity
-										</styled.li>
-										<styled.li textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-											3. Toggle to &ldquo;Week&rdquo;
-										</styled.li>
-										<styled.li
-											textStyle="body.sm"
-											color="primary"
-											fontWeight="500"
-											lineHeight="1.5"
-										>
-											4. Screenshot the app list
-										</styled.li>
-									</styled.ol>
-								</VStack>
-								<VStack gap={2} flex={1} alignItems="flex-start">
-									<styled.span
-										fontSize="xs"
-										fontWeight="700"
-										fontFamily="heading"
-										color="onSurface"
-										textTransform="uppercase"
-										letterSpacing="0.05em"
-									>
-										Android
-									</styled.span>
-									<styled.ol
-										listStyleType="none"
-										padding={0}
-										margin={0}
-										display="flex"
-										flexDir="column"
-										gap={1}
-									>
-										<styled.li textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-											1. Settings &rarr; Digital Wellbeing
-										</styled.li>
-										<styled.li textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-											2. Tap the Dashboard
-										</styled.li>
-										<styled.li textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-											3. See your app usage list
-										</styled.li>
-										<styled.li
-											textStyle="body.sm"
-											color="primary"
-											fontWeight="500"
-											lineHeight="1.5"
-										>
-											4. Screenshot the list
-										</styled.li>
-									</styled.ol>
-								</VStack>
-							</Flex>
+							<VStack gap={3} alignItems="flex-start" width="100%">
+								<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+									Settings &rarr; Screen Time &rarr; See All Activity
+								</styled.span>
+								<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+									1. Screenshot &ldquo;Most Used&rdquo; (app list with times)
+								</styled.span>
+								<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+									2. Screenshot &ldquo;Pickups&rdquo; (scroll down)
+								</styled.span>
+								<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+									3. Screenshot &ldquo;Notifications&rdquo; (scroll down more)
+								</styled.span>
+								<styled.span textStyle="body.sm" color="onSurfaceVariant/60" lineHeight="1.5">
+									Android: Settings &rarr; Digital Wellbeing &rarr; Dashboard
+								</styled.span>
+							</VStack>
 						</Box>
 					)}
 				</VStack>

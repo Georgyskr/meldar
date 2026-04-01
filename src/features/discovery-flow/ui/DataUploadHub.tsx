@@ -40,8 +40,8 @@ const INSTANT_SOURCES: SourceConfig[] = [
 	{
 		id: 'screentime',
 		title: 'Screen Time',
-		description: 'Screenshot from your phone settings',
-		timeEstimate: '30 sec',
+		description: '3 screenshots: Most Used, Pickups, Notifications',
+		timeEstimate: '1 min',
 		accept: 'image/jpeg,image/png,image/webp',
 		icon: Camera,
 	},
@@ -118,8 +118,8 @@ const DEEP_SOURCES: SourceConfig[] = [
 
 function ScreenTimeInstructions() {
 	return (
-		<Flex gap={6} flexDir={{ base: 'column', sm: 'row' }}>
-			<VStack gap={1} flex={1} alignItems="flex-start">
+		<VStack gap={4} alignItems="flex-start" width="100%">
+			<VStack gap={1} alignItems="flex-start">
 				<styled.span
 					fontSize="xs"
 					fontWeight="700"
@@ -128,46 +128,27 @@ function ScreenTimeInstructions() {
 					textTransform="uppercase"
 					letterSpacing="0.05em"
 				>
-					iPhone
+					We need 3 screenshots
 				</styled.span>
 				<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-					1. Settings &rarr; Screen Time
-				</styled.span>
-				<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-					2. See All App &amp; Website Activity
-				</styled.span>
-				<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-					3. Toggle to &ldquo;Week&rdquo;
-				</styled.span>
-				<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
-					4. Screenshot the app list
+					Go to Settings &rarr; Screen Time &rarr; See All Activity
 				</styled.span>
 			</VStack>
-			<VStack gap={1} flex={1} alignItems="flex-start">
-				<styled.span
-					fontSize="xs"
-					fontWeight="700"
-					fontFamily="heading"
-					color="onSurface"
-					textTransform="uppercase"
-					letterSpacing="0.05em"
-				>
-					Android
+			<VStack gap={2} alignItems="flex-start" width="100%">
+				<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+					1. &ldquo;Most Used&rdquo; &mdash; screenshot the app list with times
 				</styled.span>
-				<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-					1. Settings &rarr; Digital Wellbeing
+				<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+					2. &ldquo;Pickups&rdquo; &mdash; scroll down, screenshot the pickups section
 				</styled.span>
-				<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-					2. Tap the Dashboard
-				</styled.span>
-				<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
-					3. See your app usage list
-				</styled.span>
-				<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
-					4. Screenshot the list
+				<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+					3. &ldquo;Notifications&rdquo; &mdash; scroll down more, screenshot notifications
 				</styled.span>
 			</VStack>
-		</Flex>
+			<styled.span textStyle="body.sm" color="onSurfaceVariant/60" lineHeight="1.5">
+				Android: Settings &rarr; Digital Wellbeing &rarr; Dashboard. Same 3 sections.
+			</styled.span>
+		</VStack>
 	)
 }
 

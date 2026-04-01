@@ -398,8 +398,8 @@ test.describe('Data Upload Hub', () => {
 	test('clicking "How to export" toggles card instructions', async ({ page }) => {
 		const toggle = page.locator('button:has-text("How to export")').first()
 		await toggle.click()
-		// Screen Time instructions mention "See All App & Website Activity"
-		await expect(page.locator('text=See All App')).toBeVisible()
+		// Screen Time instructions mention the 3 screenshots needed
+		await expect(page.locator('text=We need 3 screenshots')).toBeVisible()
 	})
 })
 
