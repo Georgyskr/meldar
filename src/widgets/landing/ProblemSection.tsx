@@ -81,12 +81,24 @@ export function ProblemSection() {
 							2,847
 						</styled.span>
 						<styled.p fontFamily="heading" fontSize="xl" color="onSurface/80">
-							We asked thousands of people what annoys them most about daily tasks.
+							Posts, threads, and rants we analyzed across Reddit and forums. The same frustrations
+							kept coming up.
 						</styled.p>
 						<styled.p textStyle="body.base" color="onSurfaceVariant" fontStyle="italic">
 							The #1 answer: &ldquo;I start tracking it, then I quit because it takes too
 							long.&rdquo;
 						</styled.p>
+						<VStack gap={2} alignItems="flex-start" width="100%" paddingInline={4}>
+							<styled.span textStyle="body.sm" color="onSurface/60">
+								Email chaos &mdash; 4 hrs/week
+							</styled.span>
+							<styled.span textStyle="body.sm" color="onSurface/60">
+								Meal planning &mdash; 3 hrs/week
+							</styled.span>
+							<styled.span textStyle="body.sm" color="onSurface/60">
+								Social posting &mdash; 5 hrs/week
+							</styled.span>
+						</VStack>
 						<styled.span textStyle="label.upper" color="primary">
 							Meldar picks up where you left off
 						</styled.span>

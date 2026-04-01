@@ -1,13 +1,17 @@
 import { styled } from '@styled-system/jsx'
 import { BUSINESS_INFO, SITE_CONFIG } from '@/shared/config'
-import { JsonLd } from '@/shared/ui'
+import { FadeInOnScroll, JsonLd } from '@/shared/ui'
 import {
+	ComparisonSection,
+	DataReceiptSection,
 	EarlyAdopterSection,
 	FaqSection,
 	FinalCtaSection,
 	HeroSection,
 	HowItWorksSection,
 	ProblemSection,
+	SkillCardsSection,
+	TiersSection,
 	TrustSection,
 } from '@/widgets/landing'
 
@@ -47,12 +51,36 @@ const faqSchema = {
 				text: 'Yes. We are a small team and read every message. A human answers.',
 			},
 		},
+		{
+			'@type': 'Question',
+			name: 'What data do you actually need?',
+			acceptedAnswer: {
+				'@type': 'Answer',
+				text: "A screenshot of your Screen Time. That's it for the free tier. For deeper analysis, you can optionally upload your Google Takeout or ChatGPT export.",
+			},
+		},
+		{
+			'@type': 'Question',
+			name: 'Who built this?',
+			acceptedAnswer: {
+				'@type': 'Answer',
+				text: "One person in Helsinki, using the same AI tools Meldar teaches you to use. That's kind of the whole point.",
+			},
+		},
+		{
+			'@type': 'Question',
+			name: 'Is this another AI chatbot?',
+			acceptedAnswer: {
+				'@type': 'Answer',
+				text: 'No. Chatbots give advice. Meldar builds actual apps that run on your computer and do the work for you.',
+			},
+		},
 	],
 }
 
 export default function HomePage() {
 	return (
-		<styled.main paddingBlockStart="72px">
+		<styled.main id="main-content" paddingBlockStart="72px">
 			<JsonLd
 				data={{
 					'@context': 'https://schema.org',
@@ -77,11 +105,33 @@ export default function HomePage() {
 			<JsonLd data={faqSchema} />
 
 			<HeroSection />
-			<ProblemSection />
-			<HowItWorksSection />
-			<TrustSection />
-			<EarlyAdopterSection />
-			<FaqSection />
+			<FadeInOnScroll>
+				<ProblemSection />
+			</FadeInOnScroll>
+			<FadeInOnScroll>
+				<ComparisonSection />
+			</FadeInOnScroll>
+			<FadeInOnScroll>
+				<HowItWorksSection />
+			</FadeInOnScroll>
+			<FadeInOnScroll>
+				<DataReceiptSection />
+			</FadeInOnScroll>
+			<FadeInOnScroll>
+				<SkillCardsSection />
+			</FadeInOnScroll>
+			<FadeInOnScroll>
+				<TrustSection />
+			</FadeInOnScroll>
+			<FadeInOnScroll>
+				<TiersSection />
+			</FadeInOnScroll>
+			<FadeInOnScroll>
+				<EarlyAdopterSection />
+			</FadeInOnScroll>
+			<FadeInOnScroll>
+				<FaqSection />
+			</FadeInOnScroll>
 			<FinalCtaSection />
 		</styled.main>
 	)

@@ -16,18 +16,12 @@ export function HeroSection() {
 			paddingBlockEnd={12}
 		>
 			<Box maxWidth="720px" marginBlockEnd={12}>
-				<styled.h1
-					fontFamily="heading"
-					fontSize={{ base: '4xl', lg: '6xl' }}
-					fontWeight="700"
-					color="primary"
-					letterSpacing="-0.04em"
-					lineHeight="0.95"
-					marginBlockEnd={4}
-				>
-					See where your
+				<styled.h1 textStyle="heading.hero" color="primary" marginBlockEnd={4}>
+					Google made ~$238 from
 					<styled.br />
-					time actually goes.
+					your data last year.
+					<styled.br />
+					<styled.span color="secondaryLight">What did you get?</styled.span>
 				</styled.h1>
 				<styled.p
 					fontFamily="body"
@@ -36,8 +30,8 @@ export function HeroSection() {
 					color="onSurfaceVariant"
 					maxWidth="520px"
 				>
-					Find out what to build with AI. Answer a few questions, upload your data, get personalized
-					recommendations. Free to start.
+					Upload a screenshot. See your real numbers. Find out what to build with AI — in 30
+					seconds, for free.
 				</styled.p>
 			</Box>
 
@@ -74,7 +68,7 @@ export function HeroSection() {
 						</styled.span>
 					</Flex>
 					<styled.span textStyle="body.sm" color="onSurfaceVariant">
-						Upload a screenshot. See your real numbers.
+						See your Digital Footprint in 30 seconds
 					</styled.span>
 					<Flex alignItems="center" gap={1} marginBlockStart="auto">
 						<styled.span fontSize="sm" fontWeight="600" color="primary">

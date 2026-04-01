@@ -61,7 +61,6 @@ export function TrustSection() {
 					</VStack>
 				</Grid>
 
-				{/* Built by 12 seniors */}
 				<Flex
 					direction="column"
 					alignItems="center"
@@ -71,26 +70,18 @@ export function TrustSection() {
 					borderColor="outlineVariant/15"
 					width="100%"
 				>
-					{/* Avatar circles */}
-					<Flex justifyContent="center">
-						{['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'].map((key, i) => (
-							<Box
-								key={key}
-								width="36px"
-								height="36px"
-								borderRadius="full"
-								background={`hsl(${280 + i * 8}, 30%, ${45 + i * 3}%)`}
-								border="2px solid"
-								borderColor="surfaceContainerLow"
-								marginInlineStart={i === 0 ? '0' : '-8px'}
-							/>
-						))}
-					</Flex>
 					<styled.p textStyle="body.base" color="onSurface" fontWeight="600" textAlign="center">
-						Built in a single day by 12 senior engineers.
+						Built by a founder who uses the same AI tools you&apos;re about to learn.
 					</styled.p>
 					<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
-						150+ years combined experience. Refined every day since.
+						Refined every day since launch.
+					</styled.p>
+					<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
+						EU-registered company. GDPR compliant. Data auto-purges in 30 days.
+					</styled.p>
+					<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
+						Your screenshot is processed in your browser using OCR. The image never reaches our
+						servers.
 					</styled.p>
 				</Flex>
 			</VStack>

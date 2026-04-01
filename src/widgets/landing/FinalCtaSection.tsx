@@ -32,20 +32,13 @@ export function FinalCtaSection() {
 				position="relative"
 				zIndex={1}
 			>
-				<styled.h2
-					fontFamily="heading"
-					fontSize={{ base: '3xl', md: '4xl', lg: '5xl' }}
-					fontWeight="700"
-					letterSpacing="-0.03em"
-					lineHeight="tight"
-					color="white"
-				>
-					Google made ~$238 from your data last year.{' '}
-					<styled.span color="#f5b3dc">What did you get?</styled.span>
+				<styled.h2 textStyle="heading.display" color="white">
+					Your data told Google everything.{' '}
+					<styled.span color="#f5b3dc">It&apos;s time it told you something useful.</styled.span>
 				</styled.h2>
 
 				<styled.p textStyle="body.lead" color="white/80" maxWidth="480px">
-					Take your data back. See what to build. Do it yourself.
+					30 seconds. One screenshot. No signup.
 				</styled.p>
 
 				<styled.a

@@ -29,6 +29,18 @@ const faqs = [
 		q: 'Can I talk to a real person?',
 		a: "Yes. We're a small team and we read every message. If you get stuck, reply to any email from us or use the contact link. A human answers.",
 	},
+	{
+		q: 'What data do you actually need?',
+		a: "A screenshot of your Screen Time. That's it for the free tier. For deeper analysis, you can optionally upload your Google Takeout or ChatGPT export.",
+	},
+	{
+		q: 'Who built this?',
+		a: "One person in Helsinki, using the same AI tools Meldar teaches you to use. That's kind of the whole point.",
+	},
+	{
+		q: 'Is this another AI chatbot?',
+		a: 'No. Chatbots give advice. Meldar builds actual apps that run on your computer and do the work for you.',
+	},
 ]
 
 export function FaqSection() {

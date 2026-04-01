@@ -378,10 +378,13 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 	async function handleFile(platformId: string, file: File) {
 		if (!optedIn) return
 
-		const prevCount = sources[platformId]?.uploadCount ?? 0
 		setSources((prev) => ({
 			...prev,
-			[platformId]: { ...prev[platformId], status: 'uploading', uploadCount: prevCount },
+			[platformId]: {
+				...prev[platformId],
+				status: 'uploading',
+				uploadCount: prev[platformId]?.uploadCount ?? 0,
+			},
 		}))
 
 		try {
@@ -437,7 +440,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 					...prev,
 					[platformId]: {
 						...prev[platformId],
-						status: prevCount > 0 ? 'done' : 'error',
+						status: (prev[platformId]?.uploadCount ?? 0) > 0 ? 'done' : 'error',
 						errorMessage: data.error?.message || 'Upload failed. Try again.',
 					},
 				}))
@@ -445,12 +448,11 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 			}
 
 			const responseData = await res.json()
-			const newCount = prevCount + 1
 			setSources((prev) => ({
 				...prev,
 				[platformId]: {
 					status: 'done',
-					uploadCount: newCount,
+					uploadCount: (prev[platformId]?.uploadCount ?? 0) + 1,
 					errorMessage: undefined,
 					preview: responseData.preview ?? prev[platformId]?.preview,
 				},
@@ -460,7 +462,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 				...prev,
 				[platformId]: {
 					...prev[platformId],
-					status: prevCount > 0 ? 'done' : 'error',
+					status: (prev[platformId]?.uploadCount ?? 0) > 0 ? 'done' : 'error',
 					errorMessage: 'Connection failed. Try again.',
 				},
 			}))

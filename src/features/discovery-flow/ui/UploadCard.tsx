@@ -48,8 +48,13 @@ export function UploadCard({
 	const fileRef = useRef<HTMLInputElement>(null)
 
 	function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-		const file = e.target.files?.[0]
-		if (file) onFile(file)
+		const files = e.target.files
+		if (!files) return
+		// Process all selected files (supports multi-select for Screen Time)
+		for (let i = 0; i < files.length; i++) {
+			const file = files[i]
+			if (file) onFile(file)
+		}
 		if (e.target) e.target.value = ''
 	}
 
@@ -238,6 +243,7 @@ export function UploadCard({
 							ref={fileRef}
 							type="file"
 							accept={accept}
+							multiple={hasMultiFile}
 							aria-label={`Upload file for ${title}`}
 							onChange={handleFileChange}
 							style={{ display: 'none' }}
@@ -317,6 +323,7 @@ export function UploadCard({
 								ref={fileRef}
 								type="file"
 								accept={accept}
+								multiple={hasMultiFile}
 								aria-label={`Upload file for ${title}`}
 								onChange={handleFileChange}
 								style={{ display: 'none' }}

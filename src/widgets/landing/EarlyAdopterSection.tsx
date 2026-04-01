@@ -5,29 +5,29 @@ import { FoundingCounter, FoundingEmailCapture } from '@/features/founding-progr
 const perks = [
 	{
 		icon: HandHelping,
-		title: 'Hand-by-hand guidance',
+		title: '1-on-1 onboarding call (15 min, with the founder)',
 		desc: 'Never touched AI? Perfect. We sit with you (virtually) and walk you through everything. Not a video tutorial you watch alone. Actual help, from a real person, until it works.',
 	},
 	{
 		icon: Zap,
-		title: 'Personal time audit',
+		title: 'Custom time audit report sent within 48 hours',
 		desc: "Tell us what your week looks like. We send you a custom report: here's where your hours go, here's what to automate first, here's how.",
 	},
 	{
 		icon: Mail,
-		title: 'Weekly automation tip',
+		title: 'Weekly email: one automation you can set up in 10 minutes',
 		desc: "Every week, one specific thing you can automate right now with free tools. Practical, not theoretical. You'll start saving time before Meldar even launches.",
 	},
 	{
 		icon: Users,
-		title: 'Shape what gets built',
+		title: 'Vote on the next feature (founding members only)',
 		desc: 'Vote on which features ship first. Your input decides what Meldar becomes. Early members keep this power forever.',
 	},
 ]
 
 export function EarlyAdopterSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="surface">
+		<styled.section paddingBlock={32} paddingInline={8} bg="primary/4">
 			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12} alignItems="center">
 				<VStack gap={4} textAlign="center" maxWidth="600px">
 					<styled.span textStyle="label.upper" color="primary">

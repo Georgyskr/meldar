@@ -40,7 +40,7 @@ export function Footer() {
 						&copy; {new Date().getFullYear()} ClickTheRoadFi Oy &middot; Y-tunnus 3362511-1
 					</styled.span>
 					<styled.span fontSize="3xs" color="onSurface/20">
-						Built by 12 senior engineers in Helsinki
+						Built in Helsinki with AI
 					</styled.span>
 				</Flex>
 

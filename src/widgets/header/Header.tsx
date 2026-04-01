@@ -12,6 +12,29 @@ export function Header() {
 			backdropFilter="blur(20px)"
 			boxShadow="0px 24px 48px rgba(12,12,13,0.04)"
 		>
+			<styled.a
+				href="#main-content"
+				position="absolute"
+				top="-100%"
+				left="16px"
+				paddingInline={4}
+				paddingBlock={2}
+				bg="primary"
+				color="onPrimary"
+				fontWeight="600"
+				fontSize="sm"
+				borderRadius="md"
+				zIndex={100}
+				textDecoration="none"
+				_focusVisible={{
+					top: '12px',
+					outline: '2px solid',
+					outlineColor: 'primary',
+					outlineOffset: '2px',
+				}}
+			>
+				Skip to content
+			</styled.a>
 			<Flex
 				maxWidth="breakpoint-xl"
 				marginInline="auto"

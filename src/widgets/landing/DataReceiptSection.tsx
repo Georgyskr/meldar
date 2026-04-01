@@ -11,16 +11,21 @@ const sampleStats = [
 
 export function DataReceiptSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="surface">
+		<styled.section
+			paddingBlock={32}
+			paddingInline={8}
+			bg="inverseSurface"
+			color="inverseOnSurface"
+		>
 			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12}>
 				<VStack textAlign="center" gap={4} maxWidth="600px" marginInline="auto">
-					<styled.span textStyle="label.upper" color="primary">
+					<styled.span textStyle="label.upper" color="inversePrimary">
 						Your Data Analysis
 					</styled.span>
-					<styled.h2 textStyle="heading.section" color="onSurface">
+					<styled.h2 textStyle="heading.display" color="inverseOnSurface">
 						This is what your data looks like when it works for you
 					</styled.h2>
-					<styled.p textStyle="body.lead" color="onSurfaceVariant">
+					<styled.p textStyle="body.lead" color="inverseOnSurface/70">
 						A real report from real data. Google had these numbers. They used them to sell you ads.
 						You can use them to get your life back.
 					</styled.p>
@@ -97,7 +102,7 @@ export function DataReceiptSection() {
 
 				<styled.p
 					textStyle="body.sm"
-					color="onSurfaceVariant"
+					color="inverseOnSurface/50"
 					textAlign="center"
 					fontStyle="italic"
 				>

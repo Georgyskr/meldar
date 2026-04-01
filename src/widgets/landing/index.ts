@@ -1,3 +1,4 @@
+export { ComparisonSection } from './ComparisonSection'
 export { DataReceiptSection } from './DataReceiptSection'
 export { EarlyAdopterSection } from './EarlyAdopterSection'
 export { FaqSection } from './FaqSection'
