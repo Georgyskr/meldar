@@ -337,7 +337,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 		return sources[id]?.uploadCount ?? 0
 	}
 
-	const SCREENTIME_MAX_FILES = 4
+	const SCREENTIME_MAX_FILES = 3
 
 	const instantDoneCount = INSTANT_SOURCES.filter(
 		(s) => getStatus(s.id) === 'done' || getUploadCount(s.id) > 0,
@@ -448,15 +448,37 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 			}
 
 			const responseData = await res.json()
-			setSources((prev) => ({
-				...prev,
-				[platformId]: {
-					status: 'done',
-					uploadCount: (prev[platformId]?.uploadCount ?? 0) + 1,
-					errorMessage: undefined,
-					preview: responseData.preview ?? prev[platformId]?.preview,
-				},
-			}))
+			setSources((prev) => {
+				const existing = prev[platformId]?.preview
+				const incoming = responseData.preview
+				// Merge previews: keep the richest data from multiple uploads
+				const merged =
+					existing && incoming
+						? {
+								...existing,
+								...incoming,
+								// Keep the app list with more entries
+								apps:
+									Array.isArray(incoming.apps) &&
+									incoming.apps.length > (Array.isArray(existing.apps) ? existing.apps.length : 0)
+										? incoming.apps
+										: existing.apps,
+								// Keep pickups/notifications if either has them
+								pickups: incoming.pickups ?? existing.pickups,
+								totalScreenTimeMinutes:
+									incoming.totalScreenTimeMinutes ?? existing.totalScreenTimeMinutes,
+							}
+						: (incoming ?? existing)
+				return {
+					...prev,
+					[platformId]: {
+						status: 'done',
+						uploadCount: (prev[platformId]?.uploadCount ?? 0) + 1,
+						errorMessage: undefined,
+						preview: merged,
+					},
+				}
+			})
 		} catch {
 			setSources((prev) => ({
 				...prev,

@@ -18,7 +18,6 @@ const INVALID_CREDENTIALS = {
 
 export async function POST(request: NextRequest) {
 	try {
-		// Rate limit
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 		const { success } = await checkRateLimit(loginLimit, ip)
 		if (!success) {
@@ -46,7 +45,6 @@ export async function POST(request: NextRequest) {
 		const { email, password } = parsed.data
 		const db = getDb()
 
-		// Only select what we need
 		const [user] = await db
 			.select({
 				id: users.id,

@@ -9,10 +9,10 @@ import { trackEvent } from '@/features/analytics'
 type UploadState = 'idle' | 'compressing' | 'uploading' | 'analyzing' | 'done' | 'error'
 
 const STEPS = [
-	{ label: 'Compressing image', icon: '~' },
-	{ label: 'Uploading screenshot', icon: '~' },
-	{ label: 'Detecting apps', icon: '~' },
-	{ label: 'Generating your X-Ray', icon: '~' },
+	'Compressing image',
+	'Uploading screenshot',
+	'Detecting apps',
+	'Generating your X-Ray',
 ]
 
 export function UploadZone({
@@ -218,7 +218,7 @@ export function UploadZone({
 							const isDone = i < step
 							const isCurrent = i === step
 							return (
-								<Flex key={s.label} gap={3} alignItems="center">
+								<Flex key={s} gap={3} alignItems="center">
 									<Box
 										width="20px"
 										height="20px"
@@ -245,7 +245,7 @@ export function UploadZone({
 												: undefined
 										}
 									>
-										{s.label}
+										{s}
 									</styled.span>
 								</Flex>
 							)

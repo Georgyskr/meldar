@@ -8,7 +8,7 @@
 import type { Worker } from 'tesseract.js'
 
 let worker: Worker | null = null
-let loadingPromise: Promise<Worker> | null = null
+let loadingPromise: Promise<Worker | null> | null = null
 let loadFailed = false
 
 /** Start downloading Tesseract WASM in the background. Safe to call multiple times. */
@@ -18,7 +18,7 @@ export function preloadOcr(): void {
 		console.warn('[ocr] Preload failed, will use Vision fallback:', err)
 		loadFailed = true
 		loadingPromise = null
-		return null as unknown as Worker
+		return null
 	})
 }
 
@@ -53,10 +53,7 @@ export async function terminateOcr(): Promise<void> {
 	loadingPromise = null
 }
 
-/**
- * Wait for OCR to be ready. Returns true if worker loaded, false if it failed.
- * Use this instead of isOcrReady() to avoid the preload race condition.
- */
+/** Await this to ensure OCR is loaded before calling extractText. Returns false if load failed. */
 export async function waitForOcr(): Promise<boolean> {
 	if (worker) return true
 	if (loadFailed) return false

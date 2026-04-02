@@ -1,11 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk'
 import {
 	type ScreenTimeExtraction,
 	screenTimeExtractionSchema,
 } from '@/entities/xray-result/model/types'
+import { getAnthropicClient } from '@/server/lib/anthropic'
 import { FOCUS_MODE_PROMPT_ADDENDUM, SCREEN_TIME_SYSTEM_PROMPT } from './prompts'
-
-const client = new Anthropic()
 
 type ExtractionResult = { data: ScreenTimeExtraction } | { error: string }
 
@@ -22,7 +20,7 @@ export async function extractScreenTime(
 		? `${SCREEN_TIME_SYSTEM_PROMPT}\n\n${FOCUS_MODE_PROMPT_ADDENDUM}`
 		: SCREEN_TIME_SYSTEM_PROMPT
 
-	const response = await client.messages.create({
+	const response = await getAnthropicClient().messages.create({
 		model: 'claude-haiku-4-5-20251001',
 		max_tokens: 1024,
 		system: systemPrompt,

@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
 				}
 			}
 
-			// C2: MIME validation for non-screentime uploads
+			// MIME validation for non-screentime uploads
 			const ALLOWED_ZIP_TYPES = new Set([
 				'application/zip',
 				'application/x-zip-compressed',
@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// B9: Skip re-extraction if this source was already uploaded (idempotent).
+		// Skip re-extraction if this source was already uploaded (idempotent).
 		// Adaptive is intentionally multi-upload, so exclude it from this guard.
 		if (
 			platformParsed.data !== 'adaptive' &&
@@ -426,7 +426,7 @@ export async function POST(request: NextRequest) {
 					)
 				}
 
-				// B1: Atomic JSONB append to avoid race condition on concurrent uploads
+				// Atomic JSONB append to avoid race condition on concurrent uploads
 				const newEntry = JSON.stringify([
 					{ appName: adaptiveAppName, sourceType, extraction: result.data },
 				])
@@ -443,7 +443,7 @@ export async function POST(request: NextRequest) {
 			}
 		}
 
-		// C4: Guard against empty updateData
+		// Guard against empty updateData
 		if (Object.keys(updateData).length === 0) {
 			return NextResponse.json(
 				{ error: { code: 'INTERNAL_ERROR', message: 'Unknown platform handler.' } },
@@ -472,7 +472,7 @@ export async function POST(request: NextRequest) {
 		const message = err instanceof Error ? err.message : 'Unknown error'
 		console.error('Upload processing failed:', message)
 
-		// H3: Return specific error for parse failures
+		// Return specific error for parse failures
 		if (
 			message.includes('invalid JSON') ||
 			message.includes('not an array') ||

@@ -507,7 +507,7 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 						)
 					})}
 				</VStack>
-				{data.pickups && (
+				{typeof data.pickups === 'number' && data.pickups > 0 && (
 					<styled.span
 						fontSize="xs"
 						color="onSurfaceVariant/50"

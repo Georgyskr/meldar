@@ -2,9 +2,9 @@
 
 import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
 import { Check, RefreshCw, Share2 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { PurchaseButton } from '@/features/billing'
-import type { DiscoveryAnalysis } from '@/server/discovery/parsers/types'
+import type { DiscoveryAnalysis } from '@/shared/types/discovery'
 import { LockedRecommendationCard } from './LockedRecommendationCard'
 
 type LearningModule = DiscoveryAnalysis['learningModules'][number]
@@ -59,7 +59,7 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 		})),
 	]
 
-	const handleShare = useCallback(async () => {
+	async function handleShare() {
 		const url = `${window.location.origin}/start/${sessionId}`
 		try {
 			if (navigator.share) {
@@ -74,7 +74,7 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 		} catch {
 			// User cancelled share or clipboard unavailable
 		}
-	}, [analysis.recommendedApp.name, sessionId])
+	}
 
 	function handleModuleClick(id: string) {
 		if (notifiedModules.has(id)) return

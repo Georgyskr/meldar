@@ -39,10 +39,7 @@ async function makeChatGptZip(conversationCount: number): Promise<File> {
 	return new File([buf], 'chatgpt-export.zip', { type: 'application/zip' })
 }
 
-async function makeGoogleTakeoutZip(
-	searchCount: number,
-	youtubeCount: number,
-): Promise<File> {
+async function makeGoogleTakeoutZip(searchCount: number, youtubeCount: number): Promise<File> {
 	const searches = Array.from({ length: searchCount }, (_, i) => ({
 		title: `Searched for topic number ${i}`,
 		time: '2024-01-15T10:00:00.000Z',
@@ -53,14 +50,8 @@ async function makeGoogleTakeoutZip(
 	}))
 
 	const zip = new JSZip()
-	zip.file(
-		'Takeout/My Activity/Search/MyActivity.json',
-		JSON.stringify(searches),
-	)
-	zip.file(
-		'Takeout/My Activity/YouTube/MyActivity.json',
-		JSON.stringify(youtubeWatches),
-	)
+	zip.file('Takeout/My Activity/Search/MyActivity.json', JSON.stringify(searches))
+	zip.file('Takeout/My Activity/YouTube/MyActivity.json', JSON.stringify(youtubeWatches))
 	const buf = await zip.generateAsync({ type: 'arraybuffer' })
 	return new File([buf], 'takeout.zip', { type: 'application/zip' })
 }

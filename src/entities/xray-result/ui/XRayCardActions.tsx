@@ -3,16 +3,22 @@
 import { Flex, styled } from '@styled-system/jsx'
 import { Copy, Download, Share2 } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { trackEvent } from '@/features/analytics'
 
 type XRayCardActionsProps = {
 	xrayId: string
 	totalHours?: number
 	topApp?: string
 	cardRef?: React.RefObject<HTMLDivElement | null>
+	onTrack?: (event: { name: 'xray_shared'; method: string }) => void
 }
 
-export function XRayCardActions({ xrayId, totalHours, topApp, cardRef }: XRayCardActionsProps) {
+export function XRayCardActions({
+	xrayId,
+	totalHours,
+	topApp,
+	cardRef,
+	onTrack,
+}: XRayCardActionsProps) {
 	const [copied, setCopied] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const shareUrl = `https://meldar.ai/xray/${xrayId}`
@@ -23,7 +29,7 @@ export function XRayCardActions({ xrayId, totalHours, topApp, cardRef }: XRayCar
 			: 'Check out my screen time breakdown'
 
 	async function handleShare() {
-		trackEvent({ name: 'xray_shared', method: 'native_share' })
+		onTrack?.({ name: 'xray_shared', method: 'native_share' })
 		if (navigator.share) {
 			await navigator.share({
 				title: 'My Time X-Ray',
@@ -36,7 +42,7 @@ export function XRayCardActions({ xrayId, totalHours, topApp, cardRef }: XRayCar
 	}
 
 	async function handleCopy() {
-		trackEvent({ name: 'xray_shared', method: 'copy_link' })
+		onTrack?.({ name: 'xray_shared', method: 'copy_link' })
 		await navigator.clipboard.writeText(shareUrl)
 		setCopied(true)
 		setTimeout(() => setCopied(false), 2000)
@@ -45,7 +51,7 @@ export function XRayCardActions({ xrayId, totalHours, topApp, cardRef }: XRayCar
 	const handleSaveImage = useCallback(async () => {
 		if (!cardRef?.current || saving) return
 		setSaving(true)
-		trackEvent({ name: 'xray_shared', method: 'save_image' })
+		onTrack?.({ name: 'xray_shared', method: 'save_image' })
 		try {
 			const { toPng } = await import('html-to-image')
 			const dataUrl = await toPng(cardRef.current, { pixelRatio: 2 })

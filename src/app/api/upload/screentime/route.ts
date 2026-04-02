@@ -13,7 +13,6 @@ const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 
 export async function POST(request: NextRequest) {
 	try {
-		// Rate limit check
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 		const { success } = await checkRateLimit(screentimeLimit, ip)
 		if (!success) {
@@ -28,7 +27,6 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Check focus mode cookie
 		const focusMode = request.cookies.get('meldar-focus')?.value === '1'
 
 		const formData = await request.formData()
@@ -55,12 +53,10 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Convert to base64 for Claude Vision
 		const buffer = Buffer.from(await file.arrayBuffer())
 		const base64 = buffer.toString('base64')
 		const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
 
-		// Extract screen time data via Claude Vision
 		const result = await extractScreenTime(base64, mediaType, { focusMode })
 
 		if ('error' in result) {
@@ -83,12 +79,11 @@ export async function POST(request: NextRequest) {
 
 		const extraction = result.data
 
-		// Generate rule-based insights and upsells (zero AI cost)
+		// Rule-based: zero AI cost
 		const insights = generateInsights(extraction, { focusMode })
 		const upsells = generateUpsells(extraction)
 		const painPoints = mapToPainPoints(extraction)
 
-		// Save to DB for shareable URL
 		const id = nanoid(12)
 		const totalHours = Math.round((extraction.totalScreenTimeMinutes / 60) * 10) / 10
 		const topApp = extraction.apps[0]?.name || 'Unknown'

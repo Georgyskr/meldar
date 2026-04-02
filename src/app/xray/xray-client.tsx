@@ -2,11 +2,12 @@
 
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { ArrowRight, Shield } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { XRayResponse } from '@/entities/xray-result/model/types'
 import { XRayCard } from '@/entities/xray-result/ui/XRayCard'
 import { XRayCardActions } from '@/entities/xray-result/ui/XRayCardActions'
 import { RevealStagger, XRayCardReveal } from '@/entities/xray-result/ui/XRayCardReveal'
+import { trackEvent } from '@/features/analytics'
 import { UpsellBlock } from '@/features/billing'
 import { FocusAmbient } from '@/features/focus-mode'
 import {
@@ -25,12 +26,22 @@ export function XRayPageClient() {
 	const [result, setResult] = useState<ResultData | null>(null)
 	const [showDeletionBanner, setShowDeletionBanner] = useState(false)
 	const cardRef = useRef<HTMLDivElement>(null)
+	const bannerTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+
+	useEffect(() => {
+		return () => {
+			for (const t of bannerTimers.current) clearTimeout(t)
+		}
+	}, [])
 
 	function handleResult(data: ResultData) {
 		setResult(data)
 		setPhase('result')
-		setTimeout(() => setShowDeletionBanner(true), 800)
-		setTimeout(() => setShowDeletionBanner(false), 5800)
+		for (const t of bannerTimers.current) clearTimeout(t)
+		bannerTimers.current = [
+			setTimeout(() => setShowDeletionBanner(true), 800),
+			setTimeout(() => setShowDeletionBanner(false), 5800),
+		]
 	}
 
 	function reset() {
@@ -176,6 +187,7 @@ export function XRayPageClient() {
 								totalHours={Math.round((result.extraction.totalScreenTimeMinutes / 60) * 10) / 10}
 								topApp={result.extraction.apps[0]?.name}
 								cardRef={cardRef}
+								onTrack={trackEvent}
 							/>
 						</RevealStagger>
 

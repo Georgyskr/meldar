@@ -2,29 +2,16 @@
 
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { Mail } from 'lucide-react'
-import { useState } from 'react'
 import { trackEvent } from '@/features/analytics'
+import { useEmailSubscribe } from '@/shared/lib/use-email-subscribe'
 
 export function ResultEmailCapture({ xrayId }: { xrayId: string }) {
-	const [email, setEmail] = useState('')
-	const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+	const { email, setEmail, status, subscribe } = useEmailSubscribe()
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		if (!email) return
-		setStatus('loading')
-		try {
-			const res = await fetch('/api/subscribe', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, xrayId }),
-			})
-			if (!res.ok) throw new Error()
-			trackEvent({ name: 'email_captured', source: 'xray_result' })
-			setStatus('success')
-		} catch {
-			setStatus('error')
-		}
+		const ok = await subscribe({ xrayId })
+		if (ok) trackEvent({ name: 'email_captured', source: 'xray_result' })
 	}
 
 	if (status === 'success') {

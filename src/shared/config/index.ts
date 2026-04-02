@@ -1,1 +1,1 @@
-export { BUSINESS_INFO, buildBreadcrumbSchema, SITE_CONFIG } from './seo'
+export { BUSINESS_INFO, SITE_CONFIG } from './seo'

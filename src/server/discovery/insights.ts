@@ -18,7 +18,6 @@ function topAppFixSteps(app: AppUsage, platform: Platform): string[] {
 		return entertainmentAppFixSteps(name, platform)
 	}
 
-	// Generic top-app fix
 	if (platform === 'ios') {
 		return [
 			`Settings → Screen Time → App Limits → Add ${name} → set a daily limit`,
@@ -226,13 +225,11 @@ export function generateInsights(
 	const platform = extraction.platform
 	const { focusMode } = options
 
-	// Top app insight (always)
 	const topApp = extraction.apps[0]
 	if (topApp) {
 		const hours = (topApp.usageMinutes / 60).toFixed(1)
 		const weeklyHours = Math.round((topApp.usageMinutes / 60) * 7)
 
-		// In focus mode, reframe gaming apps that serve as focus tools
 		const isRegulationTool = focusMode && topApp.category === 'gaming' && isFocusGame(topApp.name)
 
 		insights.push({
@@ -256,7 +253,6 @@ export function generateInsights(
 		})
 	}
 
-	// Total screen time (if >4h)
 	if (totalHours > 4) {
 		insights.push({
 			headline: `${totalHours.toFixed(1)} hours of screen time`,
@@ -267,7 +263,6 @@ export function generateInsights(
 		})
 	}
 
-	// Social media dominance (if >2h social)
 	const socialMinutes = extraction.apps
 		.filter((a) => a.category === 'social')
 		.reduce((sum, a) => sum + a.usageMinutes, 0)
@@ -282,7 +277,6 @@ export function generateInsights(
 		})
 	}
 
-	// Pickup frequency (if >60)
 	if (extraction.pickups && extraction.pickups > 60) {
 		const wakeHours = 16
 		const interval = Math.round((wakeHours * 60) / extraction.pickups)

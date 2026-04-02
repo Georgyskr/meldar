@@ -15,7 +15,6 @@ const forgotSchema = z.object({
 
 export async function POST(request: NextRequest) {
 	try {
-		// Rate limit
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 		const { success } = await checkRateLimit(resetLimit, ip)
 		if (!success) {

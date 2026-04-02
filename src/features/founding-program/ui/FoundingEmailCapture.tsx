@@ -2,27 +2,14 @@
 
 import { Flex, styled, VStack } from '@styled-system/jsx'
 import { Check } from 'lucide-react'
-import { useState } from 'react'
+import { useEmailSubscribe } from '@/shared/lib/use-email-subscribe'
 
 export function FoundingEmailCapture() {
-	const [email, setEmail] = useState('')
-	const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+	const { email, setEmail, status, subscribe } = useEmailSubscribe()
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		if (!email) return
-		setStatus('loading')
-		try {
-			const res = await fetch('/api/subscribe', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, founding: true }),
-			})
-			if (!res.ok) throw new Error()
-			setStatus('success')
-		} catch {
-			setStatus('error')
-		}
+		await subscribe({ founding: true })
 	}
 
 	if (status === 'success') {

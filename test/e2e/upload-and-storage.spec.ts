@@ -1,5 +1,6 @@
 import path from 'node:path'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
+import { acceptOptIn, fillQuiz, mockDiscoveryApis } from './helpers'
 
 /**
  * E2E: Upload flow, OCR, opt-in, storage persistence.
@@ -9,70 +10,28 @@ import { expect, test, type Page } from '@playwright/test'
 
 const FIXTURES = path.resolve(__dirname, '../fixtures/screentime')
 
-function mockApis(page: Page) {
-	return Promise.all([
-		page.route('**/api/discovery/session', (r) =>
-			r.fulfill({ status: 200, body: JSON.stringify({ sessionId: 'e2e-upload' }) }),
-		),
-		page.route('**/api/discovery/upload', (r) =>
-			r.fulfill({
-				status: 200,
-				body: JSON.stringify({
-					success: true,
-					platform: 'screentime',
-					preview: {
-						apps: [
-							{ name: 'Cup Heroes', usageMinutes: 382, category: 'gaming' },
-							{ name: 'Safari', usageMinutes: 36, category: 'browser' },
-						],
-						totalScreenTimeMinutes: 590,
-						pickups: 33,
-					},
-				}),
-			}),
-		),
-		page.route('**/api/discovery/adaptive', (r) =>
-			r.fulfill({ status: 200, body: JSON.stringify({ followUps: [] }) }),
-		),
-		page.route('**/api/discovery/analyze', (r) =>
-			r.fulfill({
-				status: 200,
-				body: JSON.stringify({
-					success: true,
-					sessionId: 'e2e-upload',
-					analysis: {
-						recommendedApp: { name: 'A1', description: 'd', whyThisUser: 'w', complexity: 'beginner', estimatedBuildTime: '1h' },
-						additionalApps: [{ name: 'A2', description: 'd', whyThisUser: 'w' }],
-						learningModules: [{ id: 'm', title: 'M', description: 'd', locked: false }],
-						keyInsights: [{ headline: 'h', detail: 'd', source: 's' }],
-						dataProfile: { totalSourcesAnalyzed: 1, topProblemAreas: ['x'], aiUsageLevel: 'l' },
-					},
-				}),
-			}),
-		),
-	])
+const UPLOAD_OVERRIDES = {
+	session: { sessionId: 'e2e-upload' },
+	upload: {
+		success: true,
+		platform: 'screentime',
+		preview: {
+			apps: [
+				{ name: 'Cup Heroes', usageMinutes: 382, category: 'gaming' },
+				{ name: 'Safari', usageMinutes: 36, category: 'browser' },
+			],
+			totalScreenTimeMinutes: 590,
+			pickups: 33,
+		},
+	},
 }
 
-/** Fill the 5-step quiz and land on upload phase — real clicks, no shortcuts */
-async function fillQuizToUpload(page: Page) {
-	await page.locator('text=What do you do?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Working")').click()
-	await page.locator('text=How old are you?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("26-30")').click()
-	await page.locator('text=What bugs you most?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Email")').click()
-	await page.locator('button:has-text("dinner")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=How AI-savvy').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("A few times")').click()
-	await page.locator('text=Which AI tools').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("ChatGPT")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=Add your data').waitFor({ timeout: 8000 })
-}
-
+/**
+ * Uses double-navigate pattern so reloads preserve localStorage state.
+ * This differs from the shared startFresh (addInitScript once-guard).
+ */
 async function startFresh(page: Page) {
-	await mockApis(page)
+	await mockDiscoveryApis(page, UPLOAD_OVERRIDES)
 	await page.emulateMedia({ reducedMotion: 'reduce' })
 	// Set cookie consent on every navigation (needed for banner dismiss)
 	await page.addInitScript(() => {
@@ -100,7 +59,7 @@ async function startFresh(page: Page) {
 test.describe('Opt-in', () => {
 	test('checkbox visible with Privacy + ToS links before upload', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		await expect(page.locator('#data-opt-in')).toBeVisible()
 		await expect(page.locator('a[href="/privacy-policy"]').first()).toBeVisible()
 		await expect(page.locator('a[href="/terms"]').first()).toBeVisible()
@@ -108,7 +67,7 @@ test.describe('Opt-in', () => {
 
 	test('upload blocked before opt-in', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		const card = page.getByTestId('upload-card-screentime')
 		const fileInput = card.locator('input[type="file"]').first()
 		await fileInput.setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
@@ -118,7 +77,7 @@ test.describe('Opt-in', () => {
 
 	test('checking opt-in hides the checkbox', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
 		await page.locator('text=I agree that my uploaded data').click()
 		await expect(page.locator('#data-opt-in')).not.toBeVisible()
@@ -132,43 +91,49 @@ test.describe('Opt-in', () => {
 test.describe('Upload', () => {
 	test('screenshot shows done + preview after upload', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
 		await page.locator('text=I agree that my uploaded data').click()
 		await expect(page.locator('#data-opt-in')).not.toBeVisible()
 
 		const card = page.getByTestId('upload-card-screentime')
-		await card.locator('input[type="file"]').setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
-		// Screen Time has maxFiles=4, so first upload shows "1 of 4" partial state, not "Analyzed"
-		await expect(card.locator('text=1 of 4 sections')).toBeVisible({ timeout: 8000 })
+		await card
+			.locator('input[type="file"]')
+			.setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
+		// Screen Time has maxFiles=3, so first upload shows "1 of 3" partial state, not "Analyzed"
+		await expect(card.locator('text=1 of 3 sections')).toBeVisible({ timeout: 8000 })
 		await expect(card.locator('text=What we found')).toBeVisible()
 		await expect(card.locator('text=Cup Heroes')).toBeVisible()
 	})
 
 	test('Screen Time shows "Add more" for multi-upload', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
 		await page.locator('text=I agree that my uploaded data').click()
 		await expect(page.locator('#data-opt-in')).not.toBeVisible()
 
 		const card = page.getByTestId('upload-card-screentime')
-		await card.locator('input[type="file"]').setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
-		await expect(card.locator('text=1 of 4 sections')).toBeVisible({ timeout: 8000 })
+		await card
+			.locator('input[type="file"]')
+			.setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
+		await expect(card.locator('text=1 of 3 sections')).toBeVisible({ timeout: 8000 })
 		await expect(card.locator('text=Add more')).toBeVisible()
 	})
 
 	test('"Generate results" enables after upload', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		await expect(page.getByTestId('generate-results-button')).toBeDisabled()
 
 		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
 		await page.locator('text=I agree that my uploaded data').click()
 		await expect(page.locator('#data-opt-in')).not.toBeVisible()
 		const card = page.getByTestId('upload-card-screentime')
-		await card.locator('input[type="file"]').setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
-		await expect(card.locator('text=1 of 4 sections')).toBeVisible({ timeout: 8000 })
+		await card
+			.locator('input[type="file"]')
+			.setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
+		await expect(card.locator('text=1 of 3 sections')).toBeVisible({ timeout: 8000 })
 		await expect(page.getByTestId('generate-results-button')).toBeEnabled()
 	})
 })
@@ -180,6 +145,9 @@ test.describe('OCR', () => {
 		let hasOcrText = false
 		let hasFile = false
 
+		await mockDiscoveryApis(page, { session: { sessionId: 'ocr' } })
+		await page.emulateMedia({ reducedMotion: 'reduce' })
+		// Override upload with body-inspecting mock (last-registered-wins)
 		await page.route('**/api/discovery/upload', async (route) => {
 			const body = route.request().postData() ?? ''
 			hasOcrText = body.includes('ocrText')
@@ -189,22 +157,21 @@ test.describe('OCR', () => {
 				body: JSON.stringify({ success: true, platform: 'screentime', preview: { apps: [] } }),
 			})
 		})
-		await page.route('**/api/discovery/session', (r) =>
-			r.fulfill({ status: 200, body: JSON.stringify({ sessionId: 'ocr' }) }),
-		)
 		await page.addInitScript(() => {
 			localStorage.clear()
-			localStorage.setItem('cookie-consent', JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }))
+			localStorage.setItem(
+				'cookie-consent',
+				JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }),
+			)
 		})
 		await page.goto('/start', { waitUntil: 'domcontentloaded' })
-		await fillQuizToUpload(page)
-		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await fillQuiz(page)
+		await acceptOptIn(page)
 
-		await page.getByTestId('upload-card-screentime').locator('input[type="file"]').setInputFiles(
-			path.join(FIXTURES, '02-app-list-pickups.jpeg'),
-		)
+		await page
+			.getByTestId('upload-card-screentime')
+			.locator('input[type="file"]')
+			.setInputFiles(path.join(FIXTURES, '02-app-list-pickups.jpeg'))
 		// Wait for the upload round-trip
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 8000 })
 
@@ -218,9 +185,11 @@ test.describe('OCR', () => {
 test.describe('Storage', () => {
 	test('profile data in localStorage after quiz', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 
-		const profile = await page.evaluate(() => JSON.parse(localStorage.getItem('meldar-profile') ?? 'null'))
+		const profile = await page.evaluate(() =>
+			JSON.parse(localStorage.getItem('meldar-profile') ?? 'null'),
+		)
 		expect(profile).not.toBeNull()
 		expect(profile.occupation).toBe('working')
 		expect(profile.ageBracket).toBe('26-30')
@@ -229,43 +198,51 @@ test.describe('Storage', () => {
 
 	test('sessionId null after quiz (lazy creation)', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 
-		const sid = await page.evaluate(() => JSON.parse(localStorage.getItem('meldar-session-id') ?? 'null'))
+		const sid = await page.evaluate(() =>
+			JSON.parse(localStorage.getItem('meldar-session-id') ?? 'null'),
+		)
 		expect(sid).toBeNull()
 	})
 
 	test('sessionId set after first upload', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
 		await page.locator('text=I agree that my uploaded data').click()
 		await expect(page.locator('#data-opt-in')).not.toBeVisible()
 
-		await page.getByTestId('upload-card-screentime').locator('input[type="file"]').setInputFiles(
-			path.join(FIXTURES, '01-usage-chart.jpeg'),
-		)
-		await page.locator('text=1 of 4 sections').first().waitFor({ timeout: 8000 })
+		await page
+			.getByTestId('upload-card-screentime')
+			.locator('input[type="file"]')
+			.setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
+		await page.locator('text=1 of 3 sections').first().waitFor({ timeout: 8000 })
 
-		const sid = await page.evaluate(() => JSON.parse(localStorage.getItem('meldar-session-id') ?? 'null'))
+		const sid = await page.evaluate(() =>
+			JSON.parse(localStorage.getItem('meldar-session-id') ?? 'null'),
+		)
 		expect(sid).toBe('e2e-upload')
 	})
 
 	test('upload status survives reload', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
 		await page.locator('text=I agree that my uploaded data').click()
 		await expect(page.locator('#data-opt-in')).not.toBeVisible()
 
-		await page.getByTestId('upload-card-screentime').locator('input[type="file"]').setInputFiles(
-			path.join(FIXTURES, '01-usage-chart.jpeg'),
-		)
-		await page.locator('text=1 of 4 sections').first().waitFor({ timeout: 8000 })
+		await page
+			.getByTestId('upload-card-screentime')
+			.locator('input[type="file"]')
+			.setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
+		await page.locator('text=1 of 3 sections').first().waitFor({ timeout: 8000 })
 
 		await page.reload()
 		await page.locator('text=Add your data').waitFor({ timeout: 8000 })
-		await expect(page.getByTestId('upload-card-screentime').locator('text=1 of 4 sections')).toBeVisible()
+		await expect(
+			page.getByTestId('upload-card-screentime').locator('text=1 of 3 sections'),
+		).toBeVisible()
 	})
 })
 
@@ -274,22 +251,25 @@ test.describe('Storage', () => {
 test.describe('Card UI', () => {
 	test('"How to export" toggles instructions', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		await page.locator('button:has-text("How to export")').first().click()
 		await expect(page.locator('text=Settings').first()).toBeVisible()
 	})
 
 	test('delayed source shows "I started the export" → waiting state', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
+		await fillQuiz(page)
 		await page.locator('text=I started the export').first().click()
 		await expect(page.locator('text=Waiting')).toBeVisible()
 	})
 
 	test('ChatGPT card has hyperlink to export page', async ({ page }) => {
 		await startFresh(page)
-		await fillQuizToUpload(page)
-		await page.getByTestId('upload-card-chatgpt').locator('button:has-text("How to export")').click()
+		await fillQuiz(page)
+		await page
+			.getByTestId('upload-card-chatgpt')
+			.locator('button:has-text("How to export")')
+			.click()
 		await expect(page.locator('a[href*="chatgpt.com"]')).toBeVisible()
 	})
 })

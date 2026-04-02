@@ -16,7 +16,6 @@ const TIER_TO_PRODUCT = {
 export function UpsellBlock({ upsells, xrayId }: { upsells: UpsellHook[]; xrayId: string }) {
 	if (upsells.length === 0) return null
 
-	// Pick the highest urgency upsell
 	const sorted = [...upsells].sort((a, b) => {
 		const order = { high: 0, medium: 1, low: 2 }
 		return order[a.urgency] - order[b.urgency]

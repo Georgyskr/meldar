@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const COOKIE_NAME = 'meldar-focus'
 const FOCUS_CHANGED_EVENT = 'focus-mode-changed'
@@ -46,9 +46,9 @@ export function useFocusMode(): { focusMode: boolean; toggle: () => void } {
 		return () => window.removeEventListener(FOCUS_CHANGED_EVENT, handleChange)
 	}, [])
 
-	const toggle = useCallback(() => {
+	function toggle() {
 		setFocusMode(!getFocusMode())
-	}, [])
+	}
 
 	return { focusMode, toggle }
 }

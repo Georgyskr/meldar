@@ -1,5 +1,6 @@
 import path from 'node:path'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
+import { acceptOptIn, fillQuiz, startFresh } from './helpers'
 
 /**
  * E2E: OCR output quality — verify Tesseract extracts correct text
@@ -18,10 +19,8 @@ async function setupAndNavigateToUpload(page: Page): Promise<{
 }> {
 	const capturedBodies: string[] = []
 
-	await page.route('**/api/discovery/session', (r) =>
-		r.fulfill({ status: 200, body: JSON.stringify({ sessionId: 'ocr-quality' }) }),
-	)
-
+	await startFresh(page, { session: { sessionId: 'ocr-quality' } })
+	// Override upload with body-capturing mock (last-registered-wins)
 	await page.route('**/api/discovery/upload', async (route) => {
 		const body = route.request().postData() ?? ''
 		capturedBodies.push(body)
@@ -38,38 +37,8 @@ async function setupAndNavigateToUpload(page: Page): Promise<{
 		})
 	})
 
-	await page.emulateMedia({ reducedMotion: 'reduce' })
-	await page.addInitScript(() => {
-		if (!sessionStorage.getItem('_e2e_init')) {
-			sessionStorage.setItem('_e2e_init', '1')
-			localStorage.clear()
-			localStorage.setItem(
-				'cookie-consent',
-				JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }),
-			)
-		}
-	})
-	await page.goto('/start', { waitUntil: 'domcontentloaded' })
-
-	// Fill quiz
-	await page.locator('text=What do you do?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Working")').click()
-	await page.locator('text=How old are you?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("26-30")').click()
-	await page.locator('text=What bugs you most?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Email")').click()
-	await page.locator('button:has-text("dinner")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=How AI-savvy').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("A few times")').click()
-	await page.locator('text=Which AI tools').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("ChatGPT")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=Add your data').waitFor({ timeout: 8000 })
-
-	// Opt in
-	await page.locator('text=I agree that my uploaded data').click()
-	await expect(page.locator('#data-opt-in')).not.toBeVisible()
+	await fillQuiz(page)
+	await acceptOptIn(page)
 
 	return { getCapturedBodies: () => capturedBodies }
 }
@@ -88,9 +57,10 @@ test.describe('OCR Quality: most-used.jpeg', () => {
 		const { getCapturedBodies } = await setupAndNavigateToUpload(page)
 
 		const card = page.getByTestId('upload-card-screentime')
-		await card.locator('input[type="file"]').first().setInputFiles(
-			path.join(ASSETS, 'most-used.jpeg'),
-		)
+		await card
+			.locator('input[type="file"]')
+			.first()
+			.setInputFiles(path.join(ASSETS, 'most-used.jpeg'))
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
 
 		const bodies = getCapturedBodies()
@@ -116,9 +86,10 @@ test.describe('OCR Quality: pickups.jpeg', () => {
 		const { getCapturedBodies } = await setupAndNavigateToUpload(page)
 
 		const card = page.getByTestId('upload-card-screentime')
-		await card.locator('input[type="file"]').first().setInputFiles(
-			path.join(ASSETS, 'pickups.jpeg'),
-		)
+		await card
+			.locator('input[type="file"]')
+			.first()
+			.setInputFiles(path.join(ASSETS, 'pickups.jpeg'))
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
 
 		const bodies = getCapturedBodies()
@@ -131,9 +102,7 @@ test.describe('OCR Quality: pickups.jpeg', () => {
 			console.log('OCR text (pickups):', ocrText.slice(0, 200))
 			const lowerText = ocrText.toLowerCase()
 			const hasExpected =
-				lowerText.includes('pickup') ||
-				lowerText.includes('53') ||
-				lowerText.includes('telegram')
+				lowerText.includes('pickup') || lowerText.includes('53') || lowerText.includes('telegram')
 			expect(hasExpected).toBe(true)
 		} else {
 			console.log('Tesseract failed for pickups.jpeg, file fallback used')
@@ -147,9 +116,10 @@ test.describe('OCR Quality: notifications.jpeg', () => {
 		const { getCapturedBodies } = await setupAndNavigateToUpload(page)
 
 		const card = page.getByTestId('upload-card-screentime')
-		await card.locator('input[type="file"]').first().setInputFiles(
-			path.join(ASSETS, 'notifications.jpeg'),
-		)
+		await card
+			.locator('input[type="file"]')
+			.first()
+			.setInputFiles(path.join(ASSETS, 'notifications.jpeg'))
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
 
 		const bodies = getCapturedBodies()

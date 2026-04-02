@@ -1,8 +1,6 @@
-import { eq } from 'drizzle-orm'
 import { ImageResponse } from 'next/og'
-import { getDb } from '@/server/db/client'
-import { discoverySessions } from '@/server/db/schema'
-import type { DiscoveryAnalysis } from '@/server/discovery/parsers/types'
+import type { DiscoveryAnalysis } from '@/shared/types/discovery'
+import { getSession } from '../get-session'
 
 export const runtime = 'nodejs'
 
@@ -12,13 +10,7 @@ type RouteProps = {
 
 export async function GET(_request: Request, { params }: RouteProps) {
 	const { id } = await params
-	const db = getDb()
-	const rows = await db
-		.select()
-		.from(discoverySessions)
-		.where(eq(discoverySessions.id, id))
-		.limit(1)
-	const session = rows[0]
+	const session = await getSession(id)
 
 	if (!session) {
 		return new Response('Not found', { status: 404 })

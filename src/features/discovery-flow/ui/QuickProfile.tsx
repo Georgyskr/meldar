@@ -7,7 +7,6 @@
  * Multi-select for pain points + AI tools. "Other" text input.
  * ADHD mode toggle with video placeholder.
  * On md+ screens: slot board left, options right (no scrolling).
- * Locked slots collapse to compact chips on hover/click.
  */
 
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
@@ -196,9 +195,12 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 
 	const canLockMulti = config?.mode === 'multi' && multiSelected.size >= (config.minPicks ?? 1)
 
-	// Auto-complete when all locked
+	const handleDoneRef = useRef(handleDone)
+	handleDoneRef.current = handleDone
+
+	// Auto-complete when all slots are locked
 	useEffect(() => {
-		if (allLocked) handleDone()
+		if (allLocked) handleDoneRef.current()
 	}, [allLocked])
 
 	return (

@@ -4,7 +4,6 @@ export function generateUpsells(extraction: ScreenTimeExtraction): UpsellHook[] 
 	const upsells: UpsellHook[] = []
 	const totalHours = extraction.totalScreenTimeMinutes / 60
 
-	// High screen time → Time Audit
 	if (totalHours > 5) {
 		upsells.push({
 			trigger: 'high_screen_time',
@@ -15,7 +14,6 @@ export function generateUpsells(extraction: ScreenTimeExtraction): UpsellHook[] 
 		})
 	}
 
-	// Dominant social app → App Build
 	const socialApps = extraction.apps.filter((a) => a.category === 'social')
 	const topSocial = socialApps[0]
 	if (topSocial && topSocial.usageMinutes > 120) {
@@ -27,7 +25,6 @@ export function generateUpsells(extraction: ScreenTimeExtraction): UpsellHook[] 
 		})
 	}
 
-	// Email app detected → App Build
 	const emailApp = extraction.apps.find(
 		(a) => a.category === 'communication' && /mail|gmail|outlook/i.test(a.name),
 	)
@@ -40,7 +37,6 @@ export function generateUpsells(extraction: ScreenTimeExtraction): UpsellHook[] 
 		})
 	}
 
-	// Many apps → Starter
 	if (extraction.apps.length >= 5) {
 		upsells.push({
 			trigger: 'many_apps',
@@ -50,7 +46,6 @@ export function generateUpsells(extraction: ScreenTimeExtraction): UpsellHook[] 
 		})
 	}
 
-	// High pickups → Time Audit
 	if (extraction.pickups && extraction.pickups > 80) {
 		upsells.push({
 			trigger: 'high_pickups',

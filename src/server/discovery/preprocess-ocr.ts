@@ -36,17 +36,12 @@ export type ExtractedData = {
 	platform?: 'ios' | 'android' | 'unknown'
 }
 
-export type PreprocessedScreenTime = {
-	cleanedText: string
-	extracted: ExtractedData
-}
-
 type PreprocessResult = {
 	cleanedText: string
 	extracted: ExtractedData
 }
 
-// C1 fix: Static category lookup — covers ~90% of real apps
+// Static category lookup — covers ~90% of real apps
 const CATEGORY_MAP: Record<string, AppCategory> = {
 	// Social
 	instagram: 'social',
@@ -165,28 +160,24 @@ const CATEGORY_MAP: Record<string, AppCategory> = {
 
 function categorizeApp(name: string): AppCategory {
 	const lower = name.toLowerCase()
-	// Exact match first
 	if (CATEGORY_MAP[lower]) return CATEGORY_MAP[lower]
-	// Partial match for multi-word app names
 	for (const [key, category] of Object.entries(CATEGORY_MAP)) {
 		if (lower.includes(key) || key.includes(lower)) return category
 	}
 	return 'utility'
 }
 
-// C2 fix: Detect platform from OCR text keywords
+// Detect platform from OCR text keywords
 function detectPlatform(text: string): 'ios' | 'android' | 'unknown' {
 	if (/screen time|pickups|most used|show categories/i.test(text)) return 'ios'
 	if (/digital wellbeing|focus mode|dashboard/i.test(text)) return 'android'
 	return 'unknown'
 }
 
+// Time extraction: "2h 30m", "2h", "30m" (English) and "2ч 30мин", "2ч", "30мин" (Russian)
 const TIME_PATTERN = /(\d+)\s*h(?:ours?)?\s*(\d+)\s*m(?:in)?/i
 const HOURS_ONLY = /(\d+)\s*h(?:ours?)?(?!\s*\d)/i
-// M4 fix: anchor to avoid matching notification counts
-const MINUTES_ONLY = /\b(\d+)\s*m(?:in)?(?!\w)/i
-
-// M3 fix: Russian time patterns
+const MINUTES_ONLY = /\b(\d+)\s*m(?:in)?(?!\w)/i // \b anchor prevents matching notification counts like "123m"
 const RU_TIME_PATTERN = /(\d+)\s*ч\s*(\d+)\s*мин/i
 const RU_HOURS_ONLY = /(\d+)\s*ч(?!\s*\d)/i
 const RU_MINUTES_ONLY = /\b(\d+)\s*мин/i
@@ -235,10 +226,8 @@ function extractScreenTimeData(text: string): ExtractedData {
 		.map((l) => l.trim())
 		.filter(Boolean)
 
-	// C2: Detect platform
 	extracted.platform = detectPlatform(text)
 
-	// Extract total screen time
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i]
 
@@ -262,7 +251,6 @@ function extractScreenTimeData(text: string): ExtractedData {
 		}
 	}
 
-	// Extract pickups
 	const pickupsIdx = lines.findIndex((l) => /^pickups$/i.test(l))
 	if (pickupsIdx >= 0) {
 		for (let i = pickupsIdx + 1; i < Math.min(pickupsIdx + 4, lines.length); i++) {
@@ -274,7 +262,6 @@ function extractScreenTimeData(text: string): ExtractedData {
 		}
 	}
 
-	// Extract notifications
 	const notifIdx = lines.findIndex((l) => /^notifications$/i.test(l))
 	if (notifIdx >= 0) {
 		for (let i = notifIdx + 1; i < Math.min(notifIdx + 4, lines.length); i++) {
@@ -286,7 +273,7 @@ function extractScreenTimeData(text: string): ExtractedData {
 		}
 	}
 
-	// Extract app entries — M3 fix: include Russian time patterns
+	// Include Russian time patterns
 	const apps: ExtractedApp[] = []
 	const appTimePattern =
 		/^(\d+\s*h\s*\d+\s*m|\d+\s*h|\d+\s*m|\d+\s*ч\s*\d+\s*мин|\d+\s*ч|\d+\s*мин)\s*>?\s*$/i
@@ -308,7 +295,6 @@ function extractScreenTimeData(text: string): ExtractedData {
 			if (name && name.length > 1 && name.length < 50 && !/^\d/.test(name)) {
 				const mins = parseTimeToMinutes(nextLine)
 				if (mins !== null) {
-					// C1: Categorize using static lookup
 					apps.push({ name, minutes: mins, category: categorizeApp(name) })
 					i++
 				}
@@ -318,7 +304,7 @@ function extractScreenTimeData(text: string): ExtractedData {
 
 	if (apps.length > 0) extracted.apps = apps
 
-	// H6: Extract "First Used After Pickup" — preserve this data
+	// Extract "First Used After Pickup" — preserve this data
 	const firstUsedIdx = lines.findIndex((l) => /first used after pickup/i.test(l))
 	if (firstUsedIdx >= 0) {
 		const pickupApps: ExtractedPickupApp[] = []
@@ -336,7 +322,7 @@ function extractScreenTimeData(text: string): ExtractedData {
 	return extracted
 }
 
-// H2 fix: Only include raw OCR when extraction is partial
+// Only include raw OCR when extraction is partial
 function formatStructuredOutput(
 	cleaned: string,
 	extracted: ExtractedData,
@@ -375,7 +361,7 @@ function formatStructuredOutput(
 	}
 
 	if (parts.length > 0) {
-		// H2: Only append raw OCR when extraction was partial
+		// Only append raw OCR when extraction was partial
 		if (includeRaw) {
 			parts.push('')
 			parts.push('--- RAW OCR ---')
@@ -396,7 +382,7 @@ export function preprocessOcrText(raw: string, sourceType: string): PreprocessRe
 
 	if (sourceType === 'screentime') {
 		const extracted = extractScreenTimeData(cleaned)
-		// H2: Include raw only when extraction is partial (< 3 apps or no total time)
+		// Include raw only when extraction is partial (< 3 apps or no total time)
 		const isComplete = !!(
 			extracted.totalScreenTimeMinutes &&
 			extracted.apps &&

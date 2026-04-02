@@ -1,5 +1,6 @@
 import path from 'node:path'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
+import { acceptOptIn, fillQuiz, startFresh, toUploadPhase } from './helpers'
 
 /**
  * E2E: Multi-file upload — user selects 3 images at once.
@@ -8,11 +9,11 @@ import { expect, test, type Page } from '@playwright/test'
 
 const ASSETS = path.resolve(__dirname, 'assets/screentime')
 
-async function toUploadPhase(page: Page) {
+async function toUploadPhaseWithCounter(page: Page) {
 	let uploadCount = 0
-	await page.route('**/api/discovery/session', (r) =>
-		r.fulfill({ status: 200, body: JSON.stringify({ sessionId: 'multi' }) }),
-	)
+
+	await startFresh(page, { session: { sessionId: 'multi' } })
+	// Override upload with counting mock (last-registered-wins)
 	await page.route('**/api/discovery/upload', async (route) => {
 		uploadCount++
 		await route.fulfill({
@@ -28,37 +29,14 @@ async function toUploadPhase(page: Page) {
 		})
 	})
 
-	await page.emulateMedia({ reducedMotion: 'reduce' })
-	await page.goto('/start', { waitUntil: 'domcontentloaded' })
-	await page.evaluate(() => {
-		localStorage.clear()
-		localStorage.setItem('cookie-consent', JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }))
-	})
-	await page.goto('/start', { waitUntil: 'domcontentloaded' })
-
-	await page.locator('text=What do you do?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Working")').click()
-	await page.locator('text=How old are you?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("26-30")').click()
-	await page.locator('text=What bugs you most?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Email")').click()
-	await page.locator('button:has-text("dinner")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=How AI-savvy').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("A few times")').click()
-	await page.locator('text=Which AI tools').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("ChatGPT")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=Add your data').waitFor({ timeout: 8000 })
-
-	await page.locator('text=I agree that my uploaded data').click()
-	await expect(page.locator('#data-opt-in')).not.toBeVisible()
+	await fillQuiz(page)
+	await acceptOptIn(page)
 
 	return { getUploadCount: () => uploadCount }
 }
 
 test('selecting 3 images at once uploads all 3', async ({ page }) => {
-	const { getUploadCount } = await toUploadPhase(page)
+	const { getUploadCount } = await toUploadPhaseWithCounter(page)
 
 	const card = page.getByTestId('upload-card-screentime')
 	const fileInput = card.locator('input[type="file"]').first()
@@ -70,8 +48,8 @@ test('selecting 3 images at once uploads all 3', async ({ page }) => {
 		path.join(ASSETS, 'notifications.jpeg'),
 	])
 
-	// Wait for all 3 uploads to complete — card should show 3 of 4
-	await expect(card.locator('text=3 of 4 sections')).toBeVisible({ timeout: 60000 })
+	// Wait for all 3 uploads to complete — card should show "3 of 3 done"
+	await expect(card.locator('text=3 of 3 done')).toBeVisible({ timeout: 60000 })
 
 	// Verify all 3 API calls were made
 	expect(getUploadCount()).toBe(3)

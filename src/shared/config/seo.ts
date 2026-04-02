@@ -16,24 +16,3 @@ export const BUSINESS_INFO = {
 	email: 'gosha.skryuchenkov@gmail.com',
 	phone: '045 343 9983',
 } as const
-
-export function buildBreadcrumbSchema(items: { name: string; path: string }[]) {
-	return {
-		'@context': 'https://schema.org',
-		'@type': 'BreadcrumbList',
-		itemListElement: [
-			{
-				'@type': 'ListItem',
-				position: 1,
-				name: SITE_CONFIG.name,
-				item: SITE_CONFIG.url,
-			},
-			...items.map((item, index) => ({
-				'@type': 'ListItem',
-				position: index + 2,
-				name: item.name,
-				item: `${SITE_CONFIG.url}${item.path}`,
-			})),
-		],
-	}
-}

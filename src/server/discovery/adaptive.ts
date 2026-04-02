@@ -1,7 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
-
-const client = new Anthropic()
+import { getAnthropicClient } from '@/server/lib/anthropic'
 
 const adaptiveFollowUpSchema = z.object({
 	followUps: z.array(
@@ -189,7 +188,7 @@ ${appList}
 
 Based on their screen time and profile, generate the most valuable follow-up requests. Pick from the app-to-screenshot mapping where their apps match, and add 1-2 targeted questions about detected patterns.`
 
-	const response = await client.messages.create({
+	const response = await getAnthropicClient().messages.create({
 		model: 'claude-haiku-4-5-20251001',
 		max_tokens: 1024,
 		system: ADAPTIVE_SYSTEM_PROMPT,

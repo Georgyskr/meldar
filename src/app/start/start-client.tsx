@@ -4,7 +4,7 @@ import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { useAtom } from 'jotai'
 import { RESET } from 'jotai/utils'
 import { RefreshCw } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
 	AdaptiveFollowUp,
 	type AdaptiveFollowUpItem,
@@ -36,29 +36,27 @@ export function StartClient() {
 	const [analyzing, setAnalyzing] = useState(false)
 
 	const phaseContainerRef = useRef<HTMLDivElement>(null)
-	const [focusTrigger, setFocusTrigger] = useState(0)
 
-	/** Focus the phase container after each phase transition for a11y */
-	// biome-ignore lint/correctness/useExhaustiveDependencies: focusTrigger is an intentional re-run trigger
-	useEffect(() => {
-		if (phaseContainerRef.current) {
+	const isResuming = profileData !== null && phase !== 'profile'
+
+	function focusPhaseContainer() {
+		requestAnimationFrame(() => {
+			if (!phaseContainerRef.current) return
 			const heading = phaseContainerRef.current.querySelector('h1, h2, h3, [tabindex]')
 			if (heading instanceof HTMLElement) {
 				heading.focus({ preventScroll: true })
 			} else {
 				phaseContainerRef.current.focus({ preventScroll: true })
 			}
-		}
-	}, [focusTrigger])
-
-	const isResuming = profileData !== null && phase !== 'profile'
+		})
+	}
 
 	function transitionTo(next: 'profile' | 'data' | 'adaptive' | 'results') {
 		setTransitioning(true)
 		setTimeout(() => {
 			setPhase(next)
 			setTransitioning(false)
-			setFocusTrigger((n) => n + 1)
+			focusPhaseContainer()
 			window.scrollTo({ top: 0, behavior: 'smooth' })
 		}, 300)
 	}

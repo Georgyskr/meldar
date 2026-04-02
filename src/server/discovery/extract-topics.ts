@@ -1,7 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
-
-const client = new Anthropic()
+import { getAnthropicClient } from '@/server/lib/anthropic'
 
 const topicExtractionSchema = z.object({
 	topTopics: z.array(
@@ -38,7 +36,7 @@ export async function extractTopicsFromMessages(
 	const sample = messages.slice(0, 300)
 	const messageDump = sample.map((m) => m.text).join('\n---\n')
 
-	const response = await client.messages.create({
+	const response = await getAnthropicClient().messages.create({
 		model: 'claude-haiku-4-5-20251001',
 		max_tokens: 2048,
 		system: `You are a topic extraction engine. Given user messages from ${platform}, extract the most common topics and identify repeated questions. Be specific — "meal planning" not "food", "Python debugging" not "coding".`,
@@ -170,7 +168,7 @@ export async function extractGoogleTopics(
 		)
 	}
 
-	const response = await client.messages.create({
+	const response = await getAnthropicClient().messages.create({
 		model: 'claude-haiku-4-5-20251001',
 		max_tokens: 2048,
 		system:

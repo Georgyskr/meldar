@@ -2,7 +2,7 @@
 
 import { createStore } from 'jotai'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DiscoveryAnalysis } from '@/server/discovery/parsers/types'
+import type { DiscoveryAnalysis } from '@/shared/types/discovery'
 import type { AdaptiveFollowUpItem } from '../atoms'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

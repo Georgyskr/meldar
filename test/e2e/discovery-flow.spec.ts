@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
+import { startFresh as startFreshShared } from './helpers'
 
 /**
  * E2E: /start discovery flow — QuickProfile + DataUploadHub.
@@ -16,92 +17,57 @@ const STEP_LABELS = {
 	upload: 'Add your data',
 } as const
 
-// ── Mock setup ─────────────────────────────────────────────────────────────
+// ── Mock overrides specific to this file ──────────────────────────────────
 
-async function mockApis(page: Page) {
-	await page.route('**/api/discovery/session', (r) =>
-		r.fulfill({ status: 200, body: JSON.stringify({ sessionId: 'e2e-sess' }) }),
-	)
-	await page.route('**/api/discovery/upload', (r) =>
-		r.fulfill({
-			status: 200,
-			body: JSON.stringify({
-				success: true,
-				platform: 'screentime',
-				preview: {
-					apps: [{ name: 'Instagram', usageMinutes: 120, category: 'social' }],
-					totalScreenTimeMinutes: 480,
-				},
-			}),
-		}),
-	)
-	await page.route('**/api/discovery/adaptive', (r) =>
-		r.fulfill({ status: 200, body: JSON.stringify({ followUps: [] }) }),
-	)
-	await page.route('**/api/discovery/analyze', (r) =>
-		r.fulfill({
-			status: 200,
-			body: JSON.stringify({
-				success: true,
-				sessionId: 'e2e-sess',
-				analysis: {
-					recommendedApp: {
-						name: 'TestApp',
-						description: 'Screen time tracker app',
-						whyThisUser: 'You spend 2h/day on Instagram',
-						complexity: 'beginner',
-						estimatedBuildTime: '1h',
-					},
-					additionalApps: [
-						{ name: 'App2', description: 'Budget tracker', whyThisUser: 'Tracks spending' },
-						{ name: 'App3', description: 'Email digest', whyThisUser: 'Reduces inbox time' },
-					],
-					learningModules: [
-						{ id: 'm1', title: 'Mod1', description: 'Introduction', locked: false },
-						{ id: 'm2', title: 'Mod2', description: 'Basics', locked: false },
-						{ id: 'm3', title: 'Mod3', description: 'Advanced', locked: false },
-						{ id: 'm4', title: 'Mod4', description: 'Expert', locked: false },
-					],
-					keyInsights: [{ headline: 'Top insight', detail: 'Detail text', source: 'screentime' }],
-					dataProfile: { totalSourcesAnalyzed: 1, topProblemAreas: ['social'], aiUsageLevel: 'low' },
-				},
-			}),
-		}),
-	)
-	await page.route('**/api/subscribe', (r) =>
-		r.fulfill({ status: 200, body: JSON.stringify({ success: true }) }),
-	)
+const DISCOVERY_FLOW_OVERRIDES = {
+	session: { sessionId: 'e2e-sess' },
+	upload: {
+		success: true,
+		platform: 'screentime',
+		preview: {
+			apps: [{ name: 'Instagram', usageMinutes: 120, category: 'social' }],
+			totalScreenTimeMinutes: 480,
+		},
+	},
+	analyze: {
+		success: true,
+		sessionId: 'e2e-sess',
+		analysis: {
+			recommendedApp: {
+				name: 'TestApp',
+				description: 'Screen time tracker app',
+				whyThisUser: 'You spend 2h/day on Instagram',
+				complexity: 'beginner',
+				estimatedBuildTime: '1h',
+			},
+			additionalApps: [
+				{ name: 'App2', description: 'Budget tracker', whyThisUser: 'Tracks spending' },
+				{ name: 'App3', description: 'Email digest', whyThisUser: 'Reduces inbox time' },
+			],
+			learningModules: [
+				{ id: 'm1', title: 'Mod1', description: 'Introduction', locked: false },
+				{ id: 'm2', title: 'Mod2', description: 'Basics', locked: false },
+				{ id: 'm3', title: 'Mod3', description: 'Advanced', locked: false },
+				{ id: 'm4', title: 'Mod4', description: 'Expert', locked: false },
+			],
+			keyInsights: [{ headline: 'Top insight', detail: 'Detail text', source: 'screentime' }],
+			dataProfile: {
+				totalSourcesAnalyzed: 1,
+				topProblemAreas: ['social'],
+				aiUsageLevel: 'low',
+			},
+		},
+	},
 }
 
 // ── Page setup ─────────────────────────────────────────────────────────────
 
-/**
- * Navigate to /start with clean localStorage and all APIs mocked.
- * Uses addInitScript to clear localStorage before any page JS runs —
- * eliminates the double-navigation pattern and the post-load evaluate hack.
- */
 async function startFresh(page: Page) {
-	// Clear storage and pre-accept cookie consent before page JS initializes atoms.
-	// addInitScript runs before every navigation (including page.reload), so we use
-	// a sessionStorage once-guard: localStorage is cleared only on the very first
-	// navigation of this page session. Subsequent reloads (persistence tests) keep
-	// whatever localStorage was written during the test.
-	//
-	// Cookie consent: the consent system stores a JSON record { version, timestamp,
-	// analytics }, NOT a plain string. We must write a valid record or parseRecord()
-	// returns null → 'undecided' → banner renders and obscures the Skip button.
-	await page.addInitScript(() => {
-		if (!sessionStorage.getItem('_e2e_init')) {
-			sessionStorage.setItem('_e2e_init', '1')
-			localStorage.clear()
-			localStorage.setItem(
-				'cookie-consent',
-				JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }),
-			)
-		}
-	})
-	await mockApis(page)
-	await page.goto('/start', { waitUntil: 'domcontentloaded' })
+	await startFreshShared(page, DISCOVERY_FLOW_OVERRIDES)
+	// Extra route for this file's subscribe endpoint
+	await page.route('**/api/subscribe', (r) =>
+		r.fulfill({ status: 200, body: JSON.stringify({ success: true }) }),
+	)
 	await page.locator(`text=${STEP_LABELS.occupation}`).waitFor({ timeout: 10000 })
 }
 
@@ -372,7 +338,9 @@ test.describe('Form Persistence', () => {
 		// Wait for the button — proves hydration completed after reload
 		await startFreshBtn.waitFor({ state: 'visible', timeout: 10000 })
 		await startFreshBtn.click()
-		await page.locator(`text=${STEP_LABELS.occupation}`).waitFor({ state: 'visible', timeout: 10000 })
+		await page
+			.locator(`text=${STEP_LABELS.occupation}`)
+			.waitFor({ state: 'visible', timeout: 10000 })
 	})
 })
 
@@ -407,22 +375,6 @@ test.describe('Data Upload Hub', () => {
 
 test.describe('Full Flow', () => {
 	test('completing profile and skipping upload shows results', async ({ page }) => {
-		const consoleLogs: string[] = []
-		page.on('console', (msg) => consoleLogs.push(`[${msg.type()}] ${msg.text()}`))
-		page.on('pageerror', (err) => consoleLogs.push(`[PAGE_ERROR] ${err.message}`))
-
-		const networkRequests: string[] = []
-		page.on('request', (req) => {
-			if (req.url().includes('/api/discovery/')) {
-				networkRequests.push(`REQ: ${req.method()} ${req.url()}`)
-			}
-		})
-		page.on('response', (res) => {
-			if (res.url().includes('/api/discovery/')) {
-				networkRequests.push(`RES: ${res.status()} ${res.url()}`)
-			}
-		})
-
 		await startFresh(page)
 		await completeProfile(page)
 
@@ -434,11 +386,6 @@ test.describe('Full Flow', () => {
 		// The first recommendation (TestApp) is always locked/blurred by LockedRecommendationCard
 		// (only position==='second' renders the real name). App2 at index 1 is the visible card.
 		await page.locator('text=App2').waitFor({ state: 'visible', timeout: 20000 })
-
-		console.log('=== CONSOLE LOGS ===')
-		for (const log of consoleLogs) console.log(log)
-		console.log('=== NETWORK ===')
-		for (const req of networkRequests) console.log(req)
 	})
 
 	test('session API receives correct profile data', async ({ page }) => {

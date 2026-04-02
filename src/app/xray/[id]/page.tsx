@@ -1,22 +1,14 @@
 import { Box, styled, VStack } from '@styled-system/jsx'
-import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import type { AppUsage } from '@/entities/xray-result/model/types'
 import { XRayCard } from '@/entities/xray-result/ui/XRayCard'
 import { XRayCardActions } from '@/entities/xray-result/ui/XRayCardActions'
-import { getDb } from '@/server/db/client'
-import { xrayResults } from '@/server/db/schema'
 import { SITE_CONFIG } from '@/shared/config/seo'
+import { getXRay } from './get-xray'
 
 type PageProps = {
 	params: Promise<{ id: string }>
-}
-
-async function getXRay(id: string) {
-	const db = getDb()
-	const rows = await db.select().from(xrayResults).where(eq(xrayResults.id, id)).limit(1)
-	return rows[0] || null
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

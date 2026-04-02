@@ -1,8 +1,6 @@
-import { eq } from 'drizzle-orm'
 import { ImageResponse } from 'next/og'
 import type { AppUsage } from '@/entities/xray-result/model/types'
-import { getDb } from '@/server/db/client'
-import { xrayResults } from '@/server/db/schema'
+import { getXRay } from '../get-xray'
 
 export const runtime = 'nodejs'
 
@@ -12,9 +10,7 @@ type RouteProps = {
 
 export async function GET(_request: Request, { params }: RouteProps) {
 	const { id } = await params
-	const db = getDb()
-	const rows = await db.select().from(xrayResults).where(eq(xrayResults.id, id)).limit(1)
-	const xray = rows[0]
+	const xray = await getXRay(id)
 
 	if (!xray) {
 		return new Response('Not found', { status: 404 })

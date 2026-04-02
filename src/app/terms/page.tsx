@@ -1,6 +1,7 @@
 import { styled, VStack } from '@styled-system/jsx'
 import type { Metadata } from 'next'
 import { BUSINESS_INFO, SITE_CONFIG } from '@/shared/config'
+import { Li, P, Section, Ul } from '@/shared/ui/legal-primitives'
 
 export const metadata: Metadata = {
 	title: 'Terms of Service \u2014 Meldar',
@@ -151,42 +152,4 @@ export default function TermsPage() {
 			</VStack>
 		</styled.main>
 	)
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-	return (
-		<VStack alignItems="flex-start" gap={3} width="100%">
-			<styled.h2 fontFamily="heading" fontSize="xl" fontWeight="700" color="onSurface">
-				{title}
-			</styled.h2>
-			{children}
-		</VStack>
-	)
-}
-
-function P({ children }: { children: React.ReactNode }) {
-	return (
-		<styled.p fontSize="sm" fontWeight="300" color="onSurfaceVariant" lineHeight="relaxed">
-			{children}
-		</styled.p>
-	)
-}
-
-function Ul({ children }: { children: React.ReactNode }) {
-	return (
-		<styled.ul
-			paddingInlineStart={5}
-			fontSize="sm"
-			fontWeight="300"
-			color="onSurfaceVariant"
-			lineHeight="relaxed"
-			listStyleType="disc"
-		>
-			{children}
-		</styled.ul>
-	)
-}
-
-function Li({ children }: { children: React.ReactNode }) {
-	return <styled.li marginBlockEnd={1}>{children}</styled.li>
 }

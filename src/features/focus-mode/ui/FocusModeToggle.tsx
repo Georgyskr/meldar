@@ -3,7 +3,7 @@
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { getFocusMode, setFocusMode, useFocusMode } from '../lib/use-focus-mode'
+import { setFocusMode, useFocusMode } from '../lib/use-focus-mode'
 
 type PopoverState = 'hidden' | 'asking' | 'none'
 
@@ -12,24 +12,14 @@ export function FocusModeToggle() {
 	const [popover, setPopover] = useState<PopoverState>('none')
 	const popoverRef = useRef<HTMLDivElement>(null)
 
-	// On mount, decide if we should show the popover on first click
-	useEffect(() => {
-		// If already set, no popover needed
-		if (getFocusMode()) {
-			setPopover('hidden')
-		}
-	}, [])
-
 	function handleToggleClick() {
 		if (focusMode) {
-			// Already active — turn off
 			setFocusMode(false)
 			setPopover('none')
 			return
 		}
 
 		if (popover === 'none') {
-			// First time clicking — show the contextual question
 			setPopover('asking')
 			return
 		}

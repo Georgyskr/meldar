@@ -17,7 +17,7 @@ export async function GET(request: Request) {
 			  AND tier_purchased IS NULL`,
 	)
 
-	// S1: Don't delete xray results that are referenced by paid audit orders
+	// Don't delete xray results that are referenced by paid audit orders
 	const xrayResult = await db.execute(
 		sql`DELETE FROM xray_results
 			WHERE created_at < ${thirtyDaysAgo}

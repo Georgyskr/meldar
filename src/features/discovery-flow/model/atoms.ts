@@ -1,5 +1,5 @@
 import { atomWithStorage, createJSONStorage } from 'jotai/utils'
-import { type DiscoveryAnalysis, discoveryAnalysisSchema } from '@/server/discovery/parsers/types'
+import { type DiscoveryAnalysis, discoveryAnalysisSchema } from '@/shared/types/discovery'
 
 /** Persisted to localStorage so users can leave and come back */
 export const sessionIdAtom = atomWithStorage<string | null>('meldar-session-id', null)

@@ -1,5 +1,6 @@
 import path from 'node:path'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
+import { acceptOptIn, fillQuiz, startFresh } from './helpers'
 
 /**
  * E2E: Real OCR upload — Tesseract runs in the browser on actual screenshots.
@@ -18,12 +19,10 @@ const ASSETS = path.resolve(__dirname, 'assets/screentime')
 
 async function setupAndNavigate(page: Page) {
 	// Mock ONLY the server responses — NOT the client-side OCR
-	let uploadCalls: Array<{ hasOcrText: boolean; hasFile: boolean; platform: string }> = []
+	const uploadCalls: Array<{ hasOcrText: boolean; hasFile: boolean; platform: string }> = []
 
-	await page.route('**/api/discovery/session', (r) =>
-		r.fulfill({ status: 200, body: JSON.stringify({ sessionId: 'ocr-real' }) }),
-	)
-
+	await startFresh(page, { session: { sessionId: 'ocr-real' } })
+	// Override upload with call-capturing mock (last-registered-wins)
 	await page.route('**/api/discovery/upload', async (route) => {
 		const body = route.request().postData() ?? ''
 		uploadCalls.push({
@@ -52,36 +51,8 @@ async function setupAndNavigate(page: Page) {
 		})
 	})
 
-	await page.emulateMedia({ reducedMotion: 'reduce' })
-	await page.addInitScript(() => {
-		localStorage.setItem('cookie-consent', JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }))
-	})
-	await page.goto('/start', { waitUntil: 'domcontentloaded' })
-	await page.evaluate(() => {
-		localStorage.clear()
-		localStorage.setItem('cookie-consent', JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }))
-	})
-	await page.goto('/start', { waitUntil: 'domcontentloaded' })
-
-	// Fill quiz fast (reduced motion = 0ms delays)
-	await page.locator('text=What do you do?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Working")').click()
-	await page.locator('text=How old are you?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("26-30")').click()
-	await page.locator('text=What bugs you most?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Email")').click()
-	await page.locator('button:has-text("dinner")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=How AI-savvy').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("A few times")').click()
-	await page.locator('text=Which AI tools').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("ChatGPT")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=Add your data').waitFor({ timeout: 8000 })
-
-	// Opt in
-	await page.locator('text=I agree that my uploaded data').click()
-	await expect(page.locator('#data-opt-in')).not.toBeVisible()
+	await fillQuiz(page)
+	await acceptOptIn(page)
 
 	return { uploadCalls: () => uploadCalls }
 }
@@ -91,9 +62,10 @@ test.describe('Real OCR Upload', () => {
 		const { uploadCalls } = await setupAndNavigate(page)
 
 		const card = page.getByTestId('upload-card-screentime')
-		await card.locator('input[type="file"]').first().setInputFiles(
-			path.join(ASSETS, 'most-used.jpeg'),
-		)
+		await card
+			.locator('input[type="file"]')
+			.first()
+			.setInputFiles(path.join(ASSETS, 'most-used.jpeg'))
 
 		// Wait for the upload to complete — this includes Tesseract processing
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
@@ -120,7 +92,7 @@ test.describe('Real OCR Upload', () => {
 		// First upload — most used
 		await fileInput.setInputFiles(path.join(ASSETS, 'most-used.jpeg'))
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
-		await expect(card.locator('text=1 of 4 sections')).toBeVisible()
+		await expect(card.locator('text=1 of 3 sections')).toBeVisible()
 
 		// Second upload — pickups (use "Add more" input)
 		const addMoreInput = card.locator('input[type="file"]').first()
@@ -139,15 +111,24 @@ test.describe('Real OCR Upload', () => {
 		const card = page.getByTestId('upload-card-screentime')
 
 		// Upload 1: Most Used
-		await card.locator('input[type="file"]').first().setInputFiles(path.join(ASSETS, 'most-used.jpeg'))
+		await card
+			.locator('input[type="file"]')
+			.first()
+			.setInputFiles(path.join(ASSETS, 'most-used.jpeg'))
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
 
 		// Upload 2: Pickups
-		await card.locator('input[type="file"]').first().setInputFiles(path.join(ASSETS, 'pickups.jpeg'))
+		await card
+			.locator('input[type="file"]')
+			.first()
+			.setInputFiles(path.join(ASSETS, 'pickups.jpeg'))
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
 
 		// Upload 3: Notifications
-		await card.locator('input[type="file"]').first().setInputFiles(path.join(ASSETS, 'notifications.jpeg'))
+		await card
+			.locator('input[type="file"]')
+			.first()
+			.setInputFiles(path.join(ASSETS, 'notifications.jpeg'))
 		await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
 
 		const calls = uploadCalls()
@@ -164,21 +145,21 @@ test.describe('Real OCR Upload', () => {
 		// This test specifically guards against the .map crash
 		// by verifying the preview component handles various response shapes
 
-		await page.route('**/api/discovery/session', (r) =>
-			r.fulfill({ status: 200, body: JSON.stringify({ sessionId: 'shape-test' }) }),
-		)
-
-		// Return preview with edge-case shapes
+		// Return preview with edge-case shapes (3 max — matches SCREENTIME_MAX_FILES)
 		let callCount = 0
+
+		await startFresh(page, { session: { sessionId: 'shape-test' } })
+		// Override upload with edge-case shapes (last-registered-wins)
 		await page.route('**/api/discovery/upload', async (route) => {
 			callCount++
 			const shapes = [
 				// Normal array
-				{ apps: [{ name: 'Test', usageMinutes: 60, category: 'social' }], totalScreenTimeMinutes: 120 },
+				{
+					apps: [{ name: 'Test', usageMinutes: 60, category: 'social' }],
+					totalScreenTimeMinutes: 120,
+				},
 				// Empty apps array
 				{ apps: [], totalScreenTimeMinutes: 0 },
-				// No apps field at all
-				{ totalScreenTimeMinutes: 300, pickups: 50 },
 				// Apps as non-array (the bug that crashed production)
 				{ apps: { name: 'broken' }, totalScreenTimeMinutes: 100 },
 			]
@@ -192,46 +173,27 @@ test.describe('Real OCR Upload', () => {
 			})
 		})
 
-		await page.emulateMedia({ reducedMotion: 'reduce' })
-		await page.addInitScript(() => {
-			localStorage.setItem('cookie-consent', JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }))
-		})
-		await page.goto('/start', { waitUntil: 'domcontentloaded' })
-		await page.evaluate(() => {
-			localStorage.clear()
-			localStorage.setItem('cookie-consent', JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }))
-		})
-		await page.goto('/start', { waitUntil: 'domcontentloaded' })
-
-		// Quick quiz
-		await page.locator('text=What do you do?').waitFor({ timeout: 8000 })
-		await page.locator('button:has-text("Working")').click()
-		await page.locator('text=How old are you?').waitFor({ timeout: 8000 })
-		await page.locator('button:has-text("26-30")').click()
-		await page.locator('text=What bugs you most?').waitFor({ timeout: 8000 })
-		await page.locator('button:has-text("Email")').click()
-		await page.locator('button:has-text("dinner")').click()
-		await page.getByTestId('lock-button').click()
-		await page.locator('text=How AI-savvy').waitFor({ timeout: 8000 })
-		await page.locator('button:has-text("A few times")').click()
-		await page.locator('text=Which AI tools').waitFor({ timeout: 8000 })
-		await page.locator('button:has-text("ChatGPT")').click()
-		await page.getByTestId('lock-button').click()
-		await page.locator('text=Add your data').waitFor({ timeout: 8000 })
-
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await fillQuiz(page)
+		await acceptOptIn(page)
 
 		const card = page.getByTestId('upload-card-screentime')
 
-		// Upload with each shape — none should crash
-		for (let i = 0; i < 4; i++) {
-			await card.locator('input[type="file"]').first().setInputFiles(path.join(ASSETS, 'most-used.jpeg'))
-			await page.waitForResponse('**/api/discovery/upload', { timeout: 30000 })
-		}
+		// Upload all 3 at once — parallel OCR, each gets a different response shape
+		await card
+			.locator('input[type="file"]')
+			.first()
+			.setInputFiles([
+				path.join(ASSETS, 'most-used.jpeg'),
+				path.join(ASSETS, 'pickups.jpeg'),
+				path.join(ASSETS, 'notifications.jpeg'),
+			])
 
-		// Page should still be functional (no crash)
+		// Wait for the card to show all 3 processed (event-based, no arbitrary timeout)
+		await expect(card.locator('text=3 of 3 done')).toBeVisible({ timeout: 30000 })
+
+		// Page should still be functional (no crash from any shape)
 		await expect(page.locator('text=Add your data')).toBeVisible()
-		console.log('All 4 edge-case shapes handled without crash')
+		expect(callCount).toBe(3)
+		console.log('All 3 edge-case shapes handled without crash')
 	})
 })

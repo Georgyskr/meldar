@@ -1,27 +1,14 @@
 'use client'
 
 import { Flex, styled } from '@styled-system/jsx'
-import { useState } from 'react'
+import { useEmailSubscribe } from '@/shared/lib/use-email-subscribe'
 
 export function EmailCapture({ id, dark }: { id?: string; dark?: boolean }) {
-	const [email, setEmail] = useState('')
-	const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+	const { email, setEmail, status, subscribe } = useEmailSubscribe()
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		if (!email) return
-		setStatus('loading')
-		try {
-			const res = await fetch('/api/subscribe', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email }),
-			})
-			if (!res.ok) throw new Error()
-			setStatus('success')
-		} catch {
-			setStatus('success')
-		}
+		await subscribe()
 	}
 
 	if (status === 'success') {
@@ -88,6 +75,11 @@ export function EmailCapture({ id, dark }: { id?: string; dark?: boolean }) {
 					{status === 'loading' ? 'Sending...' : 'Get your free time audit'}
 				</styled.button>
 			</Flex>
+			{status === 'error' && (
+				<styled.span textStyle="body.sm" color="red.500" marginBlockStart={2}>
+					Something went wrong. Try again.
+				</styled.span>
+			)}
 			<styled.p
 				textStyle="body.sm"
 				color={dark ? 'inverseOnSurface/50' : 'onSurface/50'}

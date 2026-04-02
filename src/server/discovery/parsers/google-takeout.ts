@@ -18,7 +18,7 @@ export async function parseGoogleTakeout(file: File): Promise<GoogleRawParseResu
 
 	const archive = await JSZip.loadAsync(await file.arrayBuffer())
 
-	// Zip bomb protection: check total uncompressed size before extracting
+	// Zip bomb protection: JSZip doesn't expose uncompressed sizes publicly — access internal _data.
 	const MAX_DECOMPRESSED_SIZE = 500 * 1024 * 1024 // 500 MB
 	let totalSize = 0
 	for (const entry of Object.values(archive.files)) {

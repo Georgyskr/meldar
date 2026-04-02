@@ -1,9 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import type { ScreenTimeExtraction } from '@/entities/xray-result/model/types'
+import { getAnthropicClient } from '@/server/lib/anthropic'
 import type { AiChatPattern, DiscoveryAnalysis, GooglePattern } from './parsers/types'
-
-const client = new Anthropic()
 
 export type SubscriptionsData = {
 	subscriptions: { name: string; price: string; frequency: string }[]
@@ -250,10 +249,8 @@ const ANALYSIS_TOOL: Anthropic.Messages.Tool = {
 function buildDataContext(input: AnalysisInput): string {
 	const sections: string[] = []
 
-	// Quiz picks
 	sections.push(`## Quiz Picks (pain points selected)\n${input.quizPicks.join(', ') || 'None'}`)
 
-	// AI comfort
 	const comfortLabels = [
 		'',
 		'Never touched AI',
@@ -265,10 +262,8 @@ function buildDataContext(input: AnalysisInput): string {
 		`## AI Comfort Level\n${input.aiComfort}/4 — ${comfortLabels[input.aiComfort] || 'Unknown'}`,
 	)
 
-	// AI tools
 	sections.push(`## AI Tools Already Used\n${input.aiToolsUsed.join(', ') || 'None'}`)
 
-	// Screen time
 	if (input.screenTime) {
 		const st = input.screenTime
 		const appList = st.apps
@@ -280,7 +275,6 @@ function buildDataContext(input: AnalysisInput): string {
 		)
 	}
 
-	// ChatGPT data (structured topics, not raw messages)
 	if (input.chatgptData) {
 		const topicList =
 			input.chatgptData.topTopics.length > 0
@@ -299,7 +293,6 @@ function buildDataContext(input: AnalysisInput): string {
 		)
 	}
 
-	// Claude data (structured topics, not raw messages)
 	if (input.claudeData) {
 		const topicList =
 			input.claudeData.topTopics.length > 0
@@ -318,7 +311,6 @@ function buildDataContext(input: AnalysisInput): string {
 		)
 	}
 
-	// Google data (structured topics)
 	if (input.googleData) {
 		if (input.googleData.searchTopics.length > 0) {
 			const searchList = input.googleData.searchTopics
@@ -334,7 +326,6 @@ function buildDataContext(input: AnalysisInput): string {
 		}
 	}
 
-	// Subscriptions data
 	if (input.subscriptionsData?.subscriptions.length) {
 		const subList = input.subscriptionsData.subscriptions
 			.map((s) => `- ${s.name}: ${s.price} (${s.frequency})`)
@@ -342,19 +333,16 @@ function buildDataContext(input: AnalysisInput): string {
 		sections.push(`## App Subscriptions\n${subList}`)
 	}
 
-	// Battery data
 	if (input.batteryData?.apps.length) {
 		const battList = input.batteryData.apps.map((a) => `- ${a.name}: ${a.percentage}%`).join('\n')
 		sections.push(`## Battery Usage\n${battList}`)
 	}
 
-	// Storage data
 	if (input.storageData?.apps.length) {
 		const storeList = input.storageData.apps.map((a) => `- ${a.name}: ${a.size}`).join('\n')
 		sections.push(`## Storage Usage\n${storeList}`)
 	}
 
-	// Calendar data
 	if (input.calendarData?.events.length) {
 		const eventList = input.calendarData.events
 			.slice(0, 15)
@@ -373,7 +361,6 @@ function buildDataContext(input: AnalysisInput): string {
 		sections.push(`## Calendar Week View\n${summary}\n\nEvents:\n${eventList}`)
 	}
 
-	// Health data
 	if (input.healthData?.metrics.length) {
 		const metricList = input.healthData.metrics
 			.map(
@@ -395,7 +382,6 @@ function buildDataContext(input: AnalysisInput): string {
 		)
 	}
 
-	// Adaptive follow-up data
 	if (input.adaptiveData?.length) {
 		const adaptiveList = input.adaptiveData
 			.map((entry) => {
@@ -412,7 +398,7 @@ function buildDataContext(input: AnalysisInput): string {
 export async function runCrossAnalysis(input: AnalysisInput): Promise<DiscoveryAnalysis> {
 	const dataContext = buildDataContext(input)
 
-	const response = await client.messages.create({
+	const response = await getAnthropicClient().messages.create({
 		model: 'claude-sonnet-4-5-20250514',
 		max_tokens: 4000,
 		system: ANALYSIS_SYSTEM_PROMPT,

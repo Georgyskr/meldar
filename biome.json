@@ -50,6 +50,6 @@
 		}
 	},
 	"files": {
-		"includes": ["src/**", "*.ts", "*.json", "!next-env.d.ts"]
+		"includes": ["src/**", "test/**", "*.ts", "*.json", "!next-env.d.ts"]
 	}
 }

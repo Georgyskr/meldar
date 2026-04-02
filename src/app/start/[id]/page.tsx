@@ -1,25 +1,13 @@
 import { Box, styled, VStack } from '@styled-system/jsx'
-import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { LockedRecommendationCard } from '@/features/discovery-flow'
-import { getDb } from '@/server/db/client'
-import { discoverySessions } from '@/server/db/schema'
-import type { DiscoveryAnalysis } from '@/server/discovery/parsers/types'
 import { SITE_CONFIG } from '@/shared/config/seo'
+import type { DiscoveryAnalysis } from '@/shared/types/discovery'
+import { getSession } from './get-session'
 
 type PageProps = {
 	params: Promise<{ id: string }>
-}
-
-async function getSession(id: string) {
-	const db = getDb()
-	const rows = await db
-		.select()
-		.from(discoverySessions)
-		.where(eq(discoverySessions.id, id))
-		.limit(1)
-	return rows[0] || null
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

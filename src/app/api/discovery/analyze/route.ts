@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 		const { sessionId } = parsed.data
 		const db = getDb()
 
-		// S2: First check if analysis already exists with a lightweight query
+		// First check if analysis already exists with a lightweight query
 		const [cacheCheck] = await db
 			.select({
 				id: discoverySessions.id,

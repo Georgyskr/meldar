@@ -1,7 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
-
-const client = new Anthropic()
+import { getAnthropicClient } from '@/server/lib/anthropic'
 
 type ExtractionResult = { data: unknown } | { error: string }
 
@@ -255,7 +254,7 @@ export async function extractFromScreenshot(
 		return { error: `Unknown source type: ${sourceType}` }
 	}
 
-	const response = await client.messages.create({
+	const response = await getAnthropicClient().messages.create({
 		model: 'claude-haiku-4-5-20251001',
 		max_tokens: 1024,
 		system: config.system,

@@ -23,7 +23,6 @@ function isUniqueViolation(err: unknown): boolean {
 
 export async function POST(request: NextRequest) {
 	try {
-		// Rate limit
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 		const { success } = await checkRateLimit(subscribeLimit, ip)
 		if (!success) {

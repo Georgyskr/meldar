@@ -32,8 +32,8 @@ describe('Screen Time → Adaptive pipeline (real API)', () => {
 	}
 
 	let extractedApps: { name: string; usageMinutes: number; category: string }[] = []
-	let totalScreenTimeMinutes = 0
-	let pickups: number | null = null
+	let _totalScreenTimeMinutes = 0
+	let _pickups: number | null = null
 
 	it(
 		'extracts app usage from screenshot #2 (app list + pickups)',
@@ -45,7 +45,11 @@ describe('Screen Time → Adaptive pipeline (real API)', () => {
 
 			const data = result.data
 			console.log('\n--- Screenshot #2: App List ---')
-			console.log('Total screen time:', Math.round(data.totalScreenTimeMinutes / 60 * 10) / 10, 'h')
+			console.log(
+				'Total screen time:',
+				Math.round((data.totalScreenTimeMinutes / 60) * 10) / 10,
+				'h',
+			)
 			console.log('Pickups:', data.pickups)
 			console.log('Apps:')
 			for (const app of data.apps) {
@@ -68,8 +72,8 @@ describe('Screen Time → Adaptive pipeline (real API)', () => {
 
 			// Save for next test
 			extractedApps = data.apps
-			totalScreenTimeMinutes = data.totalScreenTimeMinutes
-			pickups = data.pickups
+			_totalScreenTimeMinutes = data.totalScreenTimeMinutes
+			_pickups = data.pickups
 		},
 		TIMEOUT,
 	)
@@ -146,11 +150,20 @@ describe('Screen Time → Adaptive pipeline (real API)', () => {
 			// we'd expect at least one gaming or productivity-related follow-up
 			const titles = followUps.map((f) => f.title.toLowerCase()).join(' ')
 			const descriptions = followUps.map((f) => f.description.toLowerCase()).join(' ')
-			const allText = titles + ' ' + descriptions
+			const allText = `${titles} ${descriptions}`
 
 			console.log('\n--- Checking signal detection ---')
-			console.log('Heavy gaming detected:', allText.includes('game') || allText.includes('gaming') || allText.includes('cup heroes') || allText.includes('hearthstone'))
-			console.log('GitHub/dev detected:', allText.includes('github') || allText.includes('code') || allText.includes('developer'))
+			console.log(
+				'Heavy gaming detected:',
+				allText.includes('game') ||
+					allText.includes('gaming') ||
+					allText.includes('cup heroes') ||
+					allText.includes('hearthstone'),
+			)
+			console.log(
+				'GitHub/dev detected:',
+				allText.includes('github') || allText.includes('code') || allText.includes('developer'),
+			)
 			console.log('Reddit detected:', allText.includes('reddit') || allText.includes('subreddit'))
 		},
 		TIMEOUT,

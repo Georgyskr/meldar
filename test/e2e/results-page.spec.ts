@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
+import { fillQuiz, startFresh } from './helpers'
 
 /**
  * E2E: Results phase rendering — verifies the AnalysisResults component
@@ -17,74 +18,67 @@ const MOCK_ANALYSIS = {
 		estimatedBuildTime: '2h',
 	},
 	additionalApps: [
-		{ name: 'BudgetBot', description: 'Tracks daily spending', whyThisUser: 'You mentioned money issues' },
-		{ name: 'InboxZero', description: 'Email triage assistant', whyThisUser: 'Email is your top pain' },
+		{
+			name: 'BudgetBot',
+			description: 'Tracks daily spending',
+			whyThisUser: 'You mentioned money issues',
+		},
+		{
+			name: 'InboxZero',
+			description: 'Email triage assistant',
+			whyThisUser: 'Email is your top pain',
+		},
 	],
 	learningModules: [
-		{ id: 'mod-coding', title: "Coding in 2026 isn't scary", description: 'No CS degree needed.', locked: false },
-		{ id: 'mod-prompts', title: '5 rules to level up your prompts', description: 'Stop getting generic answers.', locked: false },
-		{ id: 'mod-claude', title: 'Claude Code: your co-pilot', description: 'Build real things.', locked: false },
-		{ id: 'mod-setup', title: 'Your perfect app setup', description: 'Personalized.', locked: false },
+		{
+			id: 'mod-coding',
+			title: "Coding in 2026 isn't scary",
+			description: 'No CS degree needed.',
+			locked: false,
+		},
+		{
+			id: 'mod-prompts',
+			title: '5 rules to level up your prompts',
+			description: 'Stop getting generic answers.',
+			locked: false,
+		},
+		{
+			id: 'mod-claude',
+			title: 'Claude Code: your co-pilot',
+			description: 'Build real things.',
+			locked: false,
+		},
+		{
+			id: 'mod-setup',
+			title: 'Your perfect app setup',
+			description: 'Personalized.',
+			locked: false,
+		},
 	],
-	keyInsights: [{ headline: 'Gaming dominates', detail: 'Cup Heroes 6h/day', source: 'screentime' }],
-	dataProfile: { totalSourcesAnalyzed: 2, topProblemAreas: ['social', 'email'], aiUsageLevel: 'moderate' },
+	keyInsights: [
+		{ headline: 'Gaming dominates', detail: 'Cup Heroes 6h/day', source: 'screentime' },
+	],
+	dataProfile: {
+		totalSourcesAnalyzed: 2,
+		topProblemAreas: ['social', 'email'],
+		aiUsageLevel: 'moderate',
+	},
 }
 
-async function mockApis(page: Page) {
-	await page.route('**/api/discovery/session', (r) =>
-		r.fulfill({ status: 200, body: JSON.stringify({ sessionId: 'results-test' }) }),
-	)
-	await page.route('**/api/discovery/adaptive', (r) =>
-		r.fulfill({ status: 200, body: JSON.stringify({ followUps: [] }) }),
-	)
-	await page.route('**/api/discovery/analyze', (r) =>
-		r.fulfill({
-			status: 200,
-			body: JSON.stringify({
-				success: true,
-				sessionId: 'results-test',
-				analysis: MOCK_ANALYSIS,
-			}),
-		}),
-	)
+async function navigateToResults(page: Page) {
+	await startFresh(page, {
+		session: { sessionId: 'results-test' },
+		analyze: { success: true, sessionId: 'results-test', analysis: MOCK_ANALYSIS },
+	})
+	// Extra routes specific to this test file
 	await page.route('**/api/subscribe', (r) =>
 		r.fulfill({ status: 200, body: JSON.stringify({ success: true }) }),
 	)
 	await page.route('**/api/billing/checkout', (r) =>
 		r.fulfill({ status: 200, body: JSON.stringify({ url: null }) }),
 	)
-}
 
-async function navigateToResults(page: Page) {
-	await mockApis(page)
-	await page.emulateMedia({ reducedMotion: 'reduce' })
-	await page.addInitScript(() => {
-		if (!sessionStorage.getItem('_e2e_init')) {
-			sessionStorage.setItem('_e2e_init', '1')
-			localStorage.clear()
-			localStorage.setItem(
-				'cookie-consent',
-				JSON.stringify({ version: 1, timestamp: Date.now(), analytics: true }),
-			)
-		}
-	})
-	await page.goto('/start', { waitUntil: 'domcontentloaded' })
-
-	// Fill quiz
-	await page.locator('text=What do you do?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Working")').click()
-	await page.locator('text=How old are you?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("26-30")').click()
-	await page.locator('text=What bugs you most?').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("Email")').click()
-	await page.locator('button:has-text("dinner")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=How AI-savvy').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("A few times")').click()
-	await page.locator('text=Which AI tools').waitFor({ timeout: 8000 })
-	await page.locator('button:has-text("ChatGPT")').click()
-	await page.getByTestId('lock-button').click()
-	await page.locator('text=Add your data').waitFor({ timeout: 8000 })
+	await fillQuiz(page)
 
 	// Skip upload to trigger analysis
 	await page.getByTestId('skip-button').click()

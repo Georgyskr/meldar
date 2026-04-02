@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { bench, describe, vi } from 'vitest'
 
 // ── Mocks (all I/O mocked — measures routing + validation overhead only) ────
@@ -70,10 +70,7 @@ vi.mock('@/server/discovery/analyze', () => ({
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeJsonRequest(
-	url: string,
-	body: Record<string, unknown>,
-): NextRequest {
+function makeJsonRequest(url: string, body: Record<string, unknown>): NextRequest {
 	return new Request(url, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -81,10 +78,7 @@ function makeJsonRequest(
 	}) as unknown as NextRequest
 }
 
-function makeFormDataRequest(
-	url: string,
-	fields: Record<string, string>,
-): NextRequest {
+function makeFormDataRequest(url: string, fields: Record<string, string>): NextRequest {
 	const formData = new FormData()
 	for (const [key, value] of Object.entries(fields)) {
 		formData.append(key, value)
@@ -98,80 +92,58 @@ function makeFormDataRequest(
 // ── Benchmarks ──────────────────────────────────────────────────────────────
 
 describe('API routing overhead', () => {
-	bench(
-		'POST /api/discovery/session — validation + mock DB insert',
-		async () => {
-			const { POST } = await import(
-				'@/app/api/discovery/session/route'
-			)
-			const req = makeJsonRequest(
-				'http://localhost/api/discovery/session',
-				{
-					occupation: 'developer',
-					ageBracket: '25-34',
-					quizPicks: ['email-overload', 'social-scroll'],
-					aiComfort: 3,
-					aiToolsUsed: ['chatgpt'],
-				},
-			)
-			await POST(req)
-		},
-	)
+	bench('POST /api/discovery/session — validation + mock DB insert', async () => {
+		const { POST } = await import('@/app/api/discovery/session/route')
+		const req = makeJsonRequest('http://localhost/api/discovery/session', {
+			occupation: 'developer',
+			ageBracket: '25-34',
+			quizPicks: ['email-overload', 'social-scroll'],
+			aiComfort: 3,
+			aiToolsUsed: ['chatgpt'],
+		})
+		await POST(req)
+	})
 
-	bench(
-		'POST /api/discovery/upload — validation only (before DB lookup)',
-		async () => {
-			const { POST } = await import(
-				'@/app/api/discovery/upload/route'
-			)
-			// Send a request that passes validation but hits the DB lookup (mocked to return empty)
-			const req = makeFormDataRequest(
-				'http://localhost/api/discovery/upload',
-				{
-					ocrText: 'Screen Time - Daily Average 4h 32m - Instagram 1h 45m',
-					platform: 'screentime',
-					sessionId: 'bench-session-id',
-				},
-			)
-			await POST(req)
-		},
-	)
+	bench('POST /api/discovery/upload — validation only (before DB lookup)', async () => {
+		const { POST } = await import('@/app/api/discovery/upload/route')
+		// Send a request that passes validation but hits the DB lookup (mocked to return empty)
+		const req = makeFormDataRequest('http://localhost/api/discovery/upload', {
+			ocrText: 'Screen Time - Daily Average 4h 32m - Instagram 1h 45m',
+			platform: 'screentime',
+			sessionId: 'bench-session-id',
+		})
+		await POST(req)
+	})
 
-	bench(
-		'POST /api/discovery/analyze — cache hit path (no AI call)',
-		async () => {
-			// Set up mock to return a cached analysis
-			mockDbSelect.mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockReturnValue({
-						limit: vi.fn().mockResolvedValue([
-							{
-								id: 'bench-session-id',
-								analysis: {
-									recommendedApp: { name: 'Test App' },
-									additionalApps: [],
-									learningModules: [],
-									keyInsights: [],
-									dataProfile: {
-										totalSourcesAnalyzed: 1,
-										topProblemAreas: [],
-										aiUsageLevel: 'moderate',
-									},
+	bench('POST /api/discovery/analyze — cache hit path (no AI call)', async () => {
+		// Set up mock to return a cached analysis
+		mockDbSelect.mockReturnValue({
+			from: vi.fn().mockReturnValue({
+				where: vi.fn().mockReturnValue({
+					limit: vi.fn().mockResolvedValue([
+						{
+							id: 'bench-session-id',
+							analysis: {
+								recommendedApp: { name: 'Test App' },
+								additionalApps: [],
+								learningModules: [],
+								keyInsights: [],
+								dataProfile: {
+									totalSourcesAnalyzed: 1,
+									topProblemAreas: [],
+									aiUsageLevel: 'moderate',
 								},
 							},
-						]),
-					}),
+						},
+					]),
 				}),
-			})
+			}),
+		})
 
-			const { POST } = await import(
-				'@/app/api/discovery/analyze/route'
-			)
-			const req = makeJsonRequest(
-				'http://localhost/api/discovery/analyze',
-				{ sessionId: 'bench-session-id' },
-			)
-			await POST(req)
-		},
-	)
+		const { POST } = await import('@/app/api/discovery/analyze/route')
+		const req = makeJsonRequest('http://localhost/api/discovery/analyze', {
+			sessionId: 'bench-session-id',
+		})
+		await POST(req)
+	})
 })

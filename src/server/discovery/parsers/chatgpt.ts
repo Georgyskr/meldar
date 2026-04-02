@@ -13,7 +13,8 @@ const MAX_DECOMPRESSED_SIZE = 500 * 1024 * 1024 // 500 MB
 export async function parseChatGptExport(file: File): Promise<AiChatRawParseResult> {
 	const archive = await JSZip.loadAsync(await file.arrayBuffer())
 
-	// Zip bomb protection: check total uncompressed size before extracting
+	// Zip bomb protection: check total uncompressed size before extracting.
+	// JSZip doesn't expose uncompressed sizes publicly — access internal _data property.
 	let totalSize = 0
 	for (const entry of Object.values(archive.files)) {
 		totalSize +=
