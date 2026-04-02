@@ -1,2 +1,5 @@
 export { trackEvent } from './lib/track'
+export { FadeInWithTracking } from './ui/FadeInWithTracking'
 export { GoogleAnalytics } from './ui/GoogleAnalytics'
+export { TrackedCta } from './ui/TrackedCta'
+export { TrackFaqOpen } from './ui/TrackFaqOpen'

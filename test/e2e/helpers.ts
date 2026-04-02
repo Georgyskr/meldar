@@ -106,11 +106,11 @@ export async function fillQuiz(page: Page) {
 // ── Opt-in ────────────────────────────────────────────────────────────────
 
 /**
- * Click the data opt-in checkbox and wait for it to disappear.
+ * Click the data terms acceptance button and wait for the terms block to be replaced by the pill.
  */
 export async function acceptOptIn(page: Page) {
-	await page.locator('text=I agree that my uploaded data').click()
-	await expect(page.locator('#data-opt-in')).not.toBeVisible()
+	await page.locator('button:has-text("I agree, let me upload")').click()
+	await expect(page.locator('text=Data terms accepted')).toBeVisible({ timeout: 5000 })
 }
 
 // ── Full page setup ───────────────────────────────────────────────────────

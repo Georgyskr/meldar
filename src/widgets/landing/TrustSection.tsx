@@ -6,7 +6,7 @@ export function TrustSection() {
 		<styled.section
 			paddingBlock={32}
 			paddingInline={8}
-			bg="surfaceContainerLow"
+			bg="primary/3"
 			overflow="hidden"
 			position="relative"
 		>

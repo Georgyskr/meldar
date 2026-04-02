@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { expect, type Page, test } from '@playwright/test'
-import { fillQuiz, startFresh } from './helpers'
+import { acceptOptIn, fillQuiz, startFresh } from './helpers'
 
 /**
  * E2E: Mobile viewport (375x812) — upload phase rendering and interaction.
@@ -35,24 +35,21 @@ test.describe('Mobile Upload (375x812)', () => {
 		await expect(chatgptCard).toBeVisible()
 	})
 
-	test('opt-in checkbox is visible and clickable at mobile size', async ({ page }) => {
+	test('data terms block is visible and clickable at mobile size', async ({ page }) => {
 		await toUploadPhaseOnMobile(page)
 
-		const checkbox = page.locator('#data-opt-in')
-		await checkbox.scrollIntoViewIfNeeded()
-		await expect(checkbox).toBeVisible()
+		const termsBlock = page.locator('#data-terms')
+		await termsBlock.scrollIntoViewIfNeeded()
+		await expect(termsBlock).toBeVisible()
 
-		// Click the label to toggle
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(checkbox).not.toBeVisible()
+		await page.locator('button:has-text("I agree, let me upload")').click()
+		await expect(page.locator('text=Data terms accepted')).toBeVisible()
 	})
 
 	test('uploading a real image at mobile viewport completes without crash', async ({ page }) => {
 		await toUploadPhaseOnMobile(page)
 
-		// Opt in first
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await acceptOptIn(page)
 
 		const card = page.getByTestId('upload-card-screentime')
 		await card.scrollIntoViewIfNeeded()

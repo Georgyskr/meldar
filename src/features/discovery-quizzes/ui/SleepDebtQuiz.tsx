@@ -187,7 +187,7 @@ export function SleepDebtQuiz() {
 							textDecoration="none"
 							_hover={{ opacity: 0.9 }}
 						>
-							Get your Time X-Ray
+							Get your free scan
 							<ArrowRight size={16} />
 						</styled.a>
 					</VStack>

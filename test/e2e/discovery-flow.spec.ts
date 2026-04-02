@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test'
-import { startFresh as startFreshShared } from './helpers'
+import { acceptOptIn, startFresh as startFreshShared } from './helpers'
 
 /**
  * E2E: /start discovery flow — QuickProfile + DataUploadHub.
@@ -180,7 +180,7 @@ test.describe('Step 2: Age', () => {
 	})
 
 	test('all age options are visible', async ({ page }) => {
-		for (const age of ['16-20', '21-25', '26-30', '30+']) {
+		for (const age of ['16-20', '21-25', '26-30', '31+']) {
 			await expect(page.locator(`button:has-text("${age}")`)).toBeVisible()
 		}
 	})
@@ -254,7 +254,7 @@ test.describe('Step 4: AI Comfort', () => {
 	test.beforeEach(async ({ page }) => {
 		await startFresh(page)
 		await completeOccupation(page, 'Freelance')
-		await completeAge(page, '30+')
+		await completeAge(page, '31+')
 		await completePainPoints(page, ['Email', 'Money goes'])
 	})
 
@@ -281,14 +281,18 @@ test.describe('Step 5: AI Tools', () => {
 		await page.locator(`text=${STEP_LABELS.upload}`).waitFor({ state: 'visible', timeout: 10000 })
 	})
 
-	test('selecting "None" clears other AI tool selections', async ({ page }) => {
-		await selectOption(page, 'ChatGPT')
-		await expect(page.getByTestId('lock-button')).toContainText('Lock in 1')
-		await selectOption(page, 'None')
-		// Still 1 pick (just "None" now — ChatGPT was cleared)
-		await expect(page.getByTestId('lock-button')).toContainText('Lock in 1')
-		await expect(page.locator('button:has-text("ChatGPT")[aria-pressed="true"]')).not.toBeVisible()
-		await expect(page.locator('button:has-text("None")[aria-pressed="true"]')).toBeVisible()
+	test('"Never tried" on comfort skips tools and goes to upload', async ({ page }) => {
+		// Reset: this test needs its own setup since beforeEach uses "A few times"
+		const freshPage = page
+		await startFresh(freshPage)
+		await completeOccupation(freshPage)
+		await completeAge(freshPage)
+		await completePainPoints(freshPage, ['Email', 'Posting to every'])
+		await freshPage.locator('button:has-text("Never tried")').click()
+		// Should skip tools entirely and land on upload hub
+		await freshPage
+			.locator(`text=${STEP_LABELS.upload}`)
+			.waitFor({ state: 'visible', timeout: 10000 })
 	})
 })
 
@@ -364,6 +368,7 @@ test.describe('Data Upload Hub', () => {
 	})
 
 	test('clicking "How to export" toggles card instructions', async ({ page }) => {
+		await acceptOptIn(page)
 		const toggle = page.locator('button:has-text("How to export")').first()
 		await toggle.click()
 		// Screen Time instructions mention the 3 screenshots needed

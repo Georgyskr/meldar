@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 	return {
 		title: `${xray.totalHours}h/day Screen Time | ${SITE_CONFIG.name}`,
-		description: `${xray.topApp} is the top app at ${xray.totalHours} hours/day. Get your own Time X-Ray free.`,
+		description: `${xray.topApp} is the top app at ${xray.totalHours} hours/day. Get your own scan free.`,
 		openGraph: {
 			title: `${xray.totalHours}h/day — and ${xray.topApp} is the culprit`,
 			description: `See your own screen time breakdown. Free, instant, private.`,
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 		twitter: {
 			card: 'summary_large_image',
 			title: `${xray.totalHours}h/day Screen Time`,
-			description: `${xray.topApp} takes the crown. Get your own X-Ray.`,
+			description: `${xray.topApp} takes the crown. Get your own scan.`,
 			images: [`${SITE_CONFIG.url}/xray/${id}/og`],
 		},
 		alternates: { canonical: `${SITE_CONFIG.url}/xray/${id}` },
@@ -62,7 +62,7 @@ export default async function XRayResultPage({ params }: PageProps) {
 						color="onSurface"
 						letterSpacing="-0.02em"
 					>
-						Time X-Ray
+						Digital Footprint
 					</styled.h1>
 				</VStack>
 
@@ -88,7 +88,7 @@ export default async function XRayResultPage({ params }: PageProps) {
 				>
 					<VStack gap={3}>
 						<styled.p fontFamily="heading" fontWeight="700" fontSize="lg" color="white">
-							Get your own Time X-Ray
+							Get your own scan
 						</styled.p>
 						<styled.p fontSize="sm" color="white/80">
 							Free. Takes 30 seconds. Your screenshot is deleted immediately.

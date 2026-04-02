@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const tools = [
 	{
 		icon: Camera,
-		title: 'Time X-Ray',
+		title: 'Digital Footprint Scan',
 		desc: 'Upload a Screen Time screenshot. See your real numbers.',
 		time: '30 seconds',
 		href: '/xray',

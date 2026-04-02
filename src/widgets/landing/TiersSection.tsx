@@ -3,40 +3,43 @@ import { Check } from 'lucide-react'
 
 const tiers = [
 	{
-		label: 'Free Analysis',
+		label: 'Digital Footprint Scan',
 		headline: 'Free',
-		desc: 'See where your time actually goes. Upload your data or answer a few questions. Get a personalized report showing what to build first.',
+		desc: 'See where your time actually goes. Upload a screenshot or answer a few questions. Get a report showing what to build first.',
 		features: [
-			'Quick profile + screenshot analysis',
+			'Screen Time screenshot analysis',
 			'1 personalized app recommendation',
-			'4 free learning modules',
+			'Your data never leaves your browser',
 		],
 		cta: 'Start free',
+		subtext: 'Because everyone deserves to know the truth about their digital life.',
 		highlighted: false,
-	},
-	{
-		label: 'Starter',
-		headline: 'EUR 9.99/mo',
-		desc: 'Deep data analysis from ChatGPT, Claude, and Google. SOPs, video tutorials, and a personalized curriculum to build your own apps.',
-		features: [
-			'Deep data parsing (3/month)',
-			'All SOPs and video tutorials',
-			'Personalized learning curriculum',
-		],
-		cta: 'Start free trial',
-		highlighted: true,
 	},
 	{
 		label: 'Build',
 		headline: 'EUR 79',
-		desc: 'We build it for you. Handcrafted GitHub repo with Claude Code setup, cover letter, and agent config. You own everything.',
+		desc: 'We build your first app for you. Working code, fully set up, delivered in 72 hours. You own everything.',
 		features: [
-			'Handcrafted repo + setup',
-			'Cover letter + agent config',
-			'You take it, you run it',
+			'Founder builds your app by hand',
+			'Working code delivered to your GitHub',
+			'You own it. You run it. No lock-in.',
 		],
 		cta: 'Get it built',
+		subtext: 'Less than a day of your time wasted on the problem this app solves.',
 		highlighted: false,
+	},
+	{
+		label: 'Bundle',
+		headline: 'EUR 9.99/mo',
+		desc: "Access Meldar's growing library of tested automations plus every AI tool your app needs — image, video, voice, search — through one subscription.",
+		features: [
+			'Full skills library (new automations added weekly)',
+			'Bundled AI tools: image gen, video, voice, search',
+			'One subscription. One bill. Already set up.',
+		],
+		cta: 'Start your bundle',
+		subtext: "One subscription covers tools you'd have to sign up for separately.",
+		highlighted: true,
 	},
 ]
 
@@ -86,7 +89,7 @@ export function TiersSection() {
 									letterSpacing="widest"
 									fontWeight="700"
 								>
-									Best starting point
+									Most popular
 								</styled.div>
 							)}
 
@@ -151,6 +154,17 @@ export function TiersSection() {
 							>
 								{tier.cta}
 							</styled.a>
+							{tier.subtext && (
+								<styled.p
+									textStyle="body.sm"
+									color="onSurfaceVariant/50"
+									textAlign="center"
+									marginBlockStart={3}
+									fontStyle="italic"
+								>
+									{tier.subtext}
+								</styled.p>
+							)}
 						</styled.div>
 					))}
 				</Grid>

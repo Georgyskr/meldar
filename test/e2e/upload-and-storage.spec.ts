@@ -56,33 +56,30 @@ async function startFresh(page: Page) {
 
 // ── Opt-in ─────────────────────────────────────────────────────────────────
 
-test.describe('Opt-in', () => {
-	test('checkbox visible with Privacy + ToS links before upload', async ({ page }) => {
+test.describe('Data Terms', () => {
+	test('terms block visible with Privacy + ToS links before upload', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
-		await expect(page.locator('#data-opt-in')).toBeVisible()
+		await expect(page.locator('#data-terms')).toBeVisible()
 		await expect(page.locator('a[href="/privacy-policy"]').first()).toBeVisible()
 		await expect(page.locator('a[href="/terms"]').first()).toBeVisible()
 	})
 
-	test('upload blocked before opt-in', async ({ page }) => {
+	test('upload cards are disabled before accepting terms', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
 		const card = page.getByTestId('upload-card-screentime')
-		const fileInput = card.locator('input[type="file"]').first()
-		await fileInput.setInputFiles(path.join(FIXTURES, '01-usage-chart.jpeg'))
-		// handleFile returns early when !optedIn — card should NOT show "Analyzed" badge
-		await expect(card.locator('text=Analyzed')).not.toBeVisible()
+		// Cards should have reduced opacity (disabled state)
+		const opacity = await card.evaluate((el) => getComputedStyle(el.firstElementChild!).opacity)
+		expect(Number.parseFloat(opacity)).toBeLessThan(1)
 	})
 
-	test('checking opt-in hides the checkbox', async ({ page }) => {
+	test('accepting terms shows acceptance pill and enables uploads', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
-		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
-		// Opt-in box unmounts when checked — checkbox disappears
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await page.locator('button:has-text("I agree, let me upload")').click()
+		await expect(page.locator('text=Data terms accepted')).toBeVisible()
+		await expect(page.locator('#data-terms')).not.toBeVisible()
 	})
 })
 
@@ -92,9 +89,7 @@ test.describe('Upload', () => {
 	test('screenshot shows done + preview after upload', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
-		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await acceptOptIn(page)
 
 		const card = page.getByTestId('upload-card-screentime')
 		await card
@@ -109,9 +104,7 @@ test.describe('Upload', () => {
 	test('Screen Time shows "Add more" for multi-upload', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
-		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await acceptOptIn(page)
 
 		const card = page.getByTestId('upload-card-screentime')
 		await card
@@ -126,9 +119,7 @@ test.describe('Upload', () => {
 		await fillQuiz(page)
 		await expect(page.getByTestId('generate-results-button')).toBeDisabled()
 
-		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await acceptOptIn(page)
 		const card = page.getByTestId('upload-card-screentime')
 		await card
 			.locator('input[type="file"]')
@@ -209,9 +200,7 @@ test.describe('Storage', () => {
 	test('sessionId set after first upload', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
-		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await acceptOptIn(page)
 
 		await page
 			.getByTestId('upload-card-screentime')
@@ -228,9 +217,7 @@ test.describe('Storage', () => {
 	test('upload status survives reload', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
-		// Click opt-in label text, then wait for the checkbox to unmount (proves state updated)
-		await page.locator('text=I agree that my uploaded data').click()
-		await expect(page.locator('#data-opt-in')).not.toBeVisible()
+		await acceptOptIn(page)
 
 		await page
 			.getByTestId('upload-card-screentime')
@@ -252,6 +239,7 @@ test.describe('Card UI', () => {
 	test('"How to export" toggles instructions', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
+		await acceptOptIn(page)
 		await page.locator('button:has-text("How to export")').first().click()
 		await expect(page.locator('text=Settings').first()).toBeVisible()
 	})
@@ -259,6 +247,7 @@ test.describe('Card UI', () => {
 	test('delayed source shows "I started the export" → waiting state', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
+		await acceptOptIn(page)
 		await page.locator('text=I started the export').first().click()
 		await expect(page.locator('text=Waiting')).toBeVisible()
 	})
@@ -266,6 +255,7 @@ test.describe('Card UI', () => {
 	test('ChatGPT card has hyperlink to export page', async ({ page }) => {
 		await startFresh(page)
 		await fillQuiz(page)
+		await acceptOptIn(page)
 		await page
 			.getByTestId('upload-card-chatgpt')
 			.locator('button:has-text("How to export")')

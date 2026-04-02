@@ -12,10 +12,10 @@ export default function XRayNotFound() {
 					color="onSurface"
 					letterSpacing="-0.02em"
 				>
-					This X-Ray has expired
+					This scan has expired
 				</styled.h1>
 				<styled.p textStyle="body.base" color="onSurfaceVariant" lineHeight="1.7">
-					X-Ray results are automatically deleted after 30 days to protect your privacy. Want to
+					Scan results are automatically deleted after 30 days to protect your privacy. Want to
 					create a new one?
 				</styled.p>
 				<styled.a
@@ -33,7 +33,7 @@ export default function XRayNotFound() {
 					_hover={{ opacity: 0.9 }}
 					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
 				>
-					Get your free Time X-Ray
+					Get your free scan
 				</styled.a>
 			</VStack>
 		</styled.main>

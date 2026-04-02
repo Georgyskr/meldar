@@ -24,6 +24,7 @@ type UploadCardProps = {
 	maxFiles?: number
 	uploadCount?: number
 	preview?: UploadPreviewData
+	disabled?: boolean
 }
 
 export function UploadCard({
@@ -43,6 +44,7 @@ export function UploadCard({
 	maxFiles = 1,
 	uploadCount = 0,
 	preview,
+	disabled,
 }: UploadCardProps) {
 	const [showGuide, setShowGuide] = useState(false)
 	const fileRef = useRef<HTMLInputElement>(null)
@@ -71,6 +73,8 @@ export function UploadCard({
 			width="100%"
 			borderRadius="16px"
 			border="2px solid"
+			opacity={disabled ? 0.45 : 1}
+			pointerEvents={disabled ? 'none' : 'auto'}
 			borderColor={
 				isDone
 					? 'primary/30'

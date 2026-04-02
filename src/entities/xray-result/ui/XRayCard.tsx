@@ -47,7 +47,7 @@ export function XRayCard({ totalHours, topApp, apps, pickups, insights }: XRayCa
 						letterSpacing="0.1em"
 						textTransform="uppercase"
 					>
-						Your Time X-Ray
+						Your Digital Footprint
 					</styled.span>
 					<styled.span fontSize="xs" color="white/60" fontFamily="body" fontWeight="300">
 						meldar.ai

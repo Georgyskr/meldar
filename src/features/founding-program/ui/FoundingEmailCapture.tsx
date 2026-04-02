@@ -2,6 +2,7 @@
 
 import { Flex, styled, VStack } from '@styled-system/jsx'
 import { Check } from 'lucide-react'
+import { trackEvent } from '@/features/analytics'
 import { useEmailSubscribe } from '@/shared/lib/use-email-subscribe'
 
 export function FoundingEmailCapture() {
@@ -9,7 +10,8 @@ export function FoundingEmailCapture() {
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		await subscribe({ founding: true })
+		const ok = await subscribe({ founding: true })
+		if (ok) trackEvent({ name: 'founding_signup' })
 	}
 
 	if (status === 'success') {

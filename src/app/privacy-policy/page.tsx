@@ -71,7 +71,7 @@ export default function PrivacyPolicyPage() {
 
 				<Section title="How we use your data">
 					<Ul>
-						<Li>To show you where your time goes (your Time X-Ray).</Li>
+						<Li>To show you where your time goes (your Digital Footprint Scan).</Li>
 						<Li>To suggest automations tailored to your patterns.</Li>
 						<Li>To send you the weekly automation tip and product updates (if subscribed).</Li>
 						<Li>To improve the service based on anonymized, aggregated usage patterns.</Li>

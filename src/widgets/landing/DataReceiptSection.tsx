@@ -14,7 +14,7 @@ export function DataReceiptSection() {
 		<styled.section
 			paddingBlock={32}
 			paddingInline={8}
-			bg="inverseSurface"
+			background="linear-gradient(180deg, #2f312f 0%, #481b3c 100%)"
 			color="inverseOnSurface"
 		>
 			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12}>
@@ -31,7 +31,6 @@ export function DataReceiptSection() {
 					</styled.p>
 				</VStack>
 
-				{/* Data Receipt Card — the shareable artifact */}
 				<Box
 					maxWidth="440px"
 					marginInline="auto"
@@ -42,7 +41,6 @@ export function DataReceiptSection() {
 					overflow="hidden"
 					boxShadow="0 24px 48px rgba(0,0,0,0.08)"
 				>
-					{/* Header gradient strip */}
 					<Box
 						paddingBlock={6}
 						paddingInline={8}
@@ -58,7 +56,6 @@ export function DataReceiptSection() {
 						</styled.p>
 					</Box>
 
-					{/* Stats grid */}
 					<Grid columns={2} gap={0}>
 						{sampleStats.map((stat, i) => (
 							<VStack
@@ -82,7 +79,6 @@ export function DataReceiptSection() {
 						))}
 					</Grid>
 
-					{/* Footer */}
 					<Flex
 						paddingBlock={4}
 						paddingInline={8}

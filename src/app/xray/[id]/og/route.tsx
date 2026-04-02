@@ -75,7 +75,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
 						textTransform: 'uppercase' as const,
 					}}
 				>
-					Your Time X-Ray
+					Your Digital Footprint
 				</span>
 				<span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 18, fontWeight: 300 }}>
 					meldar.ai

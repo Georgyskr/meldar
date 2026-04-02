@@ -83,7 +83,7 @@ export function XRayPageClient() {
 								letterSpacing="-0.025em"
 								lineHeight="1.15"
 							>
-								Your Time X-Ray
+								Your Digital Footprint
 							</styled.h1>
 							<styled.p
 								textStyle="body.base"

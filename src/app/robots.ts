@@ -4,7 +4,11 @@ import { SITE_CONFIG } from '@/shared/config'
 export default function robots(): MetadataRoute.Robots {
 	return {
 		rules: [
-			{ userAgent: '*', allow: '/' },
+			{
+				userAgent: '*',
+				allow: '/',
+				disallow: ['/api/', '/thank-you', '/coming-soon'],
+			},
 			{ userAgent: 'GPTBot', allow: '/' },
 			{ userAgent: 'ClaudeBot', allow: '/' },
 			{ userAgent: 'PerplexityBot', allow: '/' },

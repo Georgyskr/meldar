@@ -1,12 +1,11 @@
 import { Box, styled, VStack } from '@styled-system/jsx'
-import { ArrowRight } from 'lucide-react'
 
 export function FinalCtaSection() {
 	return (
 		<styled.section
 			paddingBlock={40}
 			paddingInline={8}
-			bg="inverseSurface"
+			background="linear-gradient(180deg, #481b3c 0%, #2f312f 100%)"
 			color="inverseOnSurface"
 			position="relative"
 			overflow="hidden"
@@ -48,18 +47,42 @@ export function FinalCtaSection() {
 					gap={2}
 					paddingInline={8}
 					paddingBlock={4}
-					background="white"
+					background="linear-gradient(135deg, #FFB876 0%, #ffffff 50%, #FFB876 100%)"
+					backgroundSize="200% 200%"
 					color="#623153"
 					fontFamily="heading"
 					fontWeight="700"
 					fontSize="md"
 					borderRadius="md"
 					textDecoration="none"
-					transition="opacity 0.2s ease"
-					_hover={{ opacity: 0.9 }}
+					transition="all 0.3s ease"
+					boxShadow="0 4px 20px rgba(255, 184, 118, 0.3)"
+					style={{ animation: 'pulseGlow 3s ease-in-out infinite' }}
+					_hover={{
+						boxShadow: '0 6px 28px rgba(255, 184, 118, 0.5)',
+						transform: 'translateY(-1px)',
+					}}
+					_focusVisible={{
+						outline: '2px solid',
+						outlineColor: '#FFB876',
+						outlineOffset: '2px',
+					}}
 				>
 					Start here — it&apos;s free
-					<ArrowRight size={18} />
+					<svg
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M5 12h14" />
+						<path d="m12 5 7 7-7 7" />
+					</svg>
 				</styled.a>
 			</VStack>
 		</styled.section>

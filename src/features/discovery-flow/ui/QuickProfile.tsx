@@ -54,7 +54,7 @@ const SLOTS: SlotConfig[] = [
 		label: 'AGE',
 		prompt: 'How old are you?',
 		mode: 'single',
-		options: ['16-20', '21-25', '26-30', '30+'],
+		options: ['16-20', '21-25', '26-30', '31+'],
 	},
 	{
 		id: 'pain',
@@ -81,11 +81,11 @@ const SLOTS: SlotConfig[] = [
 	{
 		id: 'tools',
 		label: 'AI TOOLS',
-		prompt: 'Which AI tools do you use?',
+		prompt: 'Which AI tools have you tried?',
 		mode: 'multi',
-		options: ['ChatGPT', 'Claude', 'Gemini', 'DeepSeek', 'Copilot', 'None'],
+		options: ['ChatGPT', 'Claude', 'Gemini', 'DeepSeek', 'Copilot'],
 		minPicks: 1,
-		maxPicks: 6,
+		maxPicks: 5,
 	},
 ]
 
@@ -117,6 +117,9 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 	const config = SLOTS[activeSlot]
 	const allLocked = slotStates.every((s) => s.locked)
 	const lockedCount = slotStates.filter((s) => s.locked).length
+	const comfortValue = slotStates[3].value
+	const toolsSkipped = comfortValue.includes('Never tried')
+	const visibleStepCount = toolsSkipped ? SLOTS.length - 1 : SLOTS.length
 
 	// Respect prefers-reduced-motion — skip animation delays when motion is reduced
 	const animDelay =
@@ -125,17 +128,28 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 			: 350
 
 	function lockSingle(value: string) {
-		setSlotStates((prev) => prev.map((s, i) => (i === activeSlot ? { locked: true, value } : s)))
+		const isNeverTriedAi = SLOTS[activeSlot].id === 'comfort' && value.includes('Never tried')
+
+		setSlotStates((prev) =>
+			prev.map((s, i) => {
+				if (i === activeSlot) return { locked: true, value }
+				// Auto-fill tools as "none" when user never tried AI
+				if (isNeverTriedAi && SLOTS[i].id === 'tools') return { locked: true, value: 'None' }
+				return s
+			}),
+		)
 		setShowOtherInput(false)
 		setOtherText('')
-		setTimeout(() => setActiveSlot((a) => a + 1), animDelay)
+
+		if (!isNeverTriedAi) {
+			setTimeout(() => setActiveSlot((a) => a + 1), animDelay)
+		}
+		// When "Never tried" — allLocked triggers handleDone via useEffect
 	}
 
 	function toggleMulti(option: string) {
 		setMultiSelected((prev) => {
 			const next = new Set(prev)
-			if (option === 'None') return next.has('None') ? new Set() : new Set(['None'])
-			next.delete('None')
 			if (next.has(option)) {
 				next.delete(option)
 			} else if (!config?.maxPicks || next.size < config.maxPicks) {
@@ -215,7 +229,7 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 					letterSpacing="0.06em"
 					data-testid="step-counter"
 				>
-					Step {Math.min(activeSlot + 1, SLOTS.length)} of {SLOTS.length}
+					Step {Math.min(activeSlot + 1, visibleStepCount)} of {visibleStepCount}
 				</styled.span>
 				<styled.button
 					onClick={() => setAdhdMode((v) => !v)}

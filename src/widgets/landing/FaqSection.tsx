@@ -1,8 +1,4 @@
-'use client'
-
 import { styled, VStack } from '@styled-system/jsx'
-import { ChevronDown } from 'lucide-react'
-import { useState } from 'react'
 
 const faqs = [
 	{
@@ -11,7 +7,7 @@ const faqs = [
 	},
 	{
 		q: 'What does it actually cost?',
-		a: 'The Discover tier is free. When you start using AI to build things, most people spend $5\u201320 a month. We add a 5% fee on top. You see exactly what you pay for on every invoice.',
+		a: "The Digital Footprint Scan is completely free. If you want us to build your first app, it's a one-time EUR 79. After that, the Bundle subscription is EUR 9.99 a month for access to our skills library and bundled AI tools. No hidden fees. Cancel anytime.",
 	},
 	{
 		q: "What if it doesn't work?",
@@ -27,7 +23,7 @@ const faqs = [
 	},
 	{
 		q: 'Can I talk to a real person?',
-		a: "Yes. We're a small team and we read every message. If you get stuck, reply to any email from us or use the contact link. A human answers.",
+		a: "Yes. We're small and we read every message. If you get stuck, reply to any email from us or use the contact link. A human answers.",
 	},
 	{
 		q: 'What data do you actually need?',
@@ -44,8 +40,6 @@ const faqs = [
 ]
 
 export function FaqSection() {
-	const [openIndex, setOpenIndex] = useState<number | null>(null)
-
 	return (
 		<styled.section paddingBlock={32} paddingInline={8} bg="surface">
 			<VStack maxWidth="breakpoint-md" marginInline="auto" gap={12}>
@@ -54,54 +48,75 @@ export function FaqSection() {
 				</styled.h2>
 
 				<VStack gap={0} width="100%">
-					{faqs.map((faq, i) => (
-						<styled.div
+					{faqs.map((faq) => (
+						<styled.details
 							key={faq.q}
 							borderBlockEnd="1px solid"
 							borderColor="outlineVariant"
 							width="100%"
+							css={{
+								'&[open] .faq-chevron': { transform: 'rotate(180deg)' },
+								'&[open] .faq-content': {
+									gridTemplateRows: '1fr',
+									opacity: 1,
+								},
+							}}
 						>
-							<styled.button
-								width="100%"
+							<styled.summary
 								display="flex"
 								justifyContent="space-between"
 								alignItems="center"
 								gap={4}
 								paddingBlock={5}
 								paddingInline={0}
-								bg="transparent"
-								border="none"
 								cursor="pointer"
-								textAlign="left"
+								listStyle="none"
 								_focusVisible={{
 									outline: '2px solid',
 									outlineColor: 'primary',
 									outlineOffset: '-2px',
 									borderRadius: 'sm',
 								}}
-								onClick={() => setOpenIndex(openIndex === i ? null : i)}
-								aria-expanded={openIndex === i}
+								css={{ '&::-webkit-details-marker': { display: 'none' } }}
 							>
 								<styled.span fontFamily="heading" fontWeight="500" color="onSurface">
 									{faq.q}
 								</styled.span>
 								<styled.span
+									className="faq-chevron"
 									transition="transform 0.2s ease"
-									transform={openIndex === i ? 'rotate(180deg)' : 'rotate(0)'}
 									flexShrink={0}
 								>
-									<ChevronDown size={20} color="#4f434a" aria-hidden="true" />
+									<svg
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="#4f434a"
+										strokeWidth="2"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										aria-hidden="true"
+									>
+										<path d="m6 9 6 6 6-6" />
+									</svg>
 								</styled.span>
-							</styled.button>
+							</styled.summary>
 
-							{openIndex === i && (
-								<styled.div paddingBlockEnd={5}>
-									<styled.p textStyle="body.base" color="onSurfaceVariant">
+							<styled.div
+								className="faq-content"
+								display="grid"
+								gridTemplateRows="0fr"
+								opacity={0}
+								transition="grid-template-rows 0.3s ease, opacity 0.3s ease"
+							>
+								<styled.div overflow="hidden">
+									<styled.p textStyle="body.base" color="onSurfaceVariant" paddingBlockEnd={5}>
 										{faq.a}
 									</styled.p>
 								</styled.div>
-							)}
-						</styled.div>
+							</styled.div>
+						</styled.details>
 					))}
 				</VStack>
 			</VStack>

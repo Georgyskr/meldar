@@ -32,7 +32,7 @@ export function XRayCardActions({
 		onTrack?.({ name: 'xray_shared', method: 'native_share' })
 		if (navigator.share) {
 			await navigator.share({
-				title: 'My Time X-Ray',
+				title: 'My Digital Footprint Scan',
 				text: shareText,
 				url: shareUrl,
 			})

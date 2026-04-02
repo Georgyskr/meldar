@@ -27,7 +27,7 @@ const perks = [
 
 export function EarlyAdopterSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="primary/4">
+		<styled.section paddingBlock={32} paddingInline={8} bg="primary/6">
 			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12} alignItems="center">
 				<VStack gap={4} textAlign="center" maxWidth="600px">
 					<styled.span textStyle="label.upper" color="primary">

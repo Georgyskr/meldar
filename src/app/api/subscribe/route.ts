@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 		await resend.emails.send({
 			from: 'Meldar <hello@meldar.ai>',
 			to: email,
-			subject: 'Your Time X-Ray is coming',
+			subject: 'Your Digital Footprint Scan is coming',
 			html: `
 				<div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
 					<h1 style="font-size: 24px; color: #623153; margin-bottom: 16px;">Welcome to Meldar</h1>
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 							<a href="https://meldar.ai/quiz" style="color: #623153;">meldar.ai/quiz</a>
 						</li>
 						<li><strong>Upload a Screen Time screenshot</strong> — we'll show you your real numbers.</li>
-						<li><strong>We'll send your Time X-Ray</strong> — a personal report on where your hours go.</li>
+						<li><strong>We'll send your Digital Footprint Scan</strong> — a personal report on where your hours go.</li>
 					</ol>
 					<p style="font-size: 14px; color: #81737a; margin-top: 32px;">
 						Questions? Just reply to this email. A human reads it.<br/>

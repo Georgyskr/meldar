@@ -2,6 +2,7 @@
 
 import { Flex, styled } from '@styled-system/jsx'
 import { requestConsentReopen } from '@/features/cookie-consent'
+import { requestDataTermsReopen } from '@/features/discovery-flow/lib/data-terms'
 
 export function Footer() {
 	return (
@@ -60,6 +61,20 @@ export function Footer() {
 						onClick={() => requestConsentReopen()}
 					>
 						Cookie Settings
+					</styled.button>
+					<styled.button
+						textTransform="uppercase"
+						letterSpacing="widest"
+						fontSize="3xs"
+						fontWeight="500"
+						color="onSurface/30"
+						bg="transparent"
+						border="none"
+						cursor="pointer"
+						_hover={{ color: 'primary' }}
+						onClick={() => requestDataTermsReopen()}
+					>
+						Data Terms
 					</styled.button>
 					<FooterLink href="mailto:gosha.skryuchenkov@gmail.com">Contact</FooterLink>
 				</Flex>

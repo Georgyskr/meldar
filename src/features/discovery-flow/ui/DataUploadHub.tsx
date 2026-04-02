@@ -15,8 +15,14 @@ import {
 	Search,
 	Wallet,
 } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { trackEvent } from '@/features/analytics'
+import {
+	DATA_TERMS_CHANGED_EVENT,
+	getDataTermsAccepted,
+	revokeDataTerms,
+	setDataTermsAccepted,
+} from '../lib/data-terms'
 import { extractText, waitForOcr } from '../lib/ocr-client'
 import { uploadStatusAtom } from '../model/atoms'
 import { UploadCard, type UploadStatus } from './UploadCard'
@@ -113,8 +119,6 @@ const DEEP_SOURCES: SourceConfig[] = [
 		icon: Search,
 	},
 ]
-
-/* ─── Instruction components ─── */
 
 function ScreenTimeInstructions() {
 	return (
@@ -319,11 +323,28 @@ const INSTRUCTION_MAP: Record<string, () => ReactNode> = {
 	google: GoogleInstructions,
 }
 
-/* ─── Main component ─── */
-
 export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: DataUploadHubProps) {
 	const [sources, setSources] = useAtom(uploadStatusAtom)
-	const [optedIn, setOptedIn] = useState(false)
+	const [optedIn, setOptedInState] = useState(false)
+
+	useEffect(() => {
+		setOptedInState(getDataTermsAccepted())
+		const handle = (e: Event) => {
+			if ((e as CustomEvent).detail === 'reopen') {
+				revokeDataTerms()
+				setOptedInState(false)
+			} else {
+				setOptedInState(getDataTermsAccepted())
+			}
+		}
+		window.addEventListener(DATA_TERMS_CHANGED_EVENT, handle)
+		return () => window.removeEventListener(DATA_TERMS_CHANGED_EVENT, handle)
+	}, [])
+
+	function acceptTerms() {
+		setDataTermsAccepted(true)
+		setOptedInState(true)
+	}
 
 	function getStatus(id: string): UploadStatus {
 		return sources[id]?.status ?? 'idle'
@@ -377,6 +398,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 
 	async function handleFile(platformId: string, file: File) {
 		if (!optedIn) return
+		trackEvent({ name: 'scan_started' })
 
 		setSources((prev) => ({
 			...prev,
@@ -436,6 +458,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 
 			if (!res.ok) {
 				const data = await res.json()
+				trackEvent({ name: 'scan_failed', reason: data.error?.message || 'upload_error' })
 				setSources((prev) => ({
 					...prev,
 					[platformId]: {
@@ -448,6 +471,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 			}
 
 			const responseData = await res.json()
+			trackEvent({ name: 'scan_completed' })
 			setSources((prev) => {
 				const existing = prev[platformId]?.preview
 				const incoming = responseData.preview
@@ -480,6 +504,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 				}
 			})
 		} catch {
+			trackEvent({ name: 'scan_failed', reason: 'network_error' })
 			setSources((prev) => ({
 				...prev,
 				[platformId]: {
@@ -531,6 +556,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 					maxFiles={maxFiles}
 					uploadCount={uploadCount}
 					preview={sources[source.id]?.preview}
+					disabled={!optedIn}
 				/>
 			</Box>
 		)
@@ -554,38 +580,21 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 				</styled.p>
 			</VStack>
 
-			{/* Opt-in: data doesn't leave device until user agrees */}
-			{!optedIn && (
+			{/* Data terms: persisted to localStorage like cookie consent */}
+			{!optedIn ? (
 				<Box
+					id="data-terms"
 					width="100%"
-					padding={5}
+					padding={6}
 					borderRadius="16px"
 					bg="surfaceContainerLowest"
 					border="1.5px solid"
-					borderColor="primary/15"
+					borderColor="primary/20"
 				>
-					<Flex gap={3} alignItems="flex-start">
-						<styled.input
-							id="data-opt-in"
-							type="checkbox"
-							checked={optedIn}
-							onChange={(e) => setOptedIn(e.target.checked)}
-							width="20px"
-							height="20px"
-							flexShrink={0}
-							marginBlockStart="2px"
-							cursor="pointer"
-							accentColor="#623153"
-						/>
-						<styled.label
-							htmlFor="data-opt-in"
-							textStyle="body.sm"
-							color="onSurfaceVariant"
-							lineHeight="1.5"
-							cursor="pointer"
-						>
-							I agree that my uploaded data will be processed by Meldar to generate personalized
-							recommendations. Data is analyzed and deleted — never stored raw.{' '}
+					<VStack gap={4} alignItems="stretch">
+						<styled.p textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.6">
+							Your data will be processed by Meldar to generate personalized recommendations. Data
+							is analyzed and deleted — never stored raw.{' '}
 							<styled.a
 								href="/privacy-policy"
 								target="_blank"
@@ -607,11 +616,60 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 								_hover={{ textDecorationColor: 'primary' }}
 								rel="noopener"
 							>
-								Terms of Service
+								Terms
 							</styled.a>
-						</styled.label>
-					</Flex>
+						</styled.p>
+						<styled.button
+							onClick={acceptTerms}
+							paddingInline={5}
+							paddingBlock={3}
+							background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
+							color="white"
+							fontFamily="heading"
+							fontWeight="700"
+							fontSize="sm"
+							borderRadius="md"
+							border="none"
+							cursor="pointer"
+							transition="opacity 0.2s ease"
+							_hover={{ opacity: 0.9 }}
+							_focusVisible={{
+								outline: '2px solid',
+								outlineColor: 'primary',
+								outlineOffset: '2px',
+							}}
+						>
+							I agree, let me upload
+						</styled.button>
+					</VStack>
 				</Box>
+			) : (
+				<Flex justifyContent="flex-start" width="100%">
+					<styled.button
+						onClick={() => {
+							revokeDataTerms()
+							setOptedInState(false)
+						}}
+						display="flex"
+						alignItems="center"
+						gap={1.5}
+						paddingInline={3}
+						paddingBlock={1}
+						fontSize="xs"
+						fontWeight="500"
+						color="onSurfaceVariant/50"
+						bg="surfaceContainer/50"
+						border="1px solid"
+						borderColor="outlineVariant/15"
+						borderRadius="full"
+						cursor="pointer"
+						transition="all 0.2s ease"
+						_hover={{ color: 'onSurfaceVariant', borderColor: 'outlineVariant/30' }}
+					>
+						<Lock size={10} />
+						Data terms accepted
+					</styled.button>
+				</Flex>
 			)}
 
 			{/* Section 1: Quick scans */}

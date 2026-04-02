@@ -40,8 +40,8 @@ export default function TermsPage() {
 				<Section title="The service">
 					<P>
 						Meldar helps you discover automation opportunities in your daily routine and builds
-						personal apps to address them. We provide a free tier (Time X-Ray) and paid tiers for
-						AI-powered app building.
+						personal apps to address them. We provide a free tier (Digital Footprint Scan) and paid
+						tiers for AI-powered app building.
 					</P>
 				</Section>
 
@@ -66,9 +66,9 @@ export default function TermsPage() {
 
 				<Section title="Payments">
 					<P>
-						The Time X-Ray is free. Paid services (Personal Time Audit, App Build) are one-time
-						payments processed by Stripe in EUR. Subscription plans are billed monthly. All prices
-						include VAT. You can cancel subscriptions at any time.
+						The Digital Footprint Scan is free. Paid services (Personal Time Audit, App Build) are
+						one-time payments processed by Stripe in EUR. Subscription plans are billed monthly. All
+						prices include VAT. You can cancel subscriptions at any time.
 					</P>
 					<P>
 						Under EU Consumer Rights Directive, you have 14 days to withdraw from a digital
