@@ -297,7 +297,7 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 			>
 				{/* LEFT: Slot board */}
 				<Box
-					width={{ base: '100%', md: '240px' }}
+					width={{ base: '100%', md: '300px' }}
 					flexShrink={0}
 					padding={4}
 					borderRadius="16px"

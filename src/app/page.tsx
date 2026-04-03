@@ -68,7 +68,7 @@ const faqSchema = {
 			name: 'I tried AI tools before and gave up. Why is this different?',
 			acceptedAnswer: {
 				'@type': 'Answer',
-				text: 'Those tools dropped you into a blank screen. Meldar connects to how you already work, finds the time-wasters you did not notice, and builds the fix.',
+				text: 'Those tools gave you a blank screen. Meldar connects to how you already work, finds the time-wasters you did not notice, and builds the fix.',
 			},
 		},
 		{
@@ -84,7 +84,7 @@ const faqSchema = {
 			name: 'Can I talk to a real person?',
 			acceptedAnswer: {
 				'@type': 'Answer',
-				text: 'Yes. One person runs Meldar and reads every message. A human answers.',
+				text: 'Yes. Reply to any email. A human reads it.',
 			},
 		},
 		{
@@ -116,7 +116,7 @@ const faqSchema = {
 
 export default function HomePage() {
 	return (
-		<styled.main id="main-content" paddingBlockStart="72px" /* matches fixed header height */>
+		<styled.main id="main-content">
 			<JsonLd
 				data={{
 					'@context': 'https://schema.org',

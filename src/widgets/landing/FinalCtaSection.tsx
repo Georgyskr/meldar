@@ -3,7 +3,7 @@ import { Box, styled, VStack } from '@styled-system/jsx'
 export function FinalCtaSection() {
 	return (
 		<styled.section
-			paddingBlock={40}
+			paddingBlock={24}
 			paddingInline={8}
 			background="linear-gradient(180deg, #481b3c 0%, #2f312f 100%)"
 			color="inverseOnSurface"
@@ -37,7 +37,7 @@ export function FinalCtaSection() {
 				</styled.h2>
 
 				<styled.p textStyle="body.lead" color="white/80" maxWidth="480px">
-					30 seconds. One screenshot. No signup.
+					Takes two minutes. No credit card. No catch.
 				</styled.p>
 
 				<styled.a

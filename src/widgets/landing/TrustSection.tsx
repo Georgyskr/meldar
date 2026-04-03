@@ -4,7 +4,7 @@ import { Check, Trash2, Unlock, X } from 'lucide-react'
 export function TrustSection() {
 	return (
 		<styled.section
-			paddingBlock={32}
+			paddingBlock={20}
 			paddingInline={8}
 			bg="primary/3"
 			overflow="hidden"
@@ -71,17 +71,15 @@ export function TrustSection() {
 					width="100%"
 				>
 					<styled.p textStyle="body.base" color="onSurface" fontWeight="600" textAlign="center">
-						Built by a founder who uses the same AI tools you&apos;re about to learn.
+						Built by one person who uses the same tools you&apos;re about to learn.
 					</styled.p>
 					<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
-						Refined every day since launch.
+						We don&apos;t keep your exports. We don&apos;t reuse your data. We read it, show you the
+						results, and throw it away.
 					</styled.p>
 					<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
-						EU-registered company. GDPR compliant. Data auto-purges in 30 days.
-					</styled.p>
-					<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
-						Your screenshot is processed in your browser using OCR. The image never reaches our
-						servers.
+						Your screenshot never leaves your phone. We read the text from it right in your browser.
+						The image stays with you.
 					</styled.p>
 				</Flex>
 			</VStack>

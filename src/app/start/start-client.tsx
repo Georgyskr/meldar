@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Flex, styled, VStack } from '@styled-system/jsx'
+import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
 import { useAtom } from 'jotai'
 import { RESET } from 'jotai/utils'
 import { RefreshCw } from 'lucide-react'
@@ -198,11 +198,13 @@ export function StartClient() {
 		<styled.main
 			paddingBlockStart="96px"
 			paddingBlockEnd={12}
-			paddingInline={5}
+			paddingInline={{ base: 6, md: 16 }}
 			minHeight="100dvh"
 			position="relative"
+			maxWidth="breakpoint-xl"
+			marginInline="auto"
 		>
-			<VStack gap={8} maxWidth="720px" marginInline="auto" position="relative">
+			<VStack gap={8} position="relative">
 				{/* Resume banner */}
 				{isResuming && !analyzing && (
 					<Flex
@@ -350,7 +352,153 @@ export function StartClient() {
 						)}
 					</Box>
 				)}
+
+				{phase === 'profile' && !analyzing && <BelowFormContent />}
 			</VStack>
 		</styled.main>
+	)
+}
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+	return (
+		<styled.details
+			width="100%"
+			borderBlockEnd="1px solid"
+			borderColor="outlineVariant/10"
+			css={{
+				'&[open] .faq-arrow': { transform: 'rotate(90deg)' },
+				'&[open] .faq-answer': { gridTemplateRows: '1fr', opacity: 1 },
+			}}
+		>
+			<styled.summary
+				display="flex"
+				alignItems="center"
+				gap={3}
+				paddingBlock={3}
+				cursor="pointer"
+				listStyle="none"
+				css={{ '&::-webkit-details-marker': { display: 'none' } }}
+			>
+				<styled.span
+					className="faq-arrow"
+					color="primary/40"
+					fontSize="xs"
+					transition="transform 0.2s ease"
+					flexShrink={0}
+				>
+					&#9654;
+				</styled.span>
+				<styled.span fontSize="sm" fontWeight="500" fontFamily="heading" color="onSurfaceVariant">
+					{q}
+				</styled.span>
+			</styled.summary>
+			<styled.div
+				className="faq-answer"
+				display="grid"
+				gridTemplateRows="0fr"
+				opacity={0}
+				transition="grid-template-rows 0.3s ease, opacity 0.3s ease"
+			>
+				<styled.div overflow="hidden">
+					<styled.p
+						fontSize="sm"
+						color="onSurfaceVariant/70"
+						paddingBlockEnd={3}
+						paddingInlineStart={6}
+					>
+						{a}
+					</styled.p>
+				</styled.div>
+			</styled.div>
+		</styled.details>
+	)
+}
+
+function ResourceCard({ title, desc }: { title: string; desc: string }) {
+	return (
+		<VStack alignItems="flex-start" gap={1.5} paddingBlock={3}>
+			<styled.h4 fontSize="sm" fontWeight="600" fontFamily="heading" color="onSurfaceVariant">
+				{title}
+			</styled.h4>
+			<styled.p fontSize="xs" color="onSurfaceVariant/70" lineHeight="1.6">
+				{desc}
+			</styled.p>
+		</VStack>
+	)
+}
+
+function BelowFormContent() {
+	return (
+		<Grid
+			columns={{ base: 1, md: 2 }}
+			gap={8}
+			width="100%"
+			marginBlockStart={12}
+			paddingBlockStart={8}
+			borderBlockStart="1px solid"
+			borderColor="outlineVariant/10"
+		>
+			<VStack alignItems="flex-start" gap={6}>
+				<styled.h3
+					fontFamily="heading"
+					fontSize="xs"
+					fontWeight="600"
+					color="onSurfaceVariant/40"
+					textTransform="uppercase"
+					letterSpacing="0.08em"
+				>
+					Common questions
+				</styled.h3>
+				<VStack gap={0} width="100%">
+					<FaqItem
+						q="What happens with my data?"
+						a="Your screenshot is read in your browser. The image never reaches our servers. We analyze the text, show you results, and throw it away."
+					/>
+					<FaqItem
+						q="Do I need to code?"
+						a="No. You tell us what bugs you, we handle the rest. If you can code, you'll get more out of it."
+					/>
+					<FaqItem
+						q="How long does this take?"
+						a="The quiz takes about a minute. Upload a screenshot and you get results in under two minutes total."
+					/>
+					<FaqItem
+						q="What do I get?"
+						a="A report showing where your time goes, what to automate first, and a recommendation for what to build."
+					/>
+				</VStack>
+			</VStack>
+
+			<VStack alignItems="flex-start" gap={6}>
+				<styled.h3
+					fontFamily="heading"
+					fontSize="xs"
+					fontWeight="600"
+					color="onSurfaceVariant/40"
+					textTransform="uppercase"
+					letterSpacing="0.08em"
+				>
+					Why this matters
+				</styled.h3>
+				<VStack gap={4} width="100%">
+					<ResourceCard
+						title="You're already paying for AI with your data"
+						desc="Google made $238 from your data last year. That same data can tell you what to build."
+					/>
+					<ResourceCard
+						title="The people who learn AI now win"
+						desc="In 2 years, AI literacy will be like computer literacy in the 2000s. Early movers have an unfair advantage."
+					/>
+					<ResourceCard
+						title="You don't need a blank prompt"
+						desc="Most AI tools start with nothing. Meldar starts with your actual patterns and builds from there."
+					/>
+					<ResourceCard
+						title="Your first app takes minutes, not months"
+						desc="People build meal planners, grade watchers, and expense trackers in their first session."
+					/>
+				</VStack>
+			</VStack>
+		</Grid>
 	)
 }

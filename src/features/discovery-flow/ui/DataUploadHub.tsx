@@ -326,6 +326,7 @@ const INSTRUCTION_MAP: Record<string, () => ReactNode> = {
 export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: DataUploadHubProps) {
 	const [sources, setSources] = useAtom(uploadStatusAtom)
 	const [optedIn, setOptedInState] = useState(false)
+	const [adhdMode, setAdhdMode] = useState(false)
 
 	useEffect(() => {
 		setOptedInState(getDataTermsAccepted())
@@ -563,13 +564,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 	}
 
 	return (
-		<VStack
-			gap={6}
-			width="100%"
-			maxWidth="640px"
-			marginInline="auto"
-			style={{ animation: 'meldarFadeSlideUp 0.5s ease-out both' }}
-		>
+		<VStack gap={6} width="100%" style={{ animation: 'meldarFadeSlideUp 0.5s ease-out both' }}>
 			{/* Header */}
 			<VStack gap={2} textAlign="center">
 				<styled.h2 textStyle="heading.section" color="onSurface">
@@ -644,7 +639,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 					</VStack>
 				</Box>
 			) : (
-				<Flex justifyContent="flex-start" width="100%">
+				<Flex justifyContent="space-between" alignItems="center" width="100%">
 					<styled.button
 						onClick={() => {
 							revokeDataTerms()
@@ -669,71 +664,37 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 						<Lock size={10} />
 						Data terms accepted
 					</styled.button>
+					<styled.button
+						onClick={() => setAdhdMode((v) => !v)}
+						display="flex"
+						alignItems="center"
+						gap={1.5}
+						paddingInline={3}
+						paddingBlock={1}
+						fontSize="xs"
+						fontWeight="600"
+						fontFamily="heading"
+						color={adhdMode ? 'primary' : 'onSurfaceVariant/50'}
+						bg={adhdMode ? 'primary/8' : 'surfaceContainer/50'}
+						border="1px solid"
+						borderColor={adhdMode ? 'primary/30' : 'outlineVariant/15'}
+						borderRadius="full"
+						cursor="pointer"
+						transition="all 0.2s ease"
+						_hover={{ borderColor: 'primary/40' }}
+						aria-pressed={adhdMode}
+					>
+						<Brain size={12} />
+						ADHD mode
+					</styled.button>
 				</Flex>
 			)}
 
-			{/* Section 1: Quick scans */}
-			<VStack gap={4} width="100%">
-				<Flex gap={2} justifyContent="space-between" alignItems="center" width="100%">
-					<VStack gap={0} alignItems="flex-start">
-						<styled.h3
-							fontSize="xs"
-							fontWeight="700"
-							fontFamily="heading"
-							color="onSurface"
-							textTransform="uppercase"
-							letterSpacing="0.05em"
-						>
-							Quick scans
-						</styled.h3>
-						<styled.span fontSize="xs" color="onSurfaceVariant/50">
-							Free &middot; screenshots you already have
-						</styled.span>
-					</VStack>
-					<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50">
-						{instantDoneCount} of {INSTANT_SOURCES.length} done
-					</styled.span>
-				</Flex>
-
-				{/* Progress dots */}
-				<Flex gap={2} alignItems="center">
-					{INSTANT_SOURCES.map((s) => (
-						<Box
-							key={s.id}
-							width="10px"
-							height="10px"
-							borderRadius="full"
-							bg={getStatus(s.id) === 'done' ? 'primary' : 'outlineVariant/20'}
-							transition="all 0.3s ease"
-						/>
-					))}
-				</Flex>
-
-				<Grid columns={{ base: 1, md: 2 }} gap={4} width="100%">
-					{INSTANT_SOURCES.map((s, i) => renderSourceCard(s, i, false))}
-				</Grid>
-			</VStack>
-
-			{/* Divider */}
-			<VStack gap={3} width="100%" paddingBlock={2}>
-				<Box width="100%" height="1px" bg="outlineVariant/15" />
-				<styled.p
-					textStyle="body.sm"
-					color="onSurfaceVariant/60"
-					textAlign="center"
-					fontWeight="500"
-					paddingInline={4}
-				>
-					Want deeper insights? These take a bit longer but reveal way more.
-				</styled.p>
-				<Box width="100%" height="1px" bg="outlineVariant/15" />
-			</VStack>
-
-			{/* Section 2: Deep analysis */}
-			<VStack gap={4} width="100%">
-				<Flex gap={2} justifyContent="space-between" alignItems="center" width="100%">
-					<VStack gap={0} alignItems="flex-start">
-						<Flex gap={2} alignItems="center">
+			<Flex gap={0} width="100%" flexDir={{ base: 'column', md: 'row' }} alignItems="stretch">
+				{/* Section 1: Quick scans */}
+				<VStack gap={4} flex={1}>
+					<Flex gap={2} justifyContent="space-between" alignItems="center" width="100%">
+						<VStack gap={0} alignItems="flex-start">
 							<styled.h3
 								fontSize="xs"
 								fontWeight="700"
@@ -742,88 +703,141 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 								textTransform="uppercase"
 								letterSpacing="0.05em"
 							>
-								Deep analysis
+								Quick scans
 							</styled.h3>
-							<Flex
-								gap={1}
-								alignItems="center"
-								paddingInline={2}
-								paddingBlock={0.5}
-								borderRadius="md"
-								bg="orange.100"
-							>
-								<Lock size={10} color="#d97706" />
-								<styled.span fontSize="10px" fontWeight="600" color="orange.700">
-									EUR 9.99/mo
-								</styled.span>
-							</Flex>
-						</Flex>
-						<styled.span fontSize="xs" color="onSurfaceVariant/50">
-							Requires async exports (hours/days)
+							<styled.span fontSize="xs" color="onSurfaceVariant/50">
+								Free &middot; screenshots you already have
+							</styled.span>
+						</VStack>
+						<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50">
+							{instantDoneCount} of {INSTANT_SOURCES.length} done
 						</styled.span>
+					</Flex>
+
+					{/* Progress dots */}
+					<Flex gap={2} alignItems="center">
+						{INSTANT_SOURCES.map((s) => (
+							<Box
+								key={s.id}
+								width="10px"
+								height="10px"
+								borderRadius="full"
+								bg={getStatus(s.id) === 'done' ? 'primary' : 'outlineVariant/20'}
+								transition="all 0.3s ease"
+							/>
+						))}
+					</Flex>
+
+					<VStack gap={4} width="100%">
+						{INSTANT_SOURCES.map((s, i) => renderSourceCard(s, i, false))}
 					</VStack>
-					<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50">
-						{deepDoneCount} of {DEEP_SOURCES.length} done
-					</styled.span>
-				</Flex>
+				</VStack>
 
-				{/* Progress dots */}
-				<Flex gap={2} alignItems="center">
-					{DEEP_SOURCES.map((s) => (
-						<Box
-							key={s.id}
-							width="10px"
-							height="10px"
-							borderRadius="full"
-							bg={
-								getStatus(s.id) === 'done'
-									? 'primary'
-									: getStatus(s.id) === 'waiting'
-										? 'orange.400'
-										: 'outlineVariant/20'
-							}
-							transition="all 0.3s ease"
-						/>
-					))}
-				</Flex>
+				{/* Vertical divider — md+ only */}
+				<Box
+					display={{ base: 'none', md: 'block' }}
+					width="1px"
+					bg="outlineVariant/15"
+					marginInline={6}
+					flexShrink={0}
+				/>
 
-				{/* Start free trial CTA */}
-				<styled.button
-					onClick={handleStartTrial}
-					disabled={trialLoading}
-					display="flex"
-					alignItems="center"
-					justifyContent="center"
-					gap={2}
-					width="100%"
-					paddingBlock={3}
-					borderRadius="12px"
-					border="1.5px solid"
-					borderColor="primary/20"
-					bg="primary/4"
-					cursor="pointer"
-					fontSize="sm"
-					fontWeight="700"
-					fontFamily="heading"
-					color="primary"
-					transition="all 0.2s ease"
-					_hover={{ bg: 'primary/8', borderColor: 'primary/40' }}
-					_disabled={{ opacity: 0.6, cursor: 'wait' }}
-					_focusVisible={{
-						outline: '2px solid',
-						outlineColor: 'primary',
-						outlineOffset: '2px',
-					}}
-					data-testid="start-trial-button"
-				>
-					<Lock size={14} />
-					{trialLoading ? 'Redirecting...' : 'Start free trial'}
-				</styled.button>
+				{/* Section 2: Deep analysis */}
+				<VStack gap={4} flex={1}>
+					<Flex gap={2} justifyContent="space-between" alignItems="center" width="100%">
+						<VStack gap={0} alignItems="flex-start">
+							<Flex gap={2} alignItems="center">
+								<styled.h3
+									fontSize="xs"
+									fontWeight="700"
+									fontFamily="heading"
+									color="onSurface"
+									textTransform="uppercase"
+									letterSpacing="0.05em"
+								>
+									Deep analysis
+								</styled.h3>
+								<Flex
+									gap={1}
+									alignItems="center"
+									paddingInline={2}
+									paddingBlock={0.5}
+									borderRadius="md"
+									bg="orange.100"
+								>
+									<Lock size={10} color="#d97706" />
+									<styled.span fontSize="10px" fontWeight="600" color="orange.700">
+										EUR 9.99/mo
+									</styled.span>
+								</Flex>
+							</Flex>
+							<styled.span fontSize="xs" color="onSurfaceVariant/50">
+								Requires async exports (hours/days)
+							</styled.span>
+						</VStack>
+						<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50">
+							{deepDoneCount} of {DEEP_SOURCES.length} done
+						</styled.span>
+					</Flex>
 
-				<Grid columns={{ base: 1, md: 2 }} gap={4} width="100%">
-					{DEEP_SOURCES.map((s, i) => renderSourceCard(s, i, true))}
-				</Grid>
-			</VStack>
+					{/* Progress dots */}
+					<Flex gap={2} alignItems="center">
+						{DEEP_SOURCES.map((s) => (
+							<Box
+								key={s.id}
+								width="10px"
+								height="10px"
+								borderRadius="full"
+								bg={
+									getStatus(s.id) === 'done'
+										? 'primary'
+										: getStatus(s.id) === 'waiting'
+											? 'orange.400'
+											: 'outlineVariant/20'
+								}
+								transition="all 0.3s ease"
+							/>
+						))}
+					</Flex>
+
+					{/* Start free trial CTA */}
+					<styled.button
+						onClick={handleStartTrial}
+						disabled={trialLoading}
+						display="flex"
+						alignItems="center"
+						justifyContent="center"
+						gap={2}
+						width="100%"
+						paddingBlock={3}
+						borderRadius="12px"
+						border="1.5px solid"
+						borderColor="primary/20"
+						bg="primary/4"
+						cursor="pointer"
+						fontSize="sm"
+						fontWeight="700"
+						fontFamily="heading"
+						color="primary"
+						transition="all 0.2s ease"
+						_hover={{ bg: 'primary/8', borderColor: 'primary/40' }}
+						_disabled={{ opacity: 0.6, cursor: 'wait' }}
+						_focusVisible={{
+							outline: '2px solid',
+							outlineColor: 'primary',
+							outlineOffset: '2px',
+						}}
+						data-testid="start-trial-button"
+					>
+						<Lock size={14} />
+						{trialLoading ? 'Redirecting...' : 'Start free trial'}
+					</styled.button>
+
+					<VStack gap={4} width="100%">
+						{DEEP_SOURCES.map((s, i) => renderSourceCard(s, i, true))}
+					</VStack>
+				</VStack>
+			</Flex>
 
 			{/* CTAs */}
 			<VStack gap={3} width="100%" maxWidth="400px" marginInline="auto" paddingBlockStart={2}>

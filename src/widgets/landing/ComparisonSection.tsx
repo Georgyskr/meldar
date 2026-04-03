@@ -1,4 +1,4 @@
-import { styled, VStack } from '@styled-system/jsx'
+import { Box, styled, VStack } from '@styled-system/jsx'
 
 const rows = [
 	{ feature: 'Starting point', meldar: 'Your frustration', others: 'A blank prompt' },
@@ -13,15 +13,29 @@ const rows = [
 		meldar: 'Yes, while you watch',
 		others: 'You build it yourself',
 	},
-	{ feature: 'Your data', meldar: 'Yours. Always.', others: 'Harvested or locked in' },
+	{ feature: 'Your data', meldar: 'Yours. Always.', others: 'Harvested or locked away' },
 ]
 
 export function ComparisonSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="surface">
-			<VStack maxWidth="breakpoint-md" marginInline="auto" gap={12}>
+		<styled.section
+			paddingBlock={20}
+			paddingInline={8}
+			bg="surface"
+			position="relative"
+			overflow="hidden"
+		>
+			<Box
+				position="absolute"
+				inset={0}
+				backgroundImage="url(/images/section-comparison.jpg)"
+				backgroundSize="cover"
+				backgroundPosition="center"
+				opacity={0.1}
+			/>
+			<VStack maxWidth="breakpoint-md" marginInline="auto" gap={8} position="relative" zIndex={1}>
 				<styled.h2 textStyle="heading.section" textAlign="center" color="onSurface">
-					How Meldar is different
+					How this is different
 				</styled.h2>
 
 				<styled.div

@@ -27,28 +27,27 @@ const perks = [
 
 export function EarlyAdopterSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="primary/6">
-			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12} alignItems="center">
-				<VStack gap={4} textAlign="center" maxWidth="600px">
+		<styled.section paddingBlock={20} paddingInline={8} bg="primary/6">
+			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={8} alignItems="center">
+				<VStack gap={3} textAlign="center" maxWidth="600px">
 					<styled.span textStyle="label.upper" color="primary">
 						Founding members
 					</styled.span>
 					<styled.h2 textStyle="heading.section" color="onSurface">
-						We don&apos;t just give you a tool. We get you in.
+						We don&apos;t hand you a tool. We walk you in.
 					</styled.h2>
 					<styled.p textStyle="body.lead" color="onSurfaceVariant">
-						The biggest barrier to AI isn&apos;t the technology. It&apos;s that nobody holds your
-						hand through the door. We do. Sign up and get things nobody else will.
+						The real barrier isn&apos;t the tech. Nobody shows you the door. We do.
 					</styled.p>
 				</VStack>
 
-				<Grid columns={{ base: 1, md: 2 }} gap={6} width="100%">
+				<Grid columns={{ base: 1, md: 2 }} gap={4} width="100%">
 					{perks.map((perk) => (
 						<VStack
 							key={perk.title}
 							alignItems="flex-start"
-							gap={4}
-							padding={8}
+							gap={3}
+							padding={6}
 							bg="surfaceContainerLowest"
 							borderRadius="xl"
 							border="1px solid"

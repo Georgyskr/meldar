@@ -12,22 +12,33 @@ const sampleStats = [
 export function DataReceiptSection() {
 	return (
 		<styled.section
-			paddingBlock={32}
+			paddingBlock={20}
 			paddingInline={8}
 			background="linear-gradient(180deg, #2f312f 0%, #481b3c 100%)"
 			color="inverseOnSurface"
+			position="relative"
+			overflow="hidden"
 		>
-			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12}>
-				<VStack textAlign="center" gap={4} maxWidth="600px" marginInline="auto">
+			<Box
+				position="absolute"
+				inset={0}
+				backgroundImage="url(/images/section-data-texture.jpg)"
+				backgroundSize="cover"
+				backgroundPosition="center"
+				opacity={0.15}
+				style={{ mixBlendMode: 'soft-light' }}
+			/>
+			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={8} position="relative" zIndex={1}>
+				<VStack textAlign="center" gap={3} maxWidth="600px" marginInline="auto">
 					<styled.span textStyle="label.upper" color="inversePrimary">
 						Your Data Analysis
 					</styled.span>
 					<styled.h2 textStyle="heading.display" color="inverseOnSurface">
-						This is what your data looks like when it works for you
+						Your data, working for you instead of against you
 					</styled.h2>
 					<styled.p textStyle="body.lead" color="inverseOnSurface/70">
-						A real report from real data. Google had these numbers. They used them to sell you ads.
-						You can use them to get your life back.
+						Real data from a real report. Google had these numbers and sold you ads. You can use
+						them to fix things.
 					</styled.p>
 				</VStack>
 
@@ -102,7 +113,7 @@ export function DataReceiptSection() {
 					textAlign="center"
 					fontStyle="italic"
 				>
-					Sample report. Your numbers will be different &mdash; and probably more surprising.
+					Sample report. Yours will look different.
 				</styled.p>
 			</VStack>
 		</styled.section>

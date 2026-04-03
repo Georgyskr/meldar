@@ -3,7 +3,7 @@ import { styled, VStack } from '@styled-system/jsx'
 const faqs = [
 	{
 		q: 'Do I need to know how to code?',
-		a: "No. You tell Meldar what bothers you, and it handles the rest. If you can code, great \u2014 you'll get even more out of it. But it's not required.",
+		a: "No. You tell Meldar what bothers you, and it handles the rest. If you can code, you'll get more out of it. Not required.",
 	},
 	{
 		q: 'What does it actually cost?',
@@ -15,7 +15,7 @@ const faqs = [
 	},
 	{
 		q: 'I tried AI tools before and gave up. Why is this different?',
-		a: 'Those tools dropped you into a blank screen and said "figure it out." Meldar connects to how you already work, finds the time-wasters you didn\'t even notice, and builds the fix. You don\'t have to know what to ask for.',
+		a: 'Those tools gave you a blank screen and said "figure it out." Meldar connects to how you already work, finds the time-wasters you didn\'t even notice, and builds the fix. You don\'t have to know what to ask for.',
 	},
 	{
 		q: 'What if I want to stop using Meldar?',
@@ -23,7 +23,7 @@ const faqs = [
 	},
 	{
 		q: 'Can I talk to a real person?',
-		a: "Yes. We're small and we read every message. If you get stuck, reply to any email from us or use the contact link. A human answers.",
+		a: 'Yes. Reply to any email. A human reads it.',
 	},
 	{
 		q: 'What data do you actually need?',
@@ -41,7 +41,7 @@ const faqs = [
 
 export function FaqSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="surface">
+		<styled.section paddingBlock={20} paddingInline={8} bg="surface">
 			<VStack maxWidth="breakpoint-md" marginInline="auto" gap={12}>
 				<styled.h2 fontFamily="heading" fontSize="3xl" fontWeight="700" textAlign="center">
 					Fair questions

@@ -1,6 +1,19 @@
+'use client'
+
 import { Flex, styled } from '@styled-system/jsx'
+import { useEffect, useState } from 'react'
 
 export function Header() {
+	const [scrolled, setScrolled] = useState(false)
+
+	useEffect(() => {
+		function onScroll() {
+			setScrolled(window.scrollY > 20)
+		}
+		window.addEventListener('scroll', onScroll, { passive: true })
+		return () => window.removeEventListener('scroll', onScroll)
+	}, [])
+
 	return (
 		<styled.header
 			position="fixed"
@@ -8,9 +21,10 @@ export function Header() {
 			left={0}
 			right={0}
 			zIndex={50}
-			bg="surface/80"
-			backdropFilter="blur(20px)"
-			boxShadow="0px 24px 48px rgba(12,12,13,0.04)"
+			backdropFilter={scrolled ? 'blur(40px) saturate(1.2)' : 'blur(32px)'}
+			transition="all 0.3s ease"
+			bg={scrolled ? 'surface/85' : 'surface/30'}
+			boxShadow={scrolled ? '0 1px 0 rgba(0,0,0,0.06)' : 'none'}
 		>
 			<styled.a
 				href="#main-content"

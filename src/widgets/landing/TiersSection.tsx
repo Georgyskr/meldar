@@ -12,7 +12,7 @@ const tiers = [
 			'Your data never leaves your browser',
 		],
 		cta: 'Start free',
-		subtext: 'Because everyone deserves to know the truth about their digital life.',
+		subtext: 'Everyone deserves to know where their time goes.',
 		highlighted: false,
 	},
 	{
@@ -25,7 +25,7 @@ const tiers = [
 			'You own it. You run it. No lock-in.',
 		],
 		cta: 'Get it built',
-		subtext: 'Less than a day of your time wasted on the problem this app solves.',
+		subtext: 'Costs less than the time you waste on this problem.',
 		highlighted: false,
 	},
 	{
@@ -38,21 +38,21 @@ const tiers = [
 			'One subscription. One bill. Already set up.',
 		],
 		cta: 'Start your bundle',
-		subtext: "One subscription covers tools you'd have to sign up for separately.",
+		subtext: 'One bill instead of five.',
 		highlighted: true,
 	},
 ]
 
 export function TiersSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="surfaceContainerLow">
+		<styled.section paddingBlock={20} paddingInline={8} bg="surfaceContainerLow">
 			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12}>
 				<VStack textAlign="center" gap={4}>
 					<styled.h2 textStyle="heading.section" color="onSurface">
-						Pick how deep you want to go
+						Pick your level
 					</styled.h2>
 					<styled.p textStyle="body.lead" color="onSurfaceVariant" maxWidth="480px">
-						Start free. Go further when you\u2019re ready.
+						Start free. Go deeper when ready.
 					</styled.p>
 				</VStack>
 

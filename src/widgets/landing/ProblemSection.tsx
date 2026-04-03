@@ -1,27 +1,45 @@
-import { Grid, styled, VStack } from '@styled-system/jsx'
+import { Box, Grid, styled, VStack } from '@styled-system/jsx'
 import { Ban, HelpCircle, RotateCcw } from 'lucide-react'
 
 const problems = [
 	{
 		icon: Ban,
 		title: 'You hit a wall every time',
-		body: "You heard AI can save you hours. You tried. Then it asked you to install three things you'd never heard of and enter codes into a black screen. You closed the laptop.",
+		body: 'You heard AI can save you hours. You tried. Then it asked you to install three things and type codes into a black screen. You closed the laptop.',
 	},
 	{
 		icon: HelpCircle,
 		title: 'Even if you got in, then what?',
-		body: 'Let\'s say you got it working. Now what? "Ask the AI to do something." Great. What? Nobody tells you what to actually DO with it for YOUR life.',
+		body: 'Let\'s say you got it working. Now what? "Ask the AI to do something." Great. What? Nobody tells you what to actually do with it for your life.',
 	},
 	{
 		icon: RotateCcw,
 		title: 'Nothing sticks',
-		body: 'You tried a tutorial. It worked once. Next day, broken. You tried an app. Used it for a week. Abandoned. The tools that promise to save time end up wasting it.',
+		body: 'You tried a tutorial. It worked once. Next day, broken. You tried an app. Used it for a week. Abandoned. Tools that promise to save time waste it.',
 	},
 ]
 
 export function ProblemSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="surfaceContainerLow">
+		<styled.section
+			paddingBlock={20}
+			paddingInline={8}
+			bg="surfaceContainerLow"
+			position="relative"
+			overflow="hidden"
+		>
+			<Box
+				position="absolute"
+				right={0}
+				top={0}
+				width="50%"
+				height="100%"
+				backgroundImage="url(/images/section-problem.jpg)"
+				backgroundSize="cover"
+				backgroundPosition="center"
+				opacity={0.06}
+				display={{ base: 'none', md: 'block' }}
+			/>
 			<Grid
 				maxWidth="breakpoint-xl"
 				marginInline="auto"
@@ -81,8 +99,7 @@ export function ProblemSection() {
 							2,847
 						</styled.span>
 						<styled.p fontFamily="heading" fontSize="xl" color="onSurface/80">
-							Posts, threads, and rants we analyzed across Reddit and forums. The same frustrations
-							kept coming up.
+							Posts and rants we read across Reddit. Same frustrations, over and over.
 						</styled.p>
 						<styled.p textStyle="body.base" color="onSurfaceVariant" fontStyle="italic">
 							The #1 answer: &ldquo;I start tracking it, then I quit because it takes too
@@ -100,7 +117,7 @@ export function ProblemSection() {
 							</styled.span>
 						</VStack>
 						<styled.span textStyle="label.upper" color="primary">
-							Meldar picks up where you left off
+							Meldar starts where you stopped
 						</styled.span>
 					</VStack>
 				</styled.div>

@@ -36,14 +36,14 @@ const skills = [
 
 export function SkillCardsSection() {
 	return (
-		<styled.section paddingBlock={32} paddingInline={8} bg="surface">
-			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={16}>
+		<styled.section paddingBlock={20} paddingInline={8} bg="surface">
+			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={10}>
 				<VStack textAlign="center" gap={4}>
 					<styled.h2 textStyle="heading.section" color="onSurface">
-						Things people build in their first week
+						Built by real people in their first week
 					</styled.h2>
 					<styled.p textStyle="body.lead" color="onSurfaceVariant" maxWidth="480px">
-						Real problems. Personal apps. Each takes minutes to set up.
+						Real problems. Personal fixes. Minutes to set up.
 					</styled.p>
 				</VStack>
 

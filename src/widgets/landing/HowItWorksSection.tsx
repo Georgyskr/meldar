@@ -4,30 +4,30 @@ const steps = [
 	{
 		num: '01',
 		title: 'Take back your data',
-		desc: 'We show you exactly how to download what Google, Apple, and Meta already know about you. It takes 3 minutes. It\u2019s your legal right. Most people have no idea how much is in there.',
+		desc: 'We show you how to download what Google, Apple, and Meta know about you. Takes 3 minutes. It\u2019s your legal right. Most people have no idea what\u2019s in there.',
 	},
 	{
 		num: '02',
 		title: 'See your real numbers',
-		desc: 'Drop the file into Meldar. It never leaves your device. In seconds, you see which apps eat your hours, what you search for over and over, where your week actually goes. The gap between what you think and what\u2019s real is the aha moment.',
+		desc: 'Drop the file in. It never leaves your device. You see which apps eat your hours, what you search repeatedly, where your week goes. The gap between what you think and what\u2019s real is the moment.',
 	},
 	{
 		num: '03',
 		title: 'Pick a fix. We build it.',
-		desc: 'Your analysis shows a ranked list: "This wastes the most time. Here\u2019s what you should build to fix it." Pick the one you want. Meldar teaches you how to build it yourself. Or we build it for you.',
+		desc: 'Your analysis ranks it: most wasted time first, with what to build to fix each one. Pick one. Build it yourself or we build it for you.',
 	},
 ]
 
 export function HowItWorksSection() {
 	return (
-		<styled.section id="how-it-works" paddingBlock={32} paddingInline={8} bg="surfaceContainerLow">
-			<VStack maxWidth="breakpoint-md" marginInline="auto" gap={24}>
-				<VStack gap={4} textAlign="center">
+		<styled.section id="how-it-works" paddingBlock={20} paddingInline={8} bg="surfaceContainerLow">
+			<VStack maxWidth="breakpoint-md" marginInline="auto" gap={10}>
+				<VStack gap={3} textAlign="center">
 					<styled.h2 textStyle="heading.section" color="onSurface">
 						How it actually works
 					</styled.h2>
 					<styled.p textStyle="body.lead" color="onSurfaceVariant" maxWidth="480px">
-						No installs. No permissions. No trust required upfront. Just a file you already own.
+						No installs. No permissions. Just a file you already own.
 					</styled.p>
 				</VStack>
 
@@ -36,7 +36,7 @@ export function HowItWorksSection() {
 						key={step.num}
 						display="flex"
 						flexDir={{ base: 'column', md: 'row' }}
-						gap={12}
+						gap={6}
 						alignItems="flex-start"
 					>
 						<styled.span
