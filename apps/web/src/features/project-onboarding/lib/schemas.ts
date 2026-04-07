@@ -1,5 +1,10 @@
-import { COMPONENT_VOCABULARY } from '@meldar/orchestrator'
+import { COMPONENT_VOCABULARY, type ComponentTypeId } from '@meldar/orchestrator'
 import { z } from 'zod'
+
+const COMPONENT_TYPE_IDS = COMPONENT_VOCABULARY.map((c) => c.id) as [
+	ComponentTypeId,
+	...ComponentTypeId[],
+]
 
 export const onboardingMessageSchema = z.object({
 	role: z.enum(['user', 'assistant']),
@@ -17,7 +22,7 @@ export const subtaskOutputSchema = z.object({
 	description: z.string().max(300),
 	whatYouLearn: z.string().max(300),
 	taskType: z.enum(['feature', 'page', 'integration', 'data', 'fix', 'polish']),
-	componentType: z.string(),
+	componentType: z.enum(COMPONENT_TYPE_IDS),
 	acceptanceCriteria: z.array(z.string()).min(1).max(3),
 })
 export type SubtaskOutput = z.infer<typeof subtaskOutputSchema>

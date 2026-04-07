@@ -1,13 +1,16 @@
 'use client'
 
 import { Flex, styled } from '@styled-system/jsx'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 type BannerStatus = 'visible' | 'resending' | 'sent' | 'dismissed'
 
 export function EmailVerificationBanner({ email, verified }: { email: string; verified: boolean }) {
 	const [status, setStatus] = useState<BannerStatus>('visible')
 	const inFlight = useRef(false)
+	const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+	useEffect(() => () => clearTimeout(timerRef.current), [])
 
 	const handleResend = useCallback(async () => {
 		if (inFlight.current) return
@@ -21,7 +24,7 @@ export function EmailVerificationBanner({ email, verified }: { email: string; ve
 
 			if (res.ok) {
 				setStatus('sent')
-				setTimeout(() => setStatus('visible'), 3000)
+				timerRef.current = setTimeout(() => setStatus('visible'), 3000)
 			} else {
 				setStatus('visible')
 			}

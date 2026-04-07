@@ -15,7 +15,11 @@ describe('JWT utilities', () => {
 
 	describe('signToken', () => {
 		it('returns a valid JWT string', () => {
-			const token = signToken({ userId: 'user-123', email: 'test@example.com' })
+			const token = signToken({
+				userId: 'user-123',
+				email: 'test@example.com',
+				emailVerified: false,
+			})
 			expect(typeof token).toBe('string')
 			expect(token.split('.')).toHaveLength(3) // JWT has 3 parts
 		})
@@ -23,7 +27,11 @@ describe('JWT utilities', () => {
 
 	describe('verifyToken', () => {
 		it('verifies and returns payload for a valid token', () => {
-			const token = signToken({ userId: 'user-123', email: 'test@example.com' })
+			const token = signToken({
+				userId: 'user-123',
+				email: 'test@example.com',
+				emailVerified: false,
+			})
 			const payload = verifyToken(token)
 			expect(payload).not.toBeNull()
 			expect(payload?.userId).toBe('user-123')
@@ -36,7 +44,11 @@ describe('JWT utilities', () => {
 		})
 
 		it('returns null for a tampered token', () => {
-			const token = signToken({ userId: 'user-123', email: 'test@example.com' })
+			const token = signToken({
+				userId: 'user-123',
+				email: 'test@example.com',
+				emailVerified: false,
+			})
 			// Tamper with the payload section
 			const parts = token.split('.')
 			parts[1] = `${parts[1]}tampered`
@@ -64,6 +76,26 @@ describe('JWT utilities', () => {
 			expect(result).toBeNull()
 		})
 
+		it('defaults emailVerified to false for legacy tokens without the claim', () => {
+			const token = jwt.sign({ userId: 'user-123', email: 'test@example.com' }, TEST_SECRET, {
+				expiresIn: '7d',
+				algorithm: 'HS256',
+			})
+			const payload = verifyToken(token)
+			expect(payload).not.toBeNull()
+			expect(payload?.emailVerified).toBe(false)
+		})
+
+		it('preserves emailVerified: true through sign/verify roundtrip', () => {
+			const token = signToken({
+				userId: 'user-123',
+				email: 'test@example.com',
+				emailVerified: true,
+			})
+			const payload = verifyToken(token)
+			expect(payload?.emailVerified).toBe(true)
+		})
+
 		it('rejects tokens signed with a different algorithm (CWE-347 alg-confusion)', () => {
 			// We sign tokens with HS256. A verifier that doesn't pin its
 			// algorithm list will happily accept HS512 (or worse, RS256 with
@@ -88,7 +120,7 @@ describe('JWT utilities', () => {
 		}
 
 		it('returns payload for valid meldar-auth cookie', () => {
-			const token = signToken({ userId: 'user-456', email: 'user@test.com' })
+			const token = signToken({ userId: 'user-456', email: 'user@test.com', emailVerified: true })
 			const request = makeRequest(`meldar-auth=${token}`)
 			const result = getUserFromRequest(request)
 			expect(result).not.toBeNull()
@@ -115,7 +147,7 @@ describe('JWT utilities', () => {
 		})
 
 		it('extracts token from cookie with multiple cookies', () => {
-			const token = signToken({ userId: 'user-789', email: 'multi@test.com' })
+			const token = signToken({ userId: 'user-789', email: 'multi@test.com', emailVerified: false })
 			const request = makeRequest(`other=abc; meldar-auth=${token}; session=xyz`)
 			const result = getUserFromRequest(request)
 			expect(result).not.toBeNull()
@@ -126,7 +158,9 @@ describe('JWT utilities', () => {
 	describe('getSecret', () => {
 		it('throws if AUTH_SECRET is not set', () => {
 			vi.stubEnv('AUTH_SECRET', '')
-			expect(() => signToken({ userId: 'u', email: 'e' })).toThrow('AUTH_SECRET is not set')
+			expect(() => signToken({ userId: 'u', email: 'e', emailVerified: false })).toThrow(
+				'AUTH_SECRET is not set',
+			)
 		})
 	})
 })

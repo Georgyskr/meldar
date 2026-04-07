@@ -145,7 +145,7 @@ export function OnboardingChat({ projectId, projectName, onPlanGenerated }: Onbo
 				</Flex>
 			</Box>
 
-			<Box flex={1} overflowY="auto" paddingBlock={4}>
+			<Box flex={1} overflowY="auto" paddingBlock={4} aria-live="polite" aria-relevant="additions">
 				<VStack alignItems="stretch" gap={2}>
 					{state.messages.map((msg, i) => (
 						// biome-ignore lint/suspicious/noArrayIndexKey: append-only message list

@@ -235,6 +235,7 @@ describe('POST /api/workspace/[projectId]/generate-plan', () => {
 				model: 'claude-haiku-4-5-20251001',
 				system: expect.stringContaining("Meldar's build planner"),
 			}),
+			expect.objectContaining({ timeout: 60_000 }),
 		)
 	})
 

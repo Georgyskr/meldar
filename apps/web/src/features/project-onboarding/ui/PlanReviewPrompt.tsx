@@ -27,6 +27,7 @@ export function PlanReviewPrompt({ milestoneCount, onAccept, onEdit }: PlanRevie
 				</styled.p>
 				<HStack gap={3}>
 					<styled.button
+						type="button"
 						onClick={() => onAccept()}
 						paddingBlock={2}
 						paddingInline={5}
@@ -42,6 +43,7 @@ export function PlanReviewPrompt({ milestoneCount, onAccept, onEdit }: PlanRevie
 						Looks good, let's build
 					</styled.button>
 					<styled.button
+						type="button"
 						onClick={() => onEdit()}
 						paddingBlock={2}
 						paddingInline={5}

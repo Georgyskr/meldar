@@ -1,7 +1,4 @@
-import { getDb } from '@meldar/db/client'
-import { users } from '@meldar/db/schema'
 import { Box, Flex, Grid, styled } from '@styled-system/jsx'
-import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
@@ -29,24 +26,13 @@ export default async function WorkspaceDashboardPage() {
 		)
 	}
 
-	const db = getDb()
-
 	let projectsList: WorkspaceProjectListItem[] = []
 	let loadFailed = false
 
-	const [userRows, projectsResult] = await Promise.all([
-		db
-			.select({ emailVerified: users.emailVerified })
-			.from(users)
-			.where(eq(users.id, session.userId))
-			.limit(1),
-		listUserProjects(session.userId).catch((err) => {
-			console.error('[workspace/page] listUserProjects failed', err)
-			return null
-		}),
-	])
-
-	const userRow = userRows[0]
+	const projectsResult = await listUserProjects(session.userId).catch((err) => {
+		console.error('[workspace/page] listUserProjects failed', err)
+		return null
+	})
 
 	if (projectsResult === null) {
 		loadFailed = true
@@ -57,7 +43,7 @@ export default async function WorkspaceDashboardPage() {
 	return (
 		<styled.main minHeight="100vh" bg="surface" paddingBlock={{ base: 12, md: 16 }}>
 			<Box maxWidth="breakpoint-lg" marginInline="auto" paddingInline={{ base: 6, md: 10 }}>
-				<EmailVerificationBanner email={session.email} verified={userRow?.emailVerified ?? false} />
+				<EmailVerificationBanner email={session.email} verified={session.emailVerified} />
 				<Flex
 					direction={{ base: 'column', sm: 'row' }}
 					alignItems={{ base: 'flex-start', sm: 'center' }}

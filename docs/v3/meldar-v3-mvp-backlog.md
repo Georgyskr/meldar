@@ -1,8 +1,8 @@
 # Meldar v3 MVP Backlog
 
-**Last updated:** 2026-04-07 (post §NEW-AUTH + §NEW-SANDBOX wave)
+**Last updated:** 2026-04-07 (post Build Plan engine wave)
 **Replaces:** v2 angle-change MVP backlog
-**Based on:** Carson brainstorming session + game economy design + 2026-04-07 cleanup wave + 2026-04-07 auth/sandbox wave (commit `fbab6cc`)
+**Based on:** Carson brainstorming session + game economy design + 2026-04-07 cleanup wave + auth/sandbox wave (`fbab6cc`) + email flows (`f6e24d2`) + Build Plan engine (`39f6ba5`)
 
 ---
 
@@ -397,18 +397,18 @@ packages/
 
 Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test build`.
 
-### Test baseline (verified 2026-04-07, post §NEW-AUTH + §NEW-SANDBOX wave)
+### Test baseline (verified 2026-04-07, post Build Plan engine wave)
 
 | Package | Test files | Tests passing | Notes |
 |---|---|---|---|
-| `@meldar/web` | 39 | 539 | + 1 file / 3 tests skipped (legacy integration); was 432 pre-auth wave |
-| `@meldar/sandbox-worker` | 1 | 44 | HMAC failure modes + contract endpoints + SDK error-message pinning (new this wave) |
-| `@meldar/storage` | 4 | 74 | InMemory + Postgres provider contract + R2 blob |
+| `@meldar/web` | 48 | 636 | + 1 file / 3 tests skipped; was 539 post-auth, 432 pre-auth |
+| `@meldar/sandbox-worker` | 1 | 44 | HMAC failure modes + contract endpoints + SDK error-message pinning |
+| `@meldar/storage` | 4 | 93 | InMemory + Postgres provider contract + R2 blob + kanban CRUD |
 | `@meldar/sandbox` | 2 | 80 | Safety helpers + Cloudflare provider HMAC |
 | `@meldar/tokens` | 2 | 37 | Pricing math + ledger atomic Lua debit |
-| `@meldar/orchestrator` | 2 | 33 | Engine streaming + SSE round-trip |
+| `@meldar/orchestrator` | 2 | 41 | Engine streaming + SSE round-trip + event extension |
 | `@meldar/test-utils` | 4 | 12 | Mock factory smoke tests |
-| **Total** | **54** | **819** | All green; warm `turbo` runs report **FULL TURBO** in <50ms |
+| **Total** | **63** | **943** | All green; warm `turbo` runs report **FULL TURBO** in <50ms |
 
 ### What's wired end-to-end (build flow)
 
@@ -437,8 +437,15 @@ Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test b
   **CLOSED in the UI layer** (`PreviewPane` + `WorkspaceBuildProvider`
   context + `previewUrlUpdatedAt` 2-minute staleness check); waiting
   on §NEW-SANDBOX for the actual worker.
-- **Kanban UI** — the orchestrator accepts a `kanbanCardId` field but
-  no UI surface produces or consumes them
+- **Kanban UI** — ~~the orchestrator accepts a `kanbanCardId` field but
+  no UI surface produces or consumes them~~ **DONE** (commit `39f6ba5`).
+  The Build Plan engine is fully wired: `kanban_cards` table with
+  milestone→subtask hierarchy, 5-question onboarding via Haiku,
+  KanbanBoard with MilestoneRow/SubtaskRow, card state machine
+  enforced server-side, BuildButton wired to the existing build API
+  with SSE streaming. Orchestrator events carry `kanbanCardId` for
+  card-level state tracking. Card states persist to DB on
+  committed/failed.
 - **Build history / rollback UI** — the storage layer supports
   `rollbackToBuild()` but no UI invokes it
 - **Reap-stuck-builds** — ~~needs a cron sweeper~~ **CLOSED inline**:
@@ -516,14 +523,16 @@ Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test b
 - Always-visible live preview (no hiding, no tabs)
 - Smooth updates when preview refreshes
 
-### 8. Step state machine
-Each of the 8 roadmap steps has states:
-- `locked` — grayed, not yet reachable
-- `available` — user can start
-- `in_progress` — user is actively working on it
-- `needs_input` — waiting for user approval
-- `completed` — done, moves to next
-- `failed` — error state with retry
+### 8. Step state machine — **DONE** (commit `39f6ba5`)
+~~Each of the 8 roadmap steps has states:~~
+
+**What shipped:** Two-level state model. Subtask states (persisted):
+`draft → ready → queued → building → built / failed → needs_rework → ready`.
+Milestone states (derived, never persisted): `not_started | in_progress |
+complete | needs_attention` — computed via pure `deriveMilestoneState()`
+function from subtask states. State transitions enforced server-side via
+`canTransition()` check on the PATCH endpoint. 9 unit tests on the state
+derivation function.
 
 ### 9. First runnable workflow: Reddit Scanner + Voice Generator
 The ONE workflow that must work end-to-end for MVP. Steps:
@@ -637,11 +646,19 @@ Track per-user:
 - Template includes: pre-wired charts, forms, auth, database schema, deployment config
 - User sees only their own project, not the template source
 
-### 20. Kanban task execution engine
-- Each "build a feature" request becomes a kanban card
-- Card has: title, description, task_type, complexity_estimate, token_cost_estimate
-- User approves card → orchestrator picks it up → routes to correct model → executes → updates card status
-- User sees kanban progress in workspace
+### 20. Kanban task execution engine — **DONE** (commit `39f6ba5`)
+~~Each "build a feature" request becomes a kanban card.~~
+
+**What shipped:** General-purpose Build Plan engine. User describes intent →
+5 Haiku-powered clarifying questions → Haiku generates milestone plan with
+subtasks from a reusable component vocabulary (17 building block types).
+Cards have: title, description, taskType, acceptanceCriteria, explainerText
+(AI-generated "What You'll Learn"), tokenCostEstimateMin/Max, dependsOn,
+generatedBy (`haiku` / `template` / `user`). BuildButton triggers builds
+for ready subtasks via the existing orchestrator + SSE stream. Card states
+persist to DB on committed/failed. `verifyProjectOwnership` shared utility,
+atomic position assignment, state machine enforced server-side, UUID
+validation on all route params. 943 tests across monorepo.
 
 ---
 
@@ -828,46 +845,57 @@ Determine the second onboarding style and implement.
 
 ---
 
-## Launch Readiness Checklist (post §NEW-AUTH + §NEW-SANDBOX wave, 2026-04-07 evening)
+## Launch Readiness Checklist (post Build Plan engine wave, 2026-04-07)
 
 MVP is ready to show first founding members when:
 
-- [x] ~~Landing page reflects v3 positioning~~ — legacy landing page
-  ripped; coming-soon page is the public surface
-- [ ] Coming-soon page has a working email capture that links to
-  `/sign-up` (tied to §NEW-AUTH wave-E cleanup)
-- [x] §NEW-AUTH — sign-up, sign-in, sign-out **shipped** (commit `fbab6cc`)
-- [ ] §NEW-AUTH — email verification flow via Resend (wave-E follow-up)
-- [ ] §NEW-AUTH — password reset flow via Resend (wave-E follow-up)
-- [x] §NEW-SANDBOX — worker code, tests, deploy runbook, HMAC auth
-  (commit `fbab6cc`)
-- [ ] §NEW-SANDBOX — `wrangler deploy` to Cloudflare (blocked on
-  Containers Beta enrollment → Claude payments)
-- [ ] §NEW-SANDBOX — `sandbox_ready` events fire, iframe renders a
-  live preview (blocked on deploy)
-- [x] User can reach `/workspace/:id` after sign-up without hitting
-  any legacy auth redirects (commit `fbab6cc`)
-- [x] Split-screen workspace renders (live preview blocked on
-  §NEW-SANDBOX deploy)
-- [ ] First user actually signs up, creates a project, and sees a
-  streaming build commit
-- [ ] Reddit Scanner use case has all 8 steps working
-- [x] Token cost ceiling enforcement works (no user can exceed
-  EUR 2/day) — delivered by `packages/tokens/`
-- [ ] Token accounting *game economy* layer (monthly allowances,
-  daily earn cap, referral bonuses) — §17
-- [ ] Billing re-added (was in the rip) — gated on whether we launch
-  with or without a paywall
-- [ ] Referral system generates and tracks links (§21–23)
-- [ ] Done-for-me button sends founder an email (§25)
-- [ ] Model routing correctly picks Sonnet / Opus / Haiku (§16)
-- [ ] Prompt anatomy side panel renders for every prompt (§12)
-- [ ] Improve-my-prompt widget works and charges 1 token (§13)
+### Auth + infrastructure
+- [x] §NEW-AUTH — sign-up, sign-in, sign-out (`fbab6cc`)
+- [x] §NEW-AUTH — email verification (non-gating, nag banner) (`f6e24d2`)
+- [x] §NEW-AUTH — password reset flow (forgot + reset UI) (`f6e24d2`)
+- [x] User can reach `/workspace/:id` after sign-up (`fbab6cc`)
+- [x] §NEW-SANDBOX — worker code, tests, deploy runbook (`fbab6cc`)
+- [ ] §NEW-SANDBOX — `wrangler deploy` (blocked: Containers Beta enrollment)
+- [ ] §NEW-SANDBOX — live preview in iframe (blocked: deploy)
+- [ ] Coming-soon page links to `/sign-up`
+
+### Build Plan engine (kanban)
+- [x] Step state machine with milestone→subtask hierarchy (`39f6ba5`)
+- [x] Kanban task execution engine — Build Plan with card-driven
+  builds via SSE (`39f6ba5`)
+- [x] 5-question onboarding: user intent → Haiku Q&A → generated
+  milestone plan (`39f6ba5`)
+- [x] AI-generated "What You'll Learn" per card (`39f6ba5`)
+- [x] BuildButton wired to orchestrator via SSE (`39f6ba5`)
+- [ ] Multi-card sequential build queue (Sprint 1 does first card only)
+- [ ] Drag-and-drop reorder (Sprint 2)
+
+### Workspace
+- [x] Split-screen workspace: build plan left, preview right (`39f6ba5`)
+- [x] Token cost ceiling (EUR 2/day) — `packages/tokens/`
+- [ ] First user signs up → creates project → sees streaming build
+
+### Content + learning
+- [ ] Prompt anatomy side panel (§12)
+- [ ] Improve-my-prompt widget, 1 token (§13)
 - [ ] All inline explainers written and reviewed (§29)
-- [ ] Analytics firing for all P0 events (§27)
-- [ ] Founder can see real-time cost dashboard (§26)
-- [ ] Email sequence welcomes new users (§35)
-- [ ] First user deploys a working Reddit Scanner via Meldar
+
+### Use cases
+- [ ] First complete use case (weight tracker, expense tracker, or
+  similar) tested end-to-end through the Build Plan engine
+- [ ] Template plans for common use cases (Sprint 2 accelerator)
+
+### Monetization + growth
+- [ ] Token game economy (monthly allowances, earn cap, referral) (§17)
+- [ ] Billing re-integration (§24)
+- [ ] Referral system (§21–23)
+- [ ] Done-for-me button (§25)
+- [ ] Model routing Sonnet/Opus/Haiku (§16)
+
+### Analytics + ops
+- [ ] Product analytics events (§27)
+- [ ] Founder cost monitoring dashboard (§26)
+- [ ] Email sequence (welcome, nudges) (§35)
 
 ---
 

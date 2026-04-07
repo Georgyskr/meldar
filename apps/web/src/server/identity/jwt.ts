@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 type TokenPayload = {
 	userId: string
 	email: string
+	emailVerified: boolean
 }
 
 /**
@@ -31,9 +32,14 @@ export function signToken(payload: TokenPayload): string {
 
 export function verifyToken(token: string): TokenPayload | null {
 	try {
-		return jwt.verify(token, getSecret(), {
+		const decoded = jwt.verify(token, getSecret(), {
 			algorithms: [JWT_ALGORITHM],
-		}) as TokenPayload
+		}) as Record<string, unknown>
+		return {
+			userId: decoded.userId as string,
+			email: decoded.email as string,
+			emailVerified: (decoded.emailVerified as boolean) ?? false,
+		}
 	} catch {
 		return null
 	}

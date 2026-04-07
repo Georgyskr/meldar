@@ -34,13 +34,17 @@ async function callHaiku(
 	client: Anthropic,
 	systemPrompt: string,
 	messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+	signal?: AbortSignal,
 ): Promise<string> {
-	const response = await client.messages.create({
-		model: MODELS.HAIKU,
-		max_tokens: MAX_TOKENS,
-		system: systemPrompt,
-		messages: messages.map((m) => ({ role: m.role, content: m.content })),
-	})
+	const response = await client.messages.create(
+		{
+			model: MODELS.HAIKU,
+			max_tokens: MAX_TOKENS,
+			system: systemPrompt,
+			messages: messages.map((m) => ({ role: m.role, content: m.content })),
+		},
+		{ signal, timeout: 60_000 },
+	)
 
 	const textBlock = response.content.find((block) => block.type === 'text')
 	if (!textBlock || textBlock.type !== 'text') {
@@ -121,7 +125,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 	const client = getAnthropicClient()
 
-	const plan = await generatePlanWithRetry(client, parsed.data.messages)
+	const plan = await generatePlanWithRetry(client, parsed.data.messages, request.signal)
 	if (!plan) {
 		return NextResponse.json(
 			{ error: { code: 'GENERATION_FAILED', message: 'Failed to generate a valid build plan' } },
@@ -144,8 +148,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
 async function generatePlanWithRetry(
 	client: Anthropic,
 	messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+	signal?: AbortSignal,
 ): Promise<PlanOutput | null> {
-	const raw = await callHaiku(client, PLAN_GENERATION_SYSTEM_PROMPT, messages)
+	const raw = await callHaiku(client, PLAN_GENERATION_SYSTEM_PROMPT, messages, signal)
 	const plan = parseAndValidatePlan(raw)
 	if (plan) return plan
 
@@ -154,7 +159,7 @@ async function generatePlanWithRetry(
 		{ role: 'assistant' as const, content: raw },
 		{ role: 'user' as const, content: PLAN_RETRY_PROMPT },
 	]
-	const retryRaw = await callHaiku(client, PLAN_GENERATION_SYSTEM_PROMPT, retryMessages)
+	const retryRaw = await callHaiku(client, PLAN_GENERATION_SYSTEM_PROMPT, retryMessages, signal)
 	return parseAndValidatePlan(retryRaw)
 }
 

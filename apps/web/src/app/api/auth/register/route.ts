@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 			console.error('Verification email failed:', err instanceof Error ? err.message : 'Unknown')
 		})
 
-		const token = signToken({ userId, email })
+		const token = signToken({ userId, email, emailVerified: false })
 
 		const response = NextResponse.json({ success: true, userId })
 		response.cookies.set('meldar-auth', token, {

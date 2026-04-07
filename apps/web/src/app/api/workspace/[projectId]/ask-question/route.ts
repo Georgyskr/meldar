@@ -1,7 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { buildAskQuestionSystemPrompt } from '@/features/project-onboarding/lib/prompts'
-import { askQuestionRequestSchema } from '@/features/project-onboarding/lib/schemas'
+import {
+	askQuestionRequestSchema,
+	askQuestionResponseSchema,
+} from '@/features/project-onboarding/lib/schemas'
 import { verifyToken } from '@/server/identity/jwt'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
 import { adaptiveLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
@@ -13,6 +16,14 @@ export const dynamic = 'force-dynamic'
 const projectIdSchema = z.string().uuid()
 
 const limiter = mustHaveRateLimit(adaptiveLimit, 'ask-question')
+
+const FALLBACK_QUESTIONS = [
+	'What do you want to see first when you open the app?',
+	'How would you like to add your data into the app?',
+	'Is this app just for you, or will others use it too?',
+	'Would you like the app to send you any reminders or updates?',
+	'Is there anything else you would like the app to do?',
+] as const
 
 type RouteContext = { params: Promise<{ projectId: string }> }
 
@@ -81,27 +92,31 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 	try {
 		const client = getAnthropicClient()
-		const response = await client.messages.create({
-			model: MODELS.HAIKU,
-			max_tokens: 256,
-			system: systemPrompt,
-			messages: messages.map((m) => ({ role: m.role, content: m.content })),
-		})
+		const response = await client.messages.create(
+			{
+				model: MODELS.HAIKU,
+				max_tokens: 256,
+				system: systemPrompt,
+				messages: messages.map((m) => ({ role: m.role, content: m.content })),
+			},
+			{ signal: request.signal, timeout: 30_000 },
+		)
 
 		const textBlock = response.content.find((block) => block.type === 'text')
 		if (!textBlock || textBlock.type !== 'text') {
-			return NextResponse.json(
-				{ error: { code: 'GENERATION_FAILED', message: 'AI returned no response' } },
-				{ status: 500 },
-			)
+			return NextResponse.json({ question: FALLBACK_QUESTIONS[questionIndex - 1] })
 		}
 
-		return NextResponse.json({ question: textBlock.text.trim() })
+		const validated = askQuestionResponseSchema.safeParse({
+			question: textBlock.text.trim(),
+		})
+		if (!validated.success) {
+			return NextResponse.json({ question: FALLBACK_QUESTIONS[questionIndex - 1] })
+		}
+
+		return NextResponse.json({ question: validated.data.question })
 	} catch (err) {
 		console.error('[ask-question] Haiku call failed', err)
-		return NextResponse.json(
-			{ error: { code: 'INTERNAL_ERROR', message: 'Failed to generate question' } },
-			{ status: 500 },
-		)
+		return NextResponse.json({ question: FALLBACK_QUESTIONS[questionIndex - 1] })
 	}
 }

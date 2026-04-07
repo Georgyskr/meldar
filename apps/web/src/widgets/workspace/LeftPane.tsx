@@ -53,56 +53,65 @@ export function LeftPane({
 			const result = topologicalSort(subtasks)
 			if (!result.ok) return
 
-			const first = result.sorted[0]
-			if (!first) return
-
-			publish({ type: 'started', buildId: '', projectId, kanbanCardId: first.id })
+			if (result.sorted.length === 0) return
 
 			abortRef.current?.abort()
 			const ctrl = new AbortController()
 			abortRef.current = ctrl
 
-			const prompt = [first.description, ...(first.acceptanceCriteria ?? [])]
-				.filter(Boolean)
-				.join('\n')
-
 			try {
-				const response = await fetch(`/api/workspace/${projectId}/build`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ prompt, kanbanCardId: first.id }),
-					signal: ctrl.signal,
-				})
+				for (const card of result.sorted) {
+					if (ctrl.signal.aborted) return
 
-				if (!response.ok) {
-					let message: string
-					try {
-						const json = (await response.json()) as { error?: { message?: string } }
-						message = json.error?.message ?? `HTTP ${response.status}`
-					} catch {
-						message = `HTTP ${response.status}`
+					publish({ type: 'started', buildId: '', projectId, kanbanCardId: card.id })
+
+					const prompt = [card.description, ...(card.acceptanceCriteria ?? [])]
+						.filter(Boolean)
+						.join('\n')
+
+					let cardCommitted = false
+
+					const response = await fetch(`/api/workspace/${projectId}/build`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ prompt, kanbanCardId: card.id }),
+						signal: ctrl.signal,
+					})
+
+					if (!response.ok) {
+						let message: string
+						try {
+							const json = (await response.json()) as { error?: { message?: string } }
+							message = json.error?.message ?? `HTTP ${response.status}`
+						} catch {
+							message = `HTTP ${response.status}`
+						}
+						publish({
+							type: 'failed',
+							reason: message,
+							code: `http_${response.status}`,
+							kanbanCardId: card.id,
+						})
+						return
 					}
-					publish({
-						type: 'failed',
-						reason: message,
-						code: `http_${response.status}`,
-						kanbanCardId: first.id,
-					})
-					return
-				}
 
-				if (!response.body) {
-					publish({
-						type: 'failed',
-						reason: 'Server returned no response body',
-						code: 'empty_body',
-						kanbanCardId: first.id,
-					})
-					return
-				}
+					if (!response.body) {
+						publish({
+							type: 'failed',
+							reason: 'Server returned no response body',
+							code: 'empty_body',
+							kanbanCardId: card.id,
+						})
+						return
+					}
 
-				for await (const event of consumeSseStream(response.body, ctrl.signal)) {
-					publish(event)
+					for await (const event of consumeSseStream(response.body, ctrl.signal)) {
+						publish(event)
+						if (event.type === 'committed') cardCommitted = true
+						if (event.type === 'failed') return
+					}
+
+					if (!cardCommitted) return
 				}
 			} catch (err) {
 				if (err instanceof DOMException && err.name === 'AbortError') return
@@ -111,7 +120,6 @@ export function LeftPane({
 					type: 'failed',
 					reason: `Network error: ${reason}`,
 					code: 'fetch_error',
-					kanbanCardId: first.id,
 				})
 			} finally {
 				abortRef.current = null

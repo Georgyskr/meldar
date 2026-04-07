@@ -73,7 +73,7 @@ export const users = pgTable(
 		marketingConsent: boolean('marketing_consent').notNull().default(false),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	},
-	(table) => [index('idx_users_email').on(table.email)],
+	() => [],
 )
 
 // ── Table 4: Subscribers ────────────────────────────────────────────────────
@@ -361,7 +361,6 @@ export const kanbanCards = pgTable(
 			table.parentId,
 			table.position,
 		),
-		index('idx_kanban_cards_project').on(table.projectId),
 		check(
 			'kanban_cards_state_valid',
 			sql`${table.state} IN ('draft', 'ready', 'queued', 'building', 'built', 'needs_rework', 'failed')`,

@@ -1,7 +1,7 @@
 'use client'
 
 import { styled } from '@styled-system/jsx'
-import type { BuildReceipt } from '@/features/workspace-build/context'
+import type { BuildReceipt } from '@/features/workspace-build'
 
 export type WhatJustHappenedSlotProps = {
 	readonly receipt: BuildReceipt | null

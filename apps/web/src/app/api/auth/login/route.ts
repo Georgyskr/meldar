@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
 				email: users.email,
 				name: users.name,
 				passwordHash: users.passwordHash,
+				emailVerified: users.emailVerified,
 			})
 			.from(users)
 			.where(eq(users.email, email))
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json(INVALID_CREDENTIALS, { status: 401 })
 		}
 
-		const token = signToken({ userId: user.id, email })
+		const token = signToken({ userId: user.id, email, emailVerified: user.emailVerified })
 
 		const response = NextResponse.json({
 			success: true,
