@@ -3,7 +3,7 @@
 import { styled } from '@styled-system/jsx'
 import { useEffect, useReducer } from 'react'
 import { useWorkspaceBuild } from '@/features/workspace-build'
-import { formatRelative } from './lib/format-relative'
+import { formatRelative } from '@/shared/lib/format-relative'
 
 const TICK_INTERVAL_MS = 30_000
 

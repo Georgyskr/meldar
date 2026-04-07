@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRelative } from '../lib/format-relative'
+import { formatRelative } from '@/shared/lib/format-relative'
 
 const NOW = 1_700_000_000_000
 

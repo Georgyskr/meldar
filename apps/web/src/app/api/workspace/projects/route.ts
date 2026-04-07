@@ -2,7 +2,8 @@ import { buildProjectStorageFromEnv } from '@meldar/storage'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifyToken } from '@/server/identity/jwt'
-import { mustHaveRateLimit, projectsCreateLimit } from '@/server/lib/rate-limit'
+import { mustHaveRateLimit, projectsCreateLimit, projectsListLimit } from '@/server/lib/rate-limit'
+import { listUserProjects } from '@/server/projects/list-user-projects'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,43 @@ const createProjectSchema = z.object({
 })
 
 const limiter = mustHaveRateLimit(projectsCreateLimit, 'projectsCreate')
+const listLimiter = mustHaveRateLimit(projectsListLimit, 'projectsList')
+
+export async function GET(request: NextRequest) {
+	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
+	if (!session) {
+		return NextResponse.json(
+			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
+			{ status: 401 },
+		)
+	}
+
+	if (listLimiter) {
+		const { success } = await listLimiter.limit(session.userId)
+		if (!success) {
+			return NextResponse.json(
+				{
+					error: {
+						code: 'RATE_LIMITED',
+						message: 'Too many requests. Slow down.',
+					},
+				},
+				{ status: 429 },
+			)
+		}
+	}
+
+	try {
+		const projects = await listUserProjects(session.userId)
+		return NextResponse.json({ projects })
+	} catch (err) {
+		console.error('[api/workspace/projects] list query failed', err)
+		return NextResponse.json(
+			{ error: { code: 'INTERNAL_ERROR', message: 'Failed to load projects' } },
+			{ status: 500 },
+		)
+	}
+}
 
 const STARTER_README = '# Meldar v3 project\n\nStart a build to see something here.\n'
 

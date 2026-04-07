@@ -1,7 +1,7 @@
 import { buildProjectStorageFromEnv, ProjectNotFoundError } from '@meldar/storage'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { PLACEHOLDER_STEP } from '@/entities/project-step'
 import { verifyToken } from '@/server/identity/jwt'
@@ -31,7 +31,9 @@ export default async function WorkspacePage({ params }: PageProps) {
 	const cookieStore = await cookies()
 	const session = verifyToken(cookieStore.get('meldar-auth')?.value ?? '')
 	if (!session) {
-		redirect(`/login?next=/workspace/${projectId}`)
+		throw new Error(
+			'Workspace project page reached without a session — layout should have redirected',
+		)
 	}
 
 	const storage = buildProjectStorageFromEnv()

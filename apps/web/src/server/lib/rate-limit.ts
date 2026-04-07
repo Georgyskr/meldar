@@ -37,6 +37,16 @@ export const loginLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '15 m'), prefix: 'rl:login' })
 	: null
 
+// 5 registrations per 15 minutes per IP
+export const registerLimit = redis
+	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '15 m'), prefix: 'rl:register' })
+	: null
+
+// 120 /api/auth/me reads per minute per user (cheap, but not free — guards DB)
+export const meLimit = redis
+	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(120, '1 m'), prefix: 'rl:me' })
+	: null
+
 // 3 analysis requests per 10 minutes per IP (expensive AI call)
 export const analyzeLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '10 m'), prefix: 'rl:analyze' })
@@ -63,6 +73,15 @@ export const projectsCreateLimit = redis
 			redis,
 			limiter: Ratelimit.slidingWindow(10, '1 h'),
 			prefix: 'rl:projects:create',
+		})
+	: null
+
+// 60 project list reads per minute per user
+export const projectsListLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(60, '1 m'),
+			prefix: 'rl:projects:list',
 		})
 	: null
 

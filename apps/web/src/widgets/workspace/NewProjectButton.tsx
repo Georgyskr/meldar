@@ -2,24 +2,24 @@
 
 import { Box, styled } from '@styled-system/jsx'
 import { useRouter } from 'next/navigation'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { z } from 'zod'
 
 const createProjectResponseSchema = z.object({
 	projectId: z.string().uuid(),
 })
 
-type Status = 'idle' | 'creating' | 'cooldown'
-
-const COOLDOWN_MS = 1_000
+type Status = 'idle' | 'creating'
 
 export function NewProjectButton() {
 	const router = useRouter()
 	const [status, setStatus] = useState<Status>('idle')
 	const [error, setError] = useState<string | null>(null)
+	const inFlight = useRef(false)
 
 	const handleClick = useCallback(async () => {
-		if (status !== 'idle') return
+		if (inFlight.current) return
+		inFlight.current = true
 		setStatus('creating')
 		setError(null)
 		try {
@@ -35,26 +35,23 @@ export function NewProjectButton() {
 					if (json.error?.message) message = json.error.message
 				} catch {}
 				setError(message)
-				setStatus('cooldown')
-				setTimeout(() => setStatus('idle'), COOLDOWN_MS)
+				setStatus('idle')
 				return
 			}
 			const json = createProjectResponseSchema.safeParse(await res.json())
 			if (!json.success) {
 				setError('Server returned an unexpected response')
-				setStatus('cooldown')
-				setTimeout(() => setStatus('idle'), COOLDOWN_MS)
+				setStatus('idle')
 				return
 			}
-			setStatus('cooldown')
-			setTimeout(() => setStatus('idle'), COOLDOWN_MS)
 			router.push(`/workspace/${json.data.projectId}`)
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Network error')
-			setStatus('cooldown')
-			setTimeout(() => setStatus('idle'), COOLDOWN_MS)
+			setStatus('idle')
+		} finally {
+			inFlight.current = false
 		}
-	}, [router, status])
+	}, [router])
 
 	const busy = status !== 'idle'
 
@@ -62,7 +59,7 @@ export function NewProjectButton() {
 		<Box position="relative">
 			<styled.button
 				type="button"
-				onClick={handleClick}
+				onClick={() => handleClick()}
 				disabled={busy}
 				paddingInline={4}
 				paddingBlock={1.5}

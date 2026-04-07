@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { signToken } from '@/server/identity/jwt'
 import { hashPassword } from '@/server/identity/password'
-import { checkRateLimit, subscribeLimit } from '@/server/lib/rate-limit'
+import { mustHaveRateLimit, registerLimit } from '@/server/lib/rate-limit'
 
 const registerSchema = z.object({
 	email: z.string().email(),
@@ -16,15 +16,19 @@ function isUniqueViolation(err: unknown): boolean {
 	return err instanceof Error && 'code' in err && (err as { code: string }).code === '23505'
 }
 
+const limiter = mustHaveRateLimit(registerLimit, 'register')
+
 export async function POST(request: NextRequest) {
 	try {
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-		const { success } = await checkRateLimit(subscribeLimit, ip)
-		if (!success) {
-			return NextResponse.json(
-				{ error: { code: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' } },
-				{ status: 429 },
-			)
+		if (limiter) {
+			const { success } = await limiter.limit(ip)
+			if (!success) {
+				return NextResponse.json(
+					{ error: { code: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' } },
+					{ status: 429 },
+				)
+			}
 		}
 
 		const body = await request.json()
