@@ -1,27 +1,7 @@
 /**
- * PostgresProjectStorage — production ProjectStorage backed by the v3 schema
- * (Drizzle ORM + Neon HTTP driver) and an injected BlobStorage (R2 in
- * production, in-memory for tests).
- *
- * Behavioral parity with InMemoryProjectStorage is enforced via the shared
- * contract tests in `__tests__/provider-contract.ts`. Once a Neon test branch
- * is wired into CI, those same tests will run against this implementation.
- *
- * Transaction model: neon-http does NOT support interactive transactions
- * (`session.transaction()` throws "No transactions support in neon-http
- * driver"). It DOES support `db.batch([...])`, which atomically executes a
- * sequence of pre-built queries in a single HTTP request via Neon's batch
- * endpoint. We use batch() for all multi-statement operations.
- *
- * The trade-off: every multi-statement operation must compute its full plan
- * up front (no "INSERT and use the returned id"). We work around this by
- * generating UUIDs client-side via `crypto.randomUUID()` and threading them
- * through the batch.
- *
- * Architecture record:
- *   docs/v3/engineering/data-engineer-review.md
- *   docs/v3/engineering/software-architect-review.md
- *   docs/v3/engineering/database-optimizer-review.md
+ * neon-http does NOT support interactive transactions (only `db.batch([...])`),
+ * so all multi-statement operations compute their full plan up front and use
+ * client-generated UUIDs threaded through the batch.
  */
 
 import * as schema from '@meldar/db/schema'
@@ -53,10 +33,9 @@ import {
 
 export type NeonDrizzleDb = ReturnType<typeof drizzleNeonHttp<typeof schema>>
 
-// Drizzle's `db.batch` requires `Readonly<[U, ...U[]]>`. A plain `T[]`
-// can't narrow to that tuple shape after a length check, so the cast is
-// centralized here behind a runtime guard. Pass a `context` label so the
-// failure points at the specific call site.
+// Drizzle's `db.batch` requires `Readonly<[U, ...U[]]>` — a plain `T[]` can't
+// narrow to that tuple shape after a length check, so the runtime cast is
+// centralized here.
 export function assertNonEmptyBatch(
 	items: BatchItem<'pg'>[],
 	context: string,
@@ -73,8 +52,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 		private readonly blob: BlobStorage,
 	) {}
 
-	// ── createProject ─────────────────────────────────────────────────────
-
 	async createProject(options: CreateProjectOptions): Promise<CreatedProject> {
 		this.validateFileBatch(options.initialFiles)
 
@@ -83,8 +60,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 		const now = new Date()
 		const tier: ProjectTier = options.tier ?? 'builder'
 
-		// Compute hashes + sizes BEFORE touching either store. Bail early on
-		// any preflight failure (path safety, file too large, hash compute).
 		type Prepared = {
 			path: string
 			contentHash: string
@@ -107,21 +82,14 @@ export class PostgresProjectStorage implements ProjectStorage {
 			})
 		}
 
-		// Write blobs FIRST (engineering review §write order). Content-addressed
-		// puts are idempotent, so a partial failure is recoverable: retry the
-		// whole createProject — same hashes → same blob keys → no duplicates.
+		// Blobs FIRST: content-addressed puts are idempotent so a partial
+		// failure is recoverable by retrying createProject.
 		for (const p of prepared) {
 			await this.blob.put(projectId, p.contentHash, p.content)
 		}
 
-		// Now the DB writes, all in one batch transaction:
-		//   1. INSERT projects (current_build_id = NULL)
-		//   2. INSERT genesis build (status='completed')
-		//   3. INSERT build_files
-		//   4. INSERT project_files
-		//   5. UPDATE projects SET current_build_id = genesisBuildId
-		//
-		// The DEFERRABLE FK on projects.current_build_id makes this atomic.
+		// DB writes in one batch; the DEFERRABLE FK on projects.current_build_id
+		// lets us insert with NULL HEAD and flip it inside the same transaction.
 		const insertProject = this.db.insert(schema.projects).values({
 			id: projectId,
 			userId: options.userId,
@@ -150,11 +118,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 			.set({ currentBuildId: genesisBuildId, updatedAt: now })
 			.where(eq(schema.projects.id, projectId))
 
-		// Drizzle's batch() requires a tuple of length >=1. Compose it so the
-		// queries that touch many rows (build_files, project_files) are unrolled.
-		// To keep the batch cardinality bounded by file count, we issue them
-		// one row per query. With MAX_FILES_PER_BUILD=200, the batch can have up
-		// to ~404 statements — well within Neon's batch limits.
 		const buildFileInserts = prepared.map((p) =>
 			this.db.insert(schema.buildFiles).values({
 				buildId: genesisBuildId,
@@ -187,7 +150,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 		]
 		await this.db.batch(assertNonEmptyBatch(batch, 'createProject genesis batch'))
 
-		// Construct the return value from in-memory data — no extra read.
 		const project: ProjectRow = {
 			id: projectId,
 			userId: options.userId,
@@ -196,6 +158,8 @@ export class PostgresProjectStorage implements ProjectStorage {
 			tier,
 			currentBuildId: genesisBuildId,
 			lastBuildAt: now,
+			previewUrl: null,
+			previewUrlUpdatedAt: null,
 			createdAt: now,
 			updatedAt: now,
 			deletedAt: null,
@@ -226,8 +190,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 		return { project, genesisBuild, files }
 	}
 
-	// ── getProject ────────────────────────────────────────────────────────
-
 	async getProject(projectId: string, userId: string): Promise<ProjectRow> {
 		const rows = await this.db
 			.select()
@@ -247,13 +209,7 @@ export class PostgresProjectStorage implements ProjectStorage {
 		return rowToProject(row)
 	}
 
-	// ── getCurrentFiles ───────────────────────────────────────────────────
-
 	async getCurrentFiles(projectId: string): Promise<readonly ProjectFileRow[]> {
-		// Note: this method intentionally does NOT check ownership. Callers
-		// (orchestrator, sandbox restore) own the projectId because they
-		// already authenticated via getProject(). Adding a join here would
-		// pay an extra index hit on every workspace entry.
 		const rows = await this.db
 			.select({
 				projectId: schema.projectFiles.projectId,
@@ -270,8 +226,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 			.orderBy(asc(schema.projectFiles.path))
 		return rows
 	}
-
-	// ── readFile ──────────────────────────────────────────────────────────
 
 	async readFile(projectId: string, path: string): Promise<string> {
 		const rows = await this.db
@@ -292,10 +246,7 @@ export class PostgresProjectStorage implements ProjectStorage {
 		return this.blob.get(projectId, row.contentHash, { verify: true })
 	}
 
-	// ── beginBuild ────────────────────────────────────────────────────────
-
 	async beginBuild(options: BeginBuildOptions): Promise<BuildContext> {
-		// Read the current HEAD to set parentBuildId. Single indexed lookup.
 		const projectRows = await this.db
 			.select({ currentBuildId: schema.projects.currentBuildId })
 			.from(schema.projects)
@@ -326,11 +277,7 @@ export class PostgresProjectStorage implements ProjectStorage {
 		return new PostgresBuildContext(this.db, this.blob, buildId, options.projectId)
 	}
 
-	// ── rollback ──────────────────────────────────────────────────────────
-
 	async rollback(projectId: string, targetBuildId: string): Promise<BuildRow> {
-		// Phase 1: read target build + current project + target's files.
-		// We need all of this to compute the project_files diff before writing.
 		const projectRows = await this.db
 			.select()
 			.from(schema.projects)
@@ -369,7 +316,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 			)
 		}
 
-		// Fetch the target build's manifest + the current live file set.
 		const [targetFiles, currentFiles] = await Promise.all([
 			this.db.select().from(schema.buildFiles).where(eq(schema.buildFiles.buildId, targetBuildId)),
 			this.db
@@ -380,20 +326,13 @@ export class PostgresProjectStorage implements ProjectStorage {
 				),
 		])
 
-		// Phase 2: compute the diff and build the write batch.
 		const rollbackBuildId = crypto.randomUUID()
 		const now = new Date()
 		const targetByPath = new Map(targetFiles.map((f) => [f.path, f]))
 		const currentByPath = new Map(currentFiles.map((f) => [f.path, f]))
 
-		// Typed batch: every push site is checked against `BatchItem<'pg'>` so a
-		// non-Drizzle value can't sneak in. The remaining unsafety is the
-		// non-emptiness assertion at the `db.batch(...)` call below — Drizzle's
-		// batch signature requires a non-empty tuple, which a runtime-built
-		// array can't structurally satisfy. We assert it at the boundary.
 		const writes: BatchItem<'pg'>[] = []
 
-		// Insert the rollback build event.
 		writes.push(
 			this.db.insert(schema.builds).values({
 				id: rollbackBuildId,
@@ -406,7 +345,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 			}),
 		)
 
-		// Insert build_files for the rollback build (mirror of target).
 		for (const tf of targetFiles) {
 			writes.push(
 				this.db.insert(schema.buildFiles).values({
@@ -419,7 +357,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 			)
 		}
 
-		// For every path in target, upsert into project_files.
 		for (const tf of targetFiles) {
 			const existing = currentByPath.get(tf.path)
 			if (existing) {
@@ -452,7 +389,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 			}
 		}
 
-		// Soft-delete current files that aren't in target.
 		for (const cf of currentFiles) {
 			if (!targetByPath.has(cf.path)) {
 				writes.push(
@@ -464,7 +400,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 			}
 		}
 
-		// Flip HEAD.
 		writes.push(
 			this.db
 				.update(schema.projects)
@@ -490,8 +425,6 @@ export class PostgresProjectStorage implements ProjectStorage {
 		}
 	}
 
-	// ── getBuild ──────────────────────────────────────────────────────────
-
 	async getBuild(projectId: string, buildId: string): Promise<BuildRow> {
 		const rows = await this.db
 			.select()
@@ -505,7 +438,51 @@ export class PostgresProjectStorage implements ProjectStorage {
 		return rowToBuild(row)
 	}
 
-	// ── private helpers ───────────────────────────────────────────────────
+	async setPreviewUrl(projectId: string, url: string | null): Promise<void> {
+		const now = new Date()
+		const updates =
+			url === null
+				? { previewUrl: null, previewUrlUpdatedAt: null, updatedAt: now }
+				: { previewUrl: url, previewUrlUpdatedAt: now, updatedAt: now }
+		const updated = await this.db
+			.update(schema.projects)
+			.set(updates)
+			.where(and(eq(schema.projects.id, projectId), isNull(schema.projects.deletedAt)))
+			.returning({ id: schema.projects.id })
+		if (updated.length === 0) {
+			throw new ProjectNotFoundError(`project not found: ${projectId}`, { projectId })
+		}
+	}
+
+	async reapStuckBuilds(projectId: string, olderThan: Date): Promise<number> {
+		const now = new Date()
+		const updated = await this.db
+			.update(schema.builds)
+			.set({
+				status: 'failed',
+				errorMessage: 'reaper: stuck streaming',
+				completedAt: now,
+			})
+			.where(
+				and(
+					eq(schema.builds.projectId, projectId),
+					eq(schema.builds.status, 'streaming'),
+					sql`${schema.builds.createdAt} < ${olderThan}`,
+				),
+			)
+			.returning({ id: schema.builds.id })
+		return updated.length
+	}
+
+	async getActiveStreamingBuild(projectId: string): Promise<string | null> {
+		const rows = await this.db
+			.select({ id: schema.builds.id })
+			.from(schema.builds)
+			.where(and(eq(schema.builds.projectId, projectId), eq(schema.builds.status, 'streaming')))
+			.orderBy(sql`${schema.builds.createdAt} DESC`)
+			.limit(1)
+		return rows[0]?.id ?? null
+	}
 
 	private validateFileBatch(files: readonly StorageFile[]): void {
 		if (files.length > MAX_FILES_PER_BUILD) {
@@ -555,9 +532,6 @@ class PostgresBuildContext implements BuildContext {
 			})
 		}
 
-		// File-cap check uses the in-memory seenPaths set. This is correct
-		// because BuildContext is single-writer per Build by orchestrator
-		// convention.
 		const isNew = !this.seenPaths.has(file.path)
 		if (isNew && this.seenPaths.size >= MAX_FILES_PER_BUILD) {
 			throw new BuildFileLimitError(this.seenPaths.size + 1, MAX_FILES_PER_BUILD, {
@@ -565,8 +539,6 @@ class PostgresBuildContext implements BuildContext {
 			})
 		}
 
-		// Verify the build is still streaming. Without this check, a stale
-		// context could keep writing after a fail() from another code path.
 		const buildRows = await this.db
 			.select({ status: schema.builds.status })
 			.from(schema.builds)
@@ -586,19 +558,11 @@ class PostgresBuildContext implements BuildContext {
 		const contentHash = await sha256Hex(file.content)
 		const r2Key = `projects/${this.projectId}/content/${contentHash}`
 
-		// Eager blob put: content-addressed PUTs are idempotent and dedup'd
-		// by hash, so an aborted/failed build leaves at worst orphan blobs
-		// (cleaned up by a future GC reaper). The thing we MUST NOT do here
-		// is touch project_files: that's the live working set, and a
-		// mid-build mutation would be visible via getCurrentFiles before
-		// commit() and would corrupt HEAD on any subsequent failure. The
-		// build's manifest (build_files) IS the staging area; commit()
-		// flushes it into project_files atomically with the HEAD flip.
+		// MUST NOT touch project_files mid-build: that's the live HEAD set
+		// and would leak partial state via getCurrentFiles. build_files is
+		// the staging area; commit() flushes it atomically with the HEAD flip.
 		await this.blob.put(this.projectId, contentHash, file.content)
 
-		// Insert into build_files (the build's staged manifest). Composite
-		// PK is (build_id, path); onConflictDoUpdate handles the dedup-by-
-		// path-within-a-build case.
 		await this.db
 			.insert(schema.buildFiles)
 			.values({
@@ -628,9 +592,6 @@ class PostgresBuildContext implements BuildContext {
 		this._terminated = true
 		const now = new Date()
 
-		// Read the build's staged manifest. This is the set of files we'll
-		// flush into project_files in the same batch as the HEAD flip — that
-		// is the "atomic publish" moment of a Build.
 		const stagedFiles = await this.db
 			.select({
 				path: schema.buildFiles.path,
@@ -650,10 +611,9 @@ class PostgresBuildContext implements BuildContext {
 			})
 			.where(and(eq(schema.builds.id, this.buildId), eq(schema.builds.status, 'streaming')))
 
-		// One upsert per staged file. Each row uses the partial unique index
-		// `ux_project_files_project_path WHERE deleted_at IS NULL` for the
-		// conflict target, so a re-write of the same path bumps `version`
-		// instead of inserting a duplicate row.
+		// Conflict target is the partial unique index
+		// `ux_project_files_project_path WHERE deleted_at IS NULL`, so a
+		// re-write of the same path bumps `version` instead of duplicating.
 		const upsertProjectFiles = stagedFiles.map((staged) =>
 			this.db
 				.insert(schema.projectFiles)
@@ -686,15 +646,9 @@ class PostgresBuildContext implements BuildContext {
 			.set({ currentBuildId: this.buildId, lastBuildAt: now, updatedAt: now })
 			.where(eq(schema.projects.id, this.projectId))
 
-		// All four operations land in one batch so the build, the file flush,
-		// and the HEAD flip succeed or fail together. (Drizzle's `batch` on
-		// neon-http executes statements in a single HTTP request inside one
-		// implicit transaction; the deferred FK on projects.current_build_id
-		// + the partial unique index together make this safe.)
 		const batch: BatchItem<'pg'>[] = [updateBuild, ...upsertProjectFiles, updateProject]
 		await this.db.batch(assertNonEmptyBatch(batch, 'commit batch'))
 
-		// Read back the committed row so the caller has accurate timestamps.
 		const rows = await this.db
 			.select()
 			.from(schema.builds)
@@ -705,7 +659,6 @@ class PostgresBuildContext implements BuildContext {
 			throw new BuildNotFoundError(this.buildId, undefined, { projectId: this.projectId })
 		}
 		if (row.status !== 'completed') {
-			// Lost the optimistic CAS — another process already terminated this build.
 			throw new BuildNotStreamingError(this.buildId, row.status, {
 				projectId: this.projectId,
 			})
@@ -739,8 +692,6 @@ class PostgresBuildContext implements BuildContext {
 	}
 }
 
-// ── row mappers ──────────────────────────────────────────────────────────────
-
 function rowToProject(row: typeof schema.projects.$inferSelect): ProjectRow {
 	return {
 		id: row.id,
@@ -750,6 +701,8 @@ function rowToProject(row: typeof schema.projects.$inferSelect): ProjectRow {
 		tier: row.tier as ProjectTier,
 		currentBuildId: row.currentBuildId,
 		lastBuildAt: row.lastBuildAt,
+		previewUrl: row.previewUrl,
+		previewUrlUpdatedAt: row.previewUrlUpdatedAt,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 		deletedAt: row.deletedAt,

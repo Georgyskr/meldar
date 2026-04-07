@@ -1,8 +1,8 @@
 # Meldar v3 MVP Backlog
 
-**Last updated:** 2026-04-07
+**Last updated:** 2026-04-07 (post cleanup wave)
 **Replaces:** v2 angle-change MVP backlog
-**Based on:** Carson brainstorming session + game economy design
+**Based on:** Carson brainstorming session + game economy design + 2026-04-07 multi-agent review + cleanup
 
 ---
 
@@ -22,6 +22,153 @@ Validate that a non-technical user can go from:
 - **P0** — Blocks MVP launch. Must ship.
 - **P1** — Needed soon after launch. Don't ship without a plan for these.
 - **P2** — Post-launch. Deferred.
+
+---
+
+## 2026-04-07 — Cleanup wave (what changed)
+
+A multi-agent review + implementation wave ran on 2026-04-07. It closed
+several P0s, ripped the legacy landing-page features entirely, and
+migrated Neon to the v3-only schema. Read this section before reading
+the rest of the backlog — many items below are now **DONE** or
+**DELETED** as a result.
+
+### Legacy code ripped (deleted, not just deferred)
+
+- `/` landing page (replaced with a coming-soon page promoted from
+  `app/coming-soon/`)
+- `/quiz`, `/xray`, `/start`, `/discover`, `/thank-you`
+- `api/subscribe`, `api/discovery/*`, `api/upload/screentime`,
+  `api/auth/register`, `api/billing/webhook`, `api/cron/purge`
+- `features/discovery-flow`, `features/discovery-quizzes`,
+  `features/screenshot-upload`, `features/founding-program`,
+  `features/focus-mode`, `features/billing`
+- `widgets/landing`
+
+### Neon is now v3-only
+
+Legacy tables dropped: `audit_orders`, `discovery_sessions`,
+`subscribers`, `xray_results`. The `users` table is preserved because
+v3's `projects.user_id` references it. Applied migrations:
+
+- `0000_meldar_v3_initial.sql` — v3 schema (projects, builds,
+  build_files, project_files)
+- `0001_projects_preview_url.sql` — preview URL cache columns +
+  `idx_builds_project_streaming_created` partial index
+- `0002_builds_unique_streaming.sql` — unique partial index
+  `ux_builds_project_streaming` (fixes the double-submit race where
+  two concurrent POSTs to the build route could both pass the
+  `getActiveStreamingBuild` guard)
+
+Plus: `pg_stat_statements` installed; `ALTER ROLE neondb_owner SET
+statement_timeout='5s'` and `idle_in_transaction_session_timeout='30s'`
+applied per runbook §3.
+
+### Cloudflare Sandbox worker: deferred
+
+The `@meldar/sandbox` package is the client contract + HMAC helpers.
+The actual Cloudflare Worker that backs it is NOT yet deployed. In
+production the orchestrator runs with `deps.sandbox === undefined` —
+builds commit successfully to storage but the workspace iframe shows
+the placeholder. The orchestrator code already handles this gracefully
+and the `previewUrlUpdatedAt` staleness check means stale URLs are
+never rendered. See §NEW-SANDBOX below.
+
+### Items that became OBSOLETE from the rip
+
+These items below are now deleted or need to be reframed from scratch:
+
+- **§1** "Update landing page to v3 positioning" → landing page is now
+  a coming-soon page. Reframe as "design the coming-soon page
+  properly" or merge with §NEW-AUTH.
+- **§4** "Free tier: Digital Footprint Scan" → scan code is gone.
+  Revisit only if we want a fresh discovery flow.
+- **§5** "Onboarding style selector" → no onboarding surface exists
+  anymore.
+- **§6** "Visible roadmap preview (free)" → no discovery → workspace
+  handoff. Dead until a new entry funnel exists.
+- **§21–23** Referral system → blocked on §NEW-AUTH. Keep as P1.
+- **§24** "Stripe checkout for Builder tier" → billing code was in the
+  rip. Reintroduce as part of §NEW-AUTH or after.
+- **§31** "Landing Page + Booking" template → drop; reframe later.
+
+### Items newly closed by the cleanup wave
+
+- **§7 Split-screen workspace shell** → **DONE.** `WorkspaceShell`
+  with top/bottom bars, preview pane with `previewUrlUpdatedAt`
+  staleness handling, kanban placeholder, build panel, roadmap
+  drawer with proper a11y (aria-modal, focus trap, scroll lock).
+- **§15 Execution orchestrator v1** → **DONE** (already was; the
+  wave fixed atomicity — `sandbox_ready` + `setPreviewUrl` moved
+  post-`commit()`, Zod URL validation at the boundary, N+1 sandbox
+  writeFiles batched, N+1 `storage.readFile` parallelized, type-lie
+  casts removed).
+- **§17 Token accounting (cost ceiling)** → **DONE** (already was).
+- Closed gap: "Sandbox preview URL displayed" → iframe + context +
+  staleness check all wired. Modulo §NEW-SANDBOX for the worker.
+- Closed gap: "Project creation flow" → `/api/workspace/projects`
+  POST + create-project trigger with proper error surfacing + Zod
+  response validation + 1-second cooldown.
+- Closed gap: "Reap-stuck-builds" → runs synchronously on workspace
+  page load via a single round-trip pattern (not `after()` anymore);
+  a proper cron can come later.
+
+### Security / quality fixes landed in the same wave
+
+- iframe `sandbox` attribute dropped `allow-same-origin` (defense in
+  depth vs `javascript:` URL XSS chain)
+- `previewUrl` is Zod-validated as `http(s)`-only at both the
+  orchestrator boundary and the render boundary
+- `name` on `/api/workspace/projects` is trimmed, length-capped,
+  regex-restricted — no more prompt-injection via project name into
+  the Sonnet context
+- Rate limiter fall-open fixed via shared `mustHaveRateLimit()`
+  helper that throws at module init in production when Upstash env
+  vars are missing (applied to both the new create-project route and
+  the existing build route)
+- All `as unknown as SandboxProvider` type lies replaced with a
+  `satisfies SandboxProvider` test helper
+- Clean-code pass trimmed ~160 lines of historical/defensive comments
+  (zero behavior change, all tests green)
+
+### New P0 items added by this wave
+
+**§NEW-AUTH. Standalone auth flow for v3 — BLOCKER.** The legacy auth
+(which piggy-backed on `/api/auth/register` + the quiz/billing flows)
+is gone. The `users` table schema is still intact — `email`,
+`password_hash`, `email_verified`, `verify_token`, `reset_token`,
+`created_at`. What's needed:
+
+- `/sign-up`, `/sign-in`, `/sign-out` routes
+- Email verification flow via Resend (reuse the existing
+  `RESEND_API_KEY` wiring)
+- Password reset flow
+- Route guard for `/workspace/*` that redirects to `/sign-in` when
+  the `meldar-auth` cookie is absent (the workspace route group's
+  layout should own this)
+- A minimal sign-up surface on the coming-soon page (or a dedicated
+  sign-up URL that the coming-soon page links to)
+
+Without this, the workspace is literally unreachable for any real
+user. This is the next task after the cleanup wave lands.
+
+**§NEW-SANDBOX. Cloudflare Sandbox worker deployment — BLOCKER for
+any real preview.** Needed:
+
+- New `apps/sandbox-worker/` package with `wrangler.toml`
+- The actual Worker code that implements the contract in
+  `packages/sandbox/src/provider.ts` (`prewarm`, `start`,
+  `writeFiles`, `getPreviewUrl`, `stop`)
+- Deploy to the Cloudflare account
+- Set `CF_SANDBOX_WORKER_URL` + `CF_SANDBOX_HMAC_SECRET` in Vercel
+  for Production and Preview
+- End-to-end smoke: create a project, submit a build, watch
+  `sandbox_ready` fire in the SSE stream, iframe renders the live
+  preview
+
+This can ship after §NEW-AUTH — the workspace works without it
+(builds commit fine, just no live preview), but the MVP demo story
+requires it.
 
 ---
 
@@ -103,16 +250,43 @@ Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test b
 4. `packages/storage/src/r2-blob.ts` — content-addressed PUT/GET via aws4fetch (no AWS SDK on serverless)
 5. `apps/web/src/features/workspace-build/BuildPanel.tsx` — client consumer, `consumeSseStream` from `@meldar/orchestrator/sse`, AbortController cancellation
 
-### What is NOT yet wired (gaps to be aware of)
+### What is NOT yet wired (gaps to be aware of, post 2026-04-07 cleanup)
 
-- **Sandbox preview URL** is not displayed in the workspace UI yet — `SandboxProvider` returns it but the frontend doesn't render the iframe
-- **Project creation flow** — there's no UI to create a new project (the workspace route assumes a `projectId` already exists)
-- **Kanban UI** — the orchestrator accepts a `kanbanCardId` field but no UI surface produces or consumes them
-- **Build history / rollback UI** — the storage layer supports `rollbackToBuild()` but no UI invokes it
-- **Reap-stuck-builds cron** — `builds.status = 'streaming'` rows can be orphaned by a Worker crash; needs a cron sweeper
-- **Drizzle-Kit migration runner** — schema is hand-crafted SQL applied via `psql`; no `drizzle-kit migrate` integration
-- **Upstash cache layer** — `@upstash/redis` is a dep but only used for the token ledger; no Workers KV / Upstash response cache yet
-- **Model routing logic** (#16 below) — orchestrator currently always uses Sonnet (`request.model ?? MODELS.SONNET`); no automatic Haiku/Opus routing by `task_type`
+- **Standalone auth flow** — §NEW-AUTH above. The workspace route guard
+  exists and checks `meldar-auth` cookie, but there is no sign-up /
+  sign-in / email-verification UI. **This is the next blocker.**
+- **Cloudflare Sandbox worker** — §NEW-SANDBOX above. The client
+  contract is complete; the Worker itself is not deployed, so
+  production builds commit successfully but never render a live
+  preview (the workspace shows the placeholder indefinitely).
+- **Project creation flow** — ~~there's no UI to create a new project~~
+  **CLOSED** by the 2026-04-07 cleanup wave. `/api/workspace/projects`
+  POST exists with rate-limit + Zod validation + prompt-injection
+  hardening, triggered from the workspace create-project button with
+  proper error surfacing.
+- **Sandbox preview URL displayed in workspace** — ~~not displayed~~
+  **CLOSED in the UI layer** (`PreviewPane` + `WorkspaceBuildProvider`
+  context + `previewUrlUpdatedAt` 2-minute staleness check); waiting
+  on §NEW-SANDBOX for the actual worker.
+- **Kanban UI** — the orchestrator accepts a `kanbanCardId` field but
+  no UI surface produces or consumes them
+- **Build history / rollback UI** — the storage layer supports
+  `rollbackToBuild()` but no UI invokes it
+- **Reap-stuck-builds** — ~~needs a cron sweeper~~ **CLOSED inline**:
+  runs synchronously on workspace page load, single round trip, no
+  race with `getActiveStreamingBuild`. A proper cron can come later.
+- **Drizzle-Kit migration runner** — schema is hand-crafted SQL applied
+  via `psql`; no `drizzle-kit migrate` integration. This is the
+  deliberate choice per runbook §1 — keep it.
+- **Upstash cache layer** — `@upstash/redis` is a dep, now used for
+  both the token ledger AND rate-limiting (create-project + build
+  routes). No response cache yet.
+- **Model routing logic** (#16 below) — orchestrator currently always
+  uses Sonnet (`request.model ?? MODELS.SONNET`); no automatic
+  Haiku/Opus routing by `task_type`
+- **Billing re-integration** — Stripe checkout was in the rip.
+  Founding-member launch can happen without a paywall; revisit when
+  the v3 billing model is locked.
 
 ---
 
@@ -485,26 +659,39 @@ Determine the second onboarding style and implement.
 
 ---
 
-## Launch Readiness Checklist
+## Launch Readiness Checklist (post 2026-04-07 cleanup wave)
 
 MVP is ready to show first founding members when:
 
-- [ ] Landing page reflects v3 positioning
-- [ ] Free tier scan works end-to-end
-- [ ] User can sign up for Builder tier and pay
-- [ ] Split-screen workspace renders with live preview
+- [x] ~~Landing page reflects v3 positioning~~ — legacy landing page
+  ripped; coming-soon page is the public surface
+- [ ] Coming-soon page has a working email capture (tied to §NEW-AUTH)
+- [ ] §NEW-AUTH — sign-up, sign-in, sign-out, email verification work
+  end-to-end
+- [ ] §NEW-SANDBOX — Cloudflare Sandbox worker deployed, `sandbox_ready`
+  events fire, iframe renders a live preview
+- [ ] User can reach `/workspace/:id` after sign-up without hitting
+  any legacy auth redirects
+- [x] Split-screen workspace renders (live preview blocked on
+  §NEW-SANDBOX)
+- [ ] First user actually signs up, creates a project, and sees a
+  streaming build commit
 - [ ] Reddit Scanner use case has all 8 steps working
-- [ ] Token accounting works (no negative balances, no runaway costs)
-- [ ] Referral system generates and tracks links
-- [ ] Done-for-me button sends founder an email
-- [ ] Cost ceiling enforcement is bulletproof (no user can exceed EUR 2/day)
-- [ ] Model routing correctly picks Sonnet / Opus / Haiku
-- [ ] Prompt anatomy side panel renders for every prompt
-- [ ] Improve-my-prompt widget works and charges 1 token
-- [ ] All inline explainers written and reviewed
-- [ ] Analytics firing for all P0 events
-- [ ] Founder can see real-time cost dashboard
-- [ ] Email sequence welcomes new users
+- [x] Token cost ceiling enforcement works (no user can exceed
+  EUR 2/day) — delivered by `packages/tokens/`
+- [ ] Token accounting *game economy* layer (monthly allowances,
+  daily earn cap, referral bonuses) — §17
+- [ ] Billing re-added (was in the rip) — gated on whether we launch
+  with or without a paywall
+- [ ] Referral system generates and tracks links (§21–23)
+- [ ] Done-for-me button sends founder an email (§25)
+- [ ] Model routing correctly picks Sonnet / Opus / Haiku (§16)
+- [ ] Prompt anatomy side panel renders for every prompt (§12)
+- [ ] Improve-my-prompt widget works and charges 1 token (§13)
+- [ ] All inline explainers written and reviewed (§29)
+- [ ] Analytics firing for all P0 events (§27)
+- [ ] Founder can see real-time cost dashboard (§26)
+- [ ] Email sequence welcomes new users (§35)
 - [ ] First user deploys a working Reddit Scanner via Meldar
 
 ---

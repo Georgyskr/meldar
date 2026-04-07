@@ -17,9 +17,6 @@ export async function GET(request: NextRequest) {
 			id: users.id,
 			email: users.email,
 			name: users.name,
-			emailVerified: users.emailVerified,
-			xrayUsageCount: users.xrayUsageCount,
-			marketingConsent: users.marketingConsent,
 		})
 		.from(users)
 		.where(eq(users.id, tokenPayload.userId))

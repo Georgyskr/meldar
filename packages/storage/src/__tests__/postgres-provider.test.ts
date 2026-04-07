@@ -20,6 +20,8 @@ type Recorder = {
 	calls: Array<{ op: Op; table: unknown }>
 	/** Every db.batch([...]) call's array length, for sanity checks. */
 	batchSizes: number[]
+	/** Every `.set(values)` payload passed to an update chain, in order. */
+	updateSets: Array<{ table: unknown; values: Record<string, unknown> }>
 	clear(): void
 }
 
@@ -36,9 +38,11 @@ function makeFakeDb(): {
 	const recorder: Recorder = {
 		calls: [],
 		batchSizes: [],
+		updateSets: [],
 		clear() {
 			this.calls = []
 			this.batchSizes = []
+			this.updateSets = []
 		},
 	}
 
@@ -65,9 +69,12 @@ function makeFakeDb(): {
 		}
 		return chain
 	}
-	const makeUpdateChain = (): unknown => {
+	const makeUpdateChain = (table: unknown): unknown => {
 		const chain: Record<string, unknown> = {
-			set: () => chain,
+			set: (values: Record<string, unknown>) => {
+				recorder.updateSets.push({ table, values })
+				return chain
+			},
 			where: () => chain,
 			returning: async () => nextReturning(),
 		}
@@ -92,7 +99,7 @@ function makeFakeDb(): {
 		},
 		update: (table: unknown) => {
 			recorder.calls.push({ op: 'update', table })
-			return makeUpdateChain()
+			return makeUpdateChain(table)
 		},
 		select: () => {
 			recorder.calls.push({ op: 'select', table: null })
@@ -261,6 +268,29 @@ describe('PostgresProjectStorage — query shape', () => {
 			expect(() => assertNonEmptyBatch([], 'createProject genesis batch')).toThrow(
 				/invariant.*createProject genesis batch/i,
 			)
+		})
+	})
+
+	describe('setPreviewUrl', () => {
+		it('writes a fresh timestamp alongside a non-null URL', async () => {
+			pushReturningResult<{ id: string }>([{ id: 'fake_project' }])
+			await storage.setPreviewUrl(
+				'55555555-5555-4555-8555-555555555555',
+				'https://sandbox.example.com/p',
+			)
+			const setCall = recorder.updateSets.find((s) => s.table === schema.projects)
+			expect(setCall).toBeDefined()
+			expect(setCall?.values.previewUrl).toBe('https://sandbox.example.com/p')
+			expect(setCall?.values.previewUrlUpdatedAt).toBeInstanceOf(Date)
+		})
+
+		it('nulls BOTH columns when called with null URL', async () => {
+			pushReturningResult<{ id: string }>([{ id: 'fake_project' }])
+			await storage.setPreviewUrl('66666666-6666-4666-8666-666666666666', null)
+			const setCall = recorder.updateSets.find((s) => s.table === schema.projects)
+			expect(setCall).toBeDefined()
+			expect(setCall?.values.previewUrl).toBeNull()
+			expect(setCall?.values.previewUrlUpdatedAt).toBeNull()
 		})
 	})
 

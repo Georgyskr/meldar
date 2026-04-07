@@ -43,13 +43,6 @@ const fakeUser = {
 	email: 'user@example.com',
 	name: 'Test User',
 	passwordHash: '$2a$12$hashedpassword',
-	emailVerified: true,
-	xrayUsageCount: 3,
-	verifyToken: null,
-	resetToken: null,
-	resetTokenExpiresAt: null,
-	marketingConsent: false,
-	createdAt: new Date(),
 }
 
 function setupDbChain(result: unknown[]) {
@@ -87,8 +80,6 @@ describe('POST /api/auth/login', () => {
 		expect(json.user.id).toBe(fakeUser.id)
 		expect(json.user.email).toBe(fakeUser.email)
 		expect(json.user.name).toBe(fakeUser.name)
-		expect(json.user.emailVerified).toBe(true)
-		expect(json.user.xrayUsageCount).toBe(3)
 
 		// Verify password hash is NOT in response
 		expect(json.user.passwordHash).toBeUndefined()

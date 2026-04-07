@@ -168,6 +168,8 @@ export const projects = pgTable(
 		tier: text('tier').notNull().default('builder'), // 'builder' | 'pro' | 'vip'
 		currentBuildId: uuid('current_build_id'), // FK added manually, DEFERRABLE
 		lastBuildAt: timestamp('last_build_at', { withTimezone: true }),
+		previewUrl: text('preview_url'),
+		previewUrlUpdatedAt: timestamp('preview_url_updated_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 		deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -222,6 +224,19 @@ export const builds = pgTable(
 		index('idx_builds_project_status')
 			.on(table.projectId, table.status)
 			.where(sql`${table.status} IN ('streaming', 'failed')`),
+		// Scopes the workspace-load "is there an active streaming build?" query
+		// down to the streaming set so the planner doesn't walk completed rows.
+		index('idx_builds_project_streaming_created')
+			.on(table.projectId, table.createdAt.desc())
+			.where(sql`${table.status} = 'streaming'`),
+		// Enforces "at most one streaming build per project" at the DB level.
+		// Fixes the race where two concurrent POSTs to the build route both pass
+		// the non-atomic getActiveStreamingBuild guard — the second INSERT now
+		// fails with a unique constraint violation that the route catches and
+		// converts to BUILD_IN_PROGRESS.
+		uniqueIndex('ux_builds_project_streaming')
+			.on(table.projectId)
+			.where(sql`${table.status} = 'streaming'`),
 		// Self-referential FK via the Drizzle foreignKey helper can't be used with
 		// a forward ref to the same table's column inside the columns object, so
 		// we add this FK in the hand-edited migration SQL alongside the circular FK.

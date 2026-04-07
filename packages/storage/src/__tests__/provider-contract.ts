@@ -40,19 +40,33 @@ import { MAX_FILES_PER_BUILD } from '../types'
  *   })
  *
  * Each test gets a fresh storage instance.
+ *
+ * `softDeleteProject` is a test-only escape hatch: there is no public
+ * `deleteProject` API, but several contract behaviors must be pinned against
+ * a soft-deleted project. Implementations supply a callback that flips the
+ * project's `deleted_at` directly (in-memory: mutate the map; postgres:
+ * UPDATE the row).
  */
+export type ProjectStorageContractFactory = () => {
+	storage: ProjectStorage
+	blob: BlobStorage
+	softDeleteProject: (projectId: string) => Promise<void>
+}
+
 export function runProjectStorageContract(
 	name: string,
-	factory: () => { storage: ProjectStorage; blob: BlobStorage },
+	factory: ProjectStorageContractFactory,
 ): void {
 	describe(`ProjectStorage contract: ${name}`, () => {
 		let storage: ProjectStorage
 		let blob: BlobStorage
+		let softDeleteProject: (projectId: string) => Promise<void>
 
 		beforeEach(() => {
 			const f = factory()
 			storage = f.storage
 			blob = f.blob
+			softDeleteProject = f.softDeleteProject
 		})
 
 		// ── createProject ─────────────────────────────────────────────────
@@ -608,6 +622,291 @@ export function runProjectStorageContract(
 				await expect(
 					storage.getBuild(created.project.id, '22222222-2222-2222-2222-222222222222'),
 				).rejects.toThrow(BuildNotFoundError)
+			})
+		})
+
+		describe('preview URL', () => {
+			it('starts as null on a fresh project', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const fetched = await storage.getProject(created.project.id, 'user_1')
+				expect(fetched.previewUrl).toBeNull()
+				expect(fetched.previewUrlUpdatedAt).toBeNull()
+			})
+
+			it('persists the URL via setPreviewUrl and bumps the timestamp', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const before = Date.now()
+				await storage.setPreviewUrl(created.project.id, 'https://sandbox.example.com/preview-1')
+				const fetched = await storage.getProject(created.project.id, 'user_1')
+				expect(fetched.previewUrl).toBe('https://sandbox.example.com/preview-1')
+				expect(fetched.previewUrlUpdatedAt).not.toBeNull()
+				expect(fetched.previewUrlUpdatedAt?.getTime() ?? 0).toBeGreaterThanOrEqual(before)
+			})
+
+			it('clears the URL AND nulls the timestamp when called with null', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				await storage.setPreviewUrl(created.project.id, 'https://sandbox.example.com/p')
+				const before = await storage.getProject(created.project.id, 'user_1')
+				expect(before.previewUrl).toBe('https://sandbox.example.com/p')
+				expect(before.previewUrlUpdatedAt).not.toBeNull()
+
+				await storage.setPreviewUrl(created.project.id, null)
+				const after = await storage.getProject(created.project.id, 'user_1')
+				expect(after.previewUrl).toBeNull()
+				expect(after.previewUrlUpdatedAt).toBeNull()
+			})
+
+			it('throws ProjectNotFoundError for an unknown project', async () => {
+				await expect(
+					storage.setPreviewUrl(
+						'33333333-3333-3333-3333-333333333333',
+						'https://sandbox.example.com/p',
+					),
+				).rejects.toThrow(ProjectNotFoundError)
+			})
+
+			it('throws ProjectNotFoundError on a soft-deleted project', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				await softDeleteProject(created.project.id)
+				await expect(
+					storage.setPreviewUrl(created.project.id, 'https://sandbox.example.com/p'),
+				).rejects.toThrow(ProjectNotFoundError)
+			})
+		})
+
+		describe('reapStuckBuilds', () => {
+			it('returns 0 when no streaming build exists for the project', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const cutoff = new Date(Date.now() + 60_000)
+				const reaped = await storage.reapStuckBuilds(created.project.id, cutoff)
+				expect(reaped).toBe(0)
+			})
+
+			it('does not reap a streaming build younger than the cutoff', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const ctx = await storage.beginBuild({
+					projectId: created.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				const cutoff = new Date(Date.now() - 60_000)
+				const reaped = await storage.reapStuckBuilds(created.project.id, cutoff)
+				expect(reaped).toBe(0)
+				const build = await storage.getBuild(created.project.id, ctx.buildId)
+				expect(build.status).toBe('streaming')
+			})
+
+			it('marks streaming builds older than the cutoff as failed and returns the count', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const ctx = await storage.beginBuild({
+					projectId: created.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				const cutoff = new Date(Date.now() + 60_000)
+				const reaped = await storage.reapStuckBuilds(created.project.id, cutoff)
+				expect(reaped).toBe(1)
+				const build = await storage.getBuild(created.project.id, ctx.buildId)
+				expect(build.status).toBe('failed')
+				expect(build.errorMessage).toBe('reaper: stuck streaming')
+				expect(build.completedAt).not.toBeNull()
+			})
+
+			it('does not affect completed or failed builds', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const cutoff = new Date(Date.now() + 60_000)
+				const reaped = await storage.reapStuckBuilds(created.project.id, cutoff)
+				expect(reaped).toBe(0)
+				const genesis = await storage.getBuild(created.project.id, created.genesisBuild.id)
+				expect(genesis.status).toBe('completed')
+			})
+
+			it('uses strict < on createdAt — a build at exactly the cutoff is NOT reaped', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const ctx = await storage.beginBuild({
+					projectId: created.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				const build = await storage.getBuild(created.project.id, ctx.buildId)
+				const cutoffEqual = new Date(build.createdAt.getTime())
+				const reapedAtBoundary = await storage.reapStuckBuilds(created.project.id, cutoffEqual)
+				expect(reapedAtBoundary).toBe(0)
+				const stillStreaming = await storage.getBuild(created.project.id, ctx.buildId)
+				expect(stillStreaming.status).toBe('streaming')
+
+				const cutoffOneMsLater = new Date(build.createdAt.getTime() + 1)
+				const reapedJustAfter = await storage.reapStuckBuilds(created.project.id, cutoffOneMsLater)
+				expect(reapedJustAfter).toBe(1)
+				const reaped = await storage.getBuild(created.project.id, ctx.buildId)
+				expect(reaped.status).toBe('failed')
+			})
+
+			it('only reaps builds for the specified project', async () => {
+				const a = await storage.createProject({
+					userId: 'user_1',
+					name: 'A',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const b = await storage.createProject({
+					userId: 'user_1',
+					name: 'B',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'b.ts', content: 'b' }],
+				})
+				const aCtx = await storage.beginBuild({
+					projectId: a.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				const bCtx = await storage.beginBuild({
+					projectId: b.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				const cutoff = new Date(Date.now() + 60_000)
+				const reaped = await storage.reapStuckBuilds(a.project.id, cutoff)
+				expect(reaped).toBe(1)
+				const aBuild = await storage.getBuild(a.project.id, aCtx.buildId)
+				const bBuild = await storage.getBuild(b.project.id, bCtx.buildId)
+				expect(aBuild.status).toBe('failed')
+				expect(bBuild.status).toBe('streaming')
+			})
+
+			it('still reaps streaming builds on a soft-deleted project (FK cascade safety)', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const ctx = await storage.beginBuild({
+					projectId: created.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				await softDeleteProject(created.project.id)
+				const cutoff = new Date(Date.now() + 60_000)
+				const reaped = await storage.reapStuckBuilds(created.project.id, cutoff)
+				expect(reaped).toBe(1)
+				const build = await storage.getBuild(created.project.id, ctx.buildId)
+				expect(build.status).toBe('failed')
+			})
+		})
+
+		describe('getActiveStreamingBuild', () => {
+			it('returns null when only completed builds exist', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const id = await storage.getActiveStreamingBuild(created.project.id)
+				expect(id).toBeNull()
+			})
+
+			it('returns the id of an in-flight streaming build', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const ctx = await storage.beginBuild({
+					projectId: created.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				const id = await storage.getActiveStreamingBuild(created.project.id)
+				expect(id).toBe(ctx.buildId)
+			})
+
+			it('returns null after the streaming build is committed', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const ctx = await storage.beginBuild({
+					projectId: created.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				await ctx.commit()
+				const id = await storage.getActiveStreamingBuild(created.project.id)
+				expect(id).toBeNull()
+			})
+
+			it('returns null after the streaming build is failed', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const ctx = await storage.beginBuild({
+					projectId: created.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				await ctx.fail('boom')
+				const id = await storage.getActiveStreamingBuild(created.project.id)
+				expect(id).toBeNull()
+			})
+
+			it('still returns the streaming build id on a soft-deleted project', async () => {
+				const created = await storage.createProject({
+					userId: 'user_1',
+					name: 'X',
+					templateId: 'next-landing-v1',
+					initialFiles: [{ path: 'a.ts', content: 'a' }],
+				})
+				const ctx = await storage.beginBuild({
+					projectId: created.project.id,
+					triggeredBy: 'kanban_card',
+				})
+				await softDeleteProject(created.project.id)
+				const id = await storage.getActiveStreamingBuild(created.project.id)
+				expect(id).toBe(ctx.buildId)
 			})
 		})
 	})

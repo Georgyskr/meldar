@@ -3,7 +3,7 @@
  */
 
 export { _resetOrchestratorDepsCache, buildOrchestratorDeps } from './deps'
-export { type OrchestratorDeps, orchestrateBuild } from './engine'
+export { type OrchestratorDeps, orchestrateBuild, previewUrlSchema } from './engine'
 export {
 	BUILD_SYSTEM_PROMPT,
 	buildUserMessage,

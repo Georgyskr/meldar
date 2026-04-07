@@ -1,1 +1,8 @@
+export { KanbanColumn, type KanbanColumnProps } from './KanbanColumn'
+export { LastBuildRelativeTime } from './LastBuildRelativeTime'
+export { NewProjectButton } from './NewProjectButton'
+export { PreviewPane, type PreviewPaneProps } from './PreviewPane'
+export { StepIndicator, type StepIndicatorProps } from './StepIndicator'
+export { WorkspaceBottomBar, type WorkspaceBottomBarProps } from './WorkspaceBottomBar'
 export { WorkspaceShell, type WorkspaceShellProps } from './WorkspaceShell'
+export { WorkspaceTopBar, type WorkspaceTopBarProps } from './WorkspaceTopBar'

@@ -7,6 +7,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { type OrchestratorDeps, orchestrateBuild } from '../engine'
 import { MAX_OUTPUT_TOKENS_PER_BUILD, type OrchestratorEvent } from '../types'
 
+function makeStubSandbox(overrides: Partial<SandboxProvider> = {}): SandboxProvider {
+	return {
+		prewarm: vi.fn().mockResolvedValue(undefined),
+		start: vi.fn(),
+		writeFiles: vi.fn(),
+		getPreviewUrl: vi.fn().mockResolvedValue(null),
+		stop: vi.fn().mockResolvedValue(undefined),
+		...overrides,
+	} satisfies SandboxProvider
+}
+
 // Zeroed SDK `Usage` — spread into per-test usage so callers only restate the fields that matter.
 const EMPTY_USAGE: Anthropic.Messages.Usage = {
 	input_tokens: 0,
@@ -186,21 +197,11 @@ describe('orchestrateBuild', () => {
 		it('mirrors writes to the sandbox provider when one is supplied', async () => {
 			const writeFiles = vi.fn().mockResolvedValue({
 				projectId: fixture.projectId,
-				previewUrl: 'https://x',
+				previewUrl: 'https://x.example.com',
 				status: 'ready',
 				revision: 1,
 			})
-			// Stub the SandboxProvider surface. The structural cast is narrower
-			// than `as any`: tsc enforces method names and arity, only the
-			// parameter/return shapes of each `vi.fn()` are unverified — and the
-			// test only exercises `writeFiles`.
-			const sandbox: SandboxProvider = {
-				prewarm: vi.fn(),
-				start: vi.fn(),
-				writeFiles,
-				getPreviewUrl: vi.fn(),
-				stop: vi.fn(),
-			} as unknown as SandboxProvider
+			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
 				{ path: 'src/app/page.tsx', content: 'x' },
 				{ path: 'src/lib/util.ts', content: 'y' },
@@ -217,7 +218,54 @@ describe('orchestrateBuild', () => {
 				),
 			)
 
-			expect(writeFiles).toHaveBeenCalledTimes(2)
+			// Batched: a single writeFiles call for all files (was N+1 per file).
+			expect(writeFiles).toHaveBeenCalledTimes(1)
+			const callArg = writeFiles.mock.calls[0][0]
+			expect(callArg.files).toHaveLength(2)
+		})
+
+		it('emits sandbox_ready exactly once and persists the preview URL to storage', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://sandbox.example.com/preview-abc',
+				status: 'ready',
+				revision: 7,
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+			const { client: anthropic } = makeToolUseMock([
+				{ path: 'a.ts', content: 'a' },
+				{ path: 'b.ts', content: 'b' },
+				{ path: 'c.ts', content: 'c' },
+			])
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{ storage: fixture.storage, sandbox, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const sandboxReadyEvents = events.filter((e) => e.type === 'sandbox_ready')
+			expect(sandboxReadyEvents).toHaveLength(1)
+			const sandboxReady = sandboxReadyEvents[0]
+			if (sandboxReady?.type !== 'sandbox_ready') throw new Error('expected sandbox_ready')
+			expect(sandboxReady.previewUrl).toBe('https://sandbox.example.com/preview-abc')
+			expect(sandboxReady.revision).toBe(7)
+
+			const project = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+			expect(project.previewUrl).toBe('https://sandbox.example.com/preview-abc')
+			expect(project.previewUrlUpdatedAt).not.toBeNull()
+		})
+
+		it('does not emit sandbox_ready when no sandbox provider is configured', async () => {
+			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+			expect(events.some((e) => e.type === 'sandbox_ready')).toBe(false)
 		})
 	})
 
@@ -520,6 +568,177 @@ describe('orchestrateBuild', () => {
 
 			const build = await fixture.storage.getBuild(fixture.projectId, started.buildId)
 			expect(build.status).toBe('failed')
+		})
+	})
+
+	describe('sandbox_ready post-commit invariants', () => {
+		it('emits sandbox_ready AFTER committed', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://sandbox.example.com/preview',
+				status: 'ready',
+				revision: 3,
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+			const { client: anthropic } = makeToolUseMock([
+				{ path: 'a.ts', content: 'a' },
+				{ path: 'b.ts', content: 'b' },
+			])
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{ storage: fixture.storage, sandbox, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const types = events.map((e) => e.type)
+			const committedIdx = types.indexOf('committed')
+			const readyIdx = types.indexOf('sandbox_ready')
+			expect(committedIdx).toBeGreaterThanOrEqual(0)
+			expect(readyIdx).toBeGreaterThan(committedIdx)
+		})
+
+		it('does not advertise sandbox_ready when commit fails', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://sandbox.example.com/preview',
+				status: 'ready',
+				revision: 1,
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+
+			const project0 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+			const previewBefore = project0.previewUrl
+
+			const realBeginBuild = fixture.storage.beginBuild.bind(fixture.storage)
+			const beginBuildSpy = vi
+				.spyOn(fixture.storage, 'beginBuild')
+				.mockImplementation(async (opts) => {
+					const ctx = await realBeginBuild(opts)
+					ctx.commit = async () => {
+						throw new Error('forced commit failure for atomicity test')
+					}
+					return ctx
+				})
+
+			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{ storage: fixture.storage, sandbox, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			beginBuildSpy.mockRestore()
+
+			expect(events.some((e) => e.type === 'sandbox_ready')).toBe(false)
+			expect(events.some((e) => e.type === 'committed')).toBe(false)
+			expect(writeFiles).not.toHaveBeenCalled()
+
+			const project1 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+			expect(project1.previewUrl).toBe(previewBefore)
+		})
+
+		it('drops sandbox_ready when sandbox returns a non-http(s) previewUrl', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'javascript:alert(1)',
+				status: 'ready',
+				revision: 1,
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+			const project0 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+			const previewBefore = project0.previewUrl
+
+			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{ storage: fixture.storage, sandbox, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			expect(events.some((e) => e.type === 'sandbox_ready')).toBe(false)
+			expect(events.some((e) => e.type === 'committed')).toBe(true)
+			const project1 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+			expect(project1.previewUrl).toBe(previewBefore)
+		})
+
+		it('emits sandbox_ready with the LAST sandbox handle revision (single batched call)', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://sandbox.example.com/preview',
+				status: 'ready',
+				revision: 42,
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+			const { client: anthropic } = makeToolUseMock([
+				{ path: 'a.ts', content: 'a' },
+				{ path: 'b.ts', content: 'b' },
+				{ path: 'c.ts', content: 'c' },
+			])
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{ storage: fixture.storage, sandbox, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			expect(writeFiles).toHaveBeenCalledTimes(1)
+			const sandboxReady = events.find((e) => e.type === 'sandbox_ready')
+			if (sandboxReady?.type !== 'sandbox_ready') throw new Error('expected sandbox_ready event')
+			expect(sandboxReady.revision).toBe(42)
+		})
+
+		it('still emits sandbox_ready when setPreviewUrl cache write fails', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://sandbox.example.com/preview',
+				status: 'ready',
+				revision: 5,
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+			const setPreviewUrlSpy = vi
+				.spyOn(fixture.storage, 'setPreviewUrl')
+				.mockRejectedValue(new Error('forced cache write failure'))
+			const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{ storage: fixture.storage, sandbox, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			expect(events.some((e) => e.type === 'committed')).toBe(true)
+			expect(events.some((e) => e.type === 'sandbox_ready')).toBe(true)
+			expect(consoleErrorSpy).toHaveBeenCalled()
+
+			setPreviewUrlSpy.mockRestore()
+			consoleErrorSpy.mockRestore()
+		})
+
+		it('does not emit sandbox_ready or call setPreviewUrl when deps.sandbox is null', async () => {
+			const setPreviewUrlSpy = vi.spyOn(fixture.storage, 'setPreviewUrl')
+			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			expect(events.some((e) => e.type === 'committed')).toBe(true)
+			expect(events.some((e) => e.type === 'sandbox_ready')).toBe(false)
+			expect(setPreviewUrlSpy).not.toHaveBeenCalled()
+			setPreviewUrlSpy.mockRestore()
 		})
 	})
 })

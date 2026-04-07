@@ -57,7 +57,34 @@ export const resetLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'rl:reset' })
 	: null
 
+// 10 project creations per hour per user
+export const projectsCreateLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(10, '1 h'),
+			prefix: 'rl:projects:create',
+		})
+	: null
+
+// 5 build submissions per 10 minutes per user
+export const workspaceBuildLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(5, '10 m'),
+			prefix: 'rl:workspace-build',
+		})
+	: null
+
 export async function checkRateLimit(limiter: Ratelimit | null, identifier: string) {
 	if (!limiter) return { success: true }
 	return limiter.limit(identifier)
+}
+
+export function mustHaveRateLimit<T extends Ratelimit | null>(limiter: T, name: string): T {
+	if (limiter === null && process.env.NODE_ENV === 'production') {
+		throw new Error(
+			`Rate limiter "${name}" is not initialized — UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN is missing in production`,
+		)
+	}
+	return limiter
 }

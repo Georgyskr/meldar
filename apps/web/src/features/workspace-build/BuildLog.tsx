@@ -1,24 +1,10 @@
 'use client'
 
-/**
- * BuildLog — pure renderer for an append-only stream of orchestrator events.
- *
- * No fetching, no state, no side effects. The parent (`BuildPanel`) owns the
- * event list and the streaming flag and passes them down. This split keeps
- * the renderer trivially testable and lets the panel evolve its data
- * source (SSE today, websockets later, paginated history view some day)
- * without touching the visual layer.
- */
-
 import type { OrchestratorEvent } from '@meldar/orchestrator/types'
 import { Box, styled, VStack } from '@styled-system/jsx'
+import { memo } from 'react'
+import { colorForEvent, labelForEvent } from './lib/build-log-format'
 
-/**
- * Build events are append-only and never reorder, so the parent tags each
- * one with a monotonic id at insertion time. This is the stable React key —
- * the array index would be footgunny if the panel ever cleared and refilled
- * the list between renders.
- */
 export type LoggedEvent = {
 	readonly id: number
 	readonly event: OrchestratorEvent
@@ -68,7 +54,7 @@ function EmptyState() {
 	)
 }
 
-function EventRow({ event }: { event: OrchestratorEvent }) {
+const EventRow = memo(function EventRow({ event }: { event: OrchestratorEvent }) {
 	return (
 		<Box
 			padding={2}
@@ -88,42 +74,4 @@ function EventRow({ event }: { event: OrchestratorEvent }) {
 			</styled.div>
 		</Box>
 	)
-}
-
-function colorForEvent(type: OrchestratorEvent['type']): string {
-	switch (type) {
-		case 'started':
-			return 'primary'
-		case 'prompt_sent':
-			return 'primary'
-		case 'file_written':
-			return 'tertiary'
-		case 'committed':
-			return 'green.500'
-		case 'failed':
-			return 'red.500'
-		default:
-			return 'outline'
-	}
-}
-
-function labelForEvent(event: OrchestratorEvent): string {
-	switch (event.type) {
-		case 'started':
-			return `▶ Build started (${event.buildId.slice(0, 8)})`
-		case 'prompt_sent':
-			return `→ Prompt sent (~${event.estimatedCents}¢ estimate)`
-		case 'file_written':
-			return `📄 ${event.path} (${formatBytes(event.sizeBytes)})`
-		case 'committed':
-			return `✓ Committed: ${event.fileCount} files, ${event.actualCents}¢ (${event.tokenCost} tokens)`
-		case 'failed':
-			return `✗ Failed: ${event.reason}`
-	}
-}
-
-function formatBytes(bytes: number): string {
-	if (bytes < 1024) return `${bytes}B`
-	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`
-	return `${(bytes / 1024 / 1024).toFixed(1)}MB`
-}
+})

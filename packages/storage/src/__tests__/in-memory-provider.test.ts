@@ -12,5 +12,11 @@ import { runProjectStorageContract } from './provider-contract'
 runProjectStorageContract('InMemory', () => {
 	const blob = new InMemoryBlobStorage()
 	const storage = new InMemoryProjectStorage(blob)
-	return { storage, blob }
+	return {
+		storage,
+		blob,
+		softDeleteProject: async (projectId: string) => {
+			storage._softDeleteProject(projectId)
+		},
+	}
 })

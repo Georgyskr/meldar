@@ -51,8 +51,6 @@ export async function POST(request: NextRequest) {
 				email: users.email,
 				name: users.name,
 				passwordHash: users.passwordHash,
-				emailVerified: users.emailVerified,
-				xrayUsageCount: users.xrayUsageCount,
 			})
 			.from(users)
 			.where(eq(users.email, email))
@@ -75,8 +73,6 @@ export async function POST(request: NextRequest) {
 				id: user.id,
 				email: user.email,
 				name: user.name,
-				emailVerified: user.emailVerified,
-				xrayUsageCount: user.xrayUsageCount,
 			},
 		})
 

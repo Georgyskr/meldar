@@ -1,20 +1,3 @@
-/**
- * InMemoryProjectStorage — a pure in-memory implementation of ProjectStorage.
- *
- * Used for:
- *   - Fast unit tests of the orchestrator and workspace shell
- *   - Early integration tests before the real Postgres + R2 is wired up
- *   - CI runs that don't want to spin up a database
- *
- * Behaviors match PostgresProjectStorage via the shared contract tests in
- * `__tests__/contract.ts`. If the two ever diverge, the contract tests
- * catch it.
- *
- * NOT thread-safe. NOT for production. Explicitly throws if called in a
- * Node runtime flagged with NODE_ENV=production to catch accidental
- * mis-wiring.
- */
-
 import { assertSafeSandboxPath } from '@meldar/sandbox'
 import { type BlobStorage, sha256Hex } from './blob'
 import {
@@ -45,11 +28,6 @@ type InternalBuildFile = {
 	r2Key: string
 }
 
-/**
- * Mutable in-memory shape for a project_files row. Intentionally NOT extending
- * the readonly `ProjectFileRow` so we can update fields in place during build
- * streaming. Converted via {@link toProjectFileRow} at the interface boundary.
- */
 type InternalProjectFile = {
 	id: string
 	projectId: string
@@ -66,9 +44,7 @@ type InternalProjectFile = {
 export class InMemoryProjectStorage implements ProjectStorage {
 	private readonly projects = new Map<string, ProjectRow>()
 	private readonly builds = new Map<string, BuildRow>()
-	/** Keyed by buildId, value is an ordered list of files for that build. */
 	private readonly buildFiles = new Map<string, InternalBuildFile[]>()
-	/** Keyed by projectId, value is the live working set (only non-deleted rows). */
 	private readonly projectFiles = new Map<string, InternalProjectFile[]>()
 
 	constructor(private readonly blob: BlobStorage) {
@@ -79,14 +55,9 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		}
 	}
 
-	// ── createProject ─────────────────────────────────────────────────────
-
 	async createProject(options: CreateProjectOptions): Promise<CreatedProject> {
 		this.validateFileBatch(options.initialFiles)
 
-		// Genesis invariants: client-generated IDs so the whole transaction is
-		// observable as a single logical unit (matches how db.batch() works on
-		// neon-http — IDs known up front, no interactive dependency).
 		const projectId = crypto.randomUUID()
 		const genesisBuildId = crypto.randomUUID()
 		const now = new Date()
@@ -99,6 +70,8 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			tier: options.tier ?? 'builder',
 			currentBuildId: genesisBuildId,
 			lastBuildAt: now,
+			previewUrl: null,
+			previewUrlUpdatedAt: null,
 			createdAt: now,
 			updatedAt: now,
 			deletedAt: null,
@@ -119,9 +92,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			completedAt: now,
 		}
 
-		// Write blobs first. Content-addressed writes are idempotent so retries
-		// are safe. If blob writes fail, no Postgres rows exist yet — clean
-		// abort, no cleanup needed.
 		const fileRows: InternalProjectFile[] = []
 		const buildFileRows: InternalBuildFile[] = []
 
@@ -167,8 +137,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		}
 	}
 
-	// ── getProject ────────────────────────────────────────────────────────
-
 	async getProject(projectId: string, userId: string): Promise<ProjectRow> {
 		const project = this.projects.get(projectId)
 		if (!project || project.userId !== userId || project.deletedAt !== null) {
@@ -176,8 +144,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		}
 		return project
 	}
-
-	// ── getCurrentFiles ───────────────────────────────────────────────────
 
 	async getCurrentFiles(projectId: string): Promise<readonly ProjectFileRow[]> {
 		if (!this.projects.has(projectId)) {
@@ -190,8 +156,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			.sort((a, b) => a.path.localeCompare(b.path))
 	}
 
-	// ── readFile ──────────────────────────────────────────────────────────
-
 	async readFile(projectId: string, path: string): Promise<string> {
 		const files = this.projectFiles.get(projectId) ?? []
 		const file = files.find((f) => f.path === path && f.deletedAt === null)
@@ -200,8 +164,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		}
 		return this.blob.get(projectId, file.contentHash, { verify: true })
 	}
-
-	// ── beginBuild ────────────────────────────────────────────────────────
 
 	async beginBuild(options: BeginBuildOptions): Promise<BuildContext> {
 		const project = this.projects.get(options.projectId)
@@ -235,8 +197,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		return new InMemoryBuildContext(this, buildId, options.projectId)
 	}
 
-	// ── rollback ──────────────────────────────────────────────────────────
-
 	async rollback(projectId: string, targetBuildId: string): Promise<BuildRow> {
 		const project = this.projects.get(projectId)
 		if (!project || project.deletedAt !== null) {
@@ -269,7 +229,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		const now = new Date()
 		const rollbackBuildId = crypto.randomUUID()
 
-		// Synthesize the rollback as its own build event for lineage.
 		const rollbackBuild: BuildRow = {
 			id: rollbackBuildId,
 			projectId,
@@ -285,16 +244,11 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			completedAt: now,
 		}
 
-		// Copy the target's files as the rollback build's manifest.
 		const rollbackBuildFiles: InternalBuildFile[] = targetFiles.map((f) => ({
 			...f,
 			buildId: rollbackBuildId,
 		}))
 
-		// Rewrite project_files to exactly match the target build's file set.
-		// Any live file not in the target is soft-deleted; any file in the
-		// target that isn't live is re-added; existing files are updated to
-		// point at the target's content hash.
 		const currentFiles = this.projectFiles.get(projectId) ?? []
 		const targetPathsToHashes = new Map(
 			targetFiles.map((f) => [
@@ -304,11 +258,9 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		)
 		const nextFiles: InternalProjectFile[] = []
 
-		// Start from current files, update or soft-delete.
 		for (const current of currentFiles) {
 			const targetEntry = targetPathsToHashes.get(current.path)
 			if (current.deletedAt !== null) {
-				// Already soft-deleted. If the target has this path, un-delete.
 				if (targetEntry) {
 					nextFiles.push({
 						...current,
@@ -321,7 +273,7 @@ export class InMemoryProjectStorage implements ProjectStorage {
 					})
 					targetPathsToHashes.delete(current.path)
 				} else {
-					nextFiles.push(current) // stay deleted
+					nextFiles.push(current)
 				}
 			} else if (targetEntry) {
 				nextFiles.push({
@@ -334,13 +286,10 @@ export class InMemoryProjectStorage implements ProjectStorage {
 				})
 				targetPathsToHashes.delete(current.path)
 			} else {
-				// Path exists now but not in target — soft-delete.
 				nextFiles.push({ ...current, deletedAt: now, updatedAt: now })
 			}
 		}
 
-		// Any paths left in targetPathsToHashes are files the target had but
-		// the current project has no row for at all — insert fresh rows.
 		for (const [path, entry] of targetPathsToHashes) {
 			nextFiles.push({
 				id: crypto.randomUUID(),
@@ -369,8 +318,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		return rollbackBuild
 	}
 
-	// ── getBuild ──────────────────────────────────────────────────────────
-
 	async getBuild(projectId: string, buildId: string): Promise<BuildRow> {
 		const build = this.builds.get(buildId)
 		if (!build || build.projectId !== projectId) {
@@ -379,7 +326,59 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		return build
 	}
 
-	// ── internal helpers used by InMemoryBuildContext ─────────────────────
+	async setPreviewUrl(projectId: string, url: string | null): Promise<void> {
+		const project = this.projects.get(projectId)
+		if (!project || project.deletedAt !== null) {
+			throw new ProjectNotFoundError(`project not found: ${projectId}`, { projectId })
+		}
+		const now = new Date()
+		this.projects.set(projectId, {
+			...project,
+			previewUrl: url,
+			previewUrlUpdatedAt: url === null ? null : now,
+			updatedAt: now,
+		})
+	}
+
+	async reapStuckBuilds(projectId: string, olderThan: Date): Promise<number> {
+		const now = new Date()
+		let reaped = 0
+		for (const build of this.builds.values()) {
+			if (build.projectId !== projectId) continue
+			if (build.status !== 'streaming') continue
+			if (build.createdAt.getTime() >= olderThan.getTime()) continue
+			this.builds.set(build.id, {
+				...build,
+				status: 'failed',
+				errorMessage: 'reaper: stuck streaming',
+				completedAt: now,
+			})
+			reaped += 1
+		}
+		return reaped
+	}
+
+	async getActiveStreamingBuild(projectId: string): Promise<string | null> {
+		let latest: BuildRow | null = null
+		for (const build of this.builds.values()) {
+			if (build.projectId !== projectId) continue
+			if (build.status !== 'streaming') continue
+			if (!latest || build.createdAt.getTime() > latest.createdAt.getTime()) {
+				latest = build
+			}
+		}
+		return latest?.id ?? null
+	}
+
+	/** @internal */
+	_softDeleteProject(projectId: string): void {
+		const project = this.projects.get(projectId)
+		if (!project) {
+			throw new ProjectNotFoundError(`project not found: ${projectId}`, { projectId })
+		}
+		const now = new Date()
+		this.projects.set(projectId, { ...project, deletedAt: now, updatedAt: now })
+	}
 
 	/** @internal */
 	_getBuildOrThrow(buildId: string): BuildRow {
@@ -413,8 +412,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			})
 		}
 		const existing = this.buildFiles.get(buildId) ?? []
-		// Deduplicate by path within a build — if the orchestrator rewrites the
-		// same path twice in one build, the second write replaces the first.
 		const uniquePaths = new Set(existing.filter((f) => f.path !== file.path).map((f) => f.path))
 		uniquePaths.add(file.path)
 		if (uniquePaths.size > MAX_FILES_PER_BUILD) {
@@ -425,16 +422,10 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		const sizeBytes = byteLength(file.content)
 		const r2Key = `projects/${projectId}/content/${contentHash}`
 
-		// Eager blob write is fine: content-addressed PUTs are idempotent and
-		// dedup'd by hash, so an aborted/failed build leaves at worst orphan
-		// blobs (cleaned up by a future GC reaper). The thing we MUST NOT do
-		// is touch project_files here — that's the live working set, and a
-		// mid-build mutation would be visible via getCurrentFiles before
-		// commit. Stage in build_files only; commit() does the project_files
-		// flush atomically.
+		// MUST NOT touch project_files here — a mid-build mutation would be visible
+		// via getCurrentFiles before commit, breaking the atomicity invariant.
 		await this.blob.put(projectId, contentHash, file.content)
 
-		// Append or replace in build_files (the staged manifest for THIS build).
 		const filtered = existing.filter((f) => f.path !== file.path)
 		filtered.push({ buildId, path: file.path, contentHash, sizeBytes, r2Key })
 		this.buildFiles.set(buildId, filtered)
@@ -450,11 +441,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		}
 		const now = new Date()
 
-		// Atomically flush the build's staged manifest into the live working
-		// set. The build's build_files entries are an INCREMENTAL change set:
-		// each entry is an upsert into project_files, and paths the build did
-		// NOT touch are left alone. This is the moment a Build becomes
-		// observable via getCurrentFiles/readFile.
 		const stagedFiles = this.buildFiles.get(buildId) ?? []
 		const liveFiles = this.projectFiles.get(build.projectId) ?? []
 		for (const staged of stagedFiles) {
@@ -490,7 +476,6 @@ export class InMemoryProjectStorage implements ProjectStorage {
 		}
 		this.builds.set(buildId, committed)
 
-		// Flip current_build_id on the project + bump last_build_at.
 		const project = this.projects.get(build.projectId)
 		if (project) {
 			this.projects.set(build.projectId, {
@@ -521,11 +506,8 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			completedAt: now,
 		}
 		this.builds.set(buildId, failed)
-		// Do NOT flip current_build_id — failed builds leave HEAD alone.
 		return failed
 	}
-
-	// ── private ───────────────────────────────────────────────────────────
 
 	private validateFileBatch(files: readonly StorageFile[]): void {
 		if (files.length > MAX_FILES_PER_BUILD) {
