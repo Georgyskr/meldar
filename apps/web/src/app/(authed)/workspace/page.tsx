@@ -1,4 +1,7 @@
+import { getDb } from '@meldar/db/client'
+import { users } from '@meldar/db/schema'
 import { Box, Flex, Grid, styled } from '@styled-system/jsx'
+import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
@@ -9,7 +12,7 @@ import {
 	type WorkspaceProjectListItem,
 } from '@/server/projects/list-user-projects'
 import { formatRelative } from '@/shared/lib/format-relative'
-import { NewProjectButton } from '@/widgets/workspace'
+import { EmailVerificationBanner, NewProjectButton } from '@/widgets/workspace'
 
 export const metadata: Metadata = {
 	title: 'Workspace — Meldar',
@@ -26,18 +29,35 @@ export default async function WorkspaceDashboardPage() {
 		)
 	}
 
+	const db = getDb()
+
 	let projectsList: WorkspaceProjectListItem[] = []
 	let loadFailed = false
-	try {
-		projectsList = await listUserProjects(session.userId)
-	} catch (err) {
-		console.error('[workspace/page] listUserProjects failed', err)
+
+	const [userRows, projectsResult] = await Promise.all([
+		db
+			.select({ emailVerified: users.emailVerified })
+			.from(users)
+			.where(eq(users.id, session.userId))
+			.limit(1),
+		listUserProjects(session.userId).catch((err) => {
+			console.error('[workspace/page] listUserProjects failed', err)
+			return null
+		}),
+	])
+
+	const userRow = userRows[0]
+
+	if (projectsResult === null) {
 		loadFailed = true
+	} else {
+		projectsList = projectsResult
 	}
 
 	return (
 		<styled.main minHeight="100vh" bg="surface" paddingBlock={{ base: 12, md: 16 }}>
 			<Box maxWidth="breakpoint-lg" marginInline="auto" paddingInline={{ base: 6, md: 10 }}>
+				<EmailVerificationBanner email={session.email} verified={userRow?.emailVerified ?? false} />
 				<Flex
 					direction={{ base: 'column', sm: 'row' }}
 					alignItems={{ base: 'flex-start', sm: 'center' }}

@@ -1,7 +1,9 @@
 import { getDb } from '@meldar/db/client'
 import { users } from '@meldar/db/schema'
+import { nanoid } from 'nanoid'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getBaseUrl, sendVerificationEmail } from '@/server/email'
 import { signToken } from '@/server/identity/jwt'
 import { hashPassword } from '@/server/identity/password'
 import { mustHaveRateLimit, registerLimit } from '@/server/lib/rate-limit'
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
 		const { email, password, name } = parsed.data
 		const db = getDb()
 		const passwordHash = await hashPassword(password)
+		const verifyToken = nanoid(32)
 
 		let userId: string
 		try {
@@ -53,6 +56,8 @@ export async function POST(request: NextRequest) {
 					email,
 					passwordHash,
 					name: name || null,
+					verifyToken,
+					verifyTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
 				})
 				.returning({ id: users.id })
 			userId = user.id
@@ -65,6 +70,10 @@ export async function POST(request: NextRequest) {
 			}
 			throw err
 		}
+
+		sendVerificationEmail(email, verifyToken, getBaseUrl(request)).catch((err) => {
+			console.error('Verification email failed:', err instanceof Error ? err.message : 'Unknown')
+		})
 
 		const token = signToken({ userId, email })
 

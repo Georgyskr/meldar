@@ -85,6 +85,15 @@ export const projectsListLimit = redis
 		})
 	: null
 
+// 3 resend-verification emails per 15 minutes per user
+export const resendVerifyLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(3, '15 m'),
+			prefix: 'rl:resend-verify',
+		})
+	: null
+
 // 5 build submissions per 10 minutes per user
 export const workspaceBuildLimit = redis
 	? new Ratelimit({

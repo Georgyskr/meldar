@@ -2,11 +2,14 @@ import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockDbInsert, mockDbValues, mockDbReturning } = vi.hoisted(() => ({
-	mockDbInsert: vi.fn(),
-	mockDbValues: vi.fn(),
-	mockDbReturning: vi.fn(),
-}))
+const { mockDbInsert, mockDbValues, mockDbReturning, mockSendVerificationEmail } = vi.hoisted(
+	() => ({
+		mockDbInsert: vi.fn(),
+		mockDbValues: vi.fn(),
+		mockDbReturning: vi.fn(),
+		mockSendVerificationEmail: vi.fn(),
+	}),
+)
 
 vi.mock('@meldar/db/client', () => ({
 	getDb: () => ({
@@ -20,6 +23,15 @@ vi.mock('@/server/identity/jwt', () => ({
 
 vi.mock('@/server/identity/password', () => ({
 	hashPassword: vi.fn(() => Promise.resolve('$2a$12$mockhashedpassword')),
+}))
+
+vi.mock('@/server/email', () => ({
+	sendVerificationEmail: (...args: unknown[]) => mockSendVerificationEmail(...args),
+	getBaseUrl: () => 'http://localhost',
+}))
+
+vi.mock('nanoid', () => ({
+	nanoid: vi.fn(() => 'mock-verify-token-32chars-xxxxxxx'),
 }))
 
 import { POST } from '../../auth/register/route'
@@ -37,7 +49,9 @@ function setupDbChain() {
 describe('POST /api/auth/register', () => {
 	beforeEach(() => {
 		vi.stubEnv('AUTH_SECRET', 'test-secret')
+		vi.stubEnv('RESEND_API_KEY', 'test-resend-key')
 		setupDbChain()
+		mockSendVerificationEmail.mockResolvedValue(undefined)
 	})
 
 	afterEach(() => {
@@ -63,6 +77,63 @@ describe('POST /api/auth/register', () => {
 		expect(setCookie).toContain('meldar-auth=mock-jwt-token')
 		expect(setCookie).toContain('HttpOnly')
 		expect(setCookie).toContain('Path=/')
+	})
+
+	it('includes verifyToken and verifyTokenExpiresAt in insert payload', async () => {
+		await POST(
+			makeRequest({
+				email: 'new@example.com',
+				password: 'securepassword',
+			}),
+		)
+
+		expect(mockDbValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				verifyToken: 'mock-verify-token-32chars-xxxxxxx',
+				verifyTokenExpiresAt: expect.any(Date),
+			}),
+		)
+
+		const insertPayload = mockDbValues.mock.calls[0][0]
+		const expiresAt = insertPayload.verifyTokenExpiresAt as Date
+		const twentyFourHoursMs = 24 * 60 * 60 * 1000
+		expect(expiresAt.getTime()).toBeGreaterThanOrEqual(Date.now() + twentyFourHoursMs - 5000)
+		expect(expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + twentyFourHoursMs + 5000)
+	})
+
+	it('sends verification email via Resend after registration', async () => {
+		await POST(
+			makeRequest({
+				email: 'new@example.com',
+				password: 'securepassword',
+			}),
+		)
+
+		expect(mockSendVerificationEmail).toHaveBeenCalledTimes(1)
+		expect(mockSendVerificationEmail).toHaveBeenCalledWith(
+			'new@example.com',
+			'mock-verify-token-32chars-xxxxxxx',
+			'http://localhost',
+		)
+	})
+
+	it('registration succeeds even if Resend throws', async () => {
+		mockSendVerificationEmail.mockRejectedValueOnce(new Error('Resend API down'))
+
+		const res = await POST(
+			makeRequest({
+				email: 'new@example.com',
+				password: 'securepassword',
+			}),
+		)
+
+		const json = await res.json()
+		expect(res.status).toBe(200)
+		expect(json.success).toBe(true)
+		expect(json.userId).toBe('550e8400-e29b-41d4-a716-446655440000')
+
+		const setCookie = res.headers.get('set-cookie')
+		expect(setCookie).toContain('meldar-auth=mock-jwt-token')
 	})
 
 	it('rejects duplicate email with 409', async () => {

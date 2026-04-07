@@ -1,19 +1,12 @@
 'use client'
 
-import { Box, Flex, styled } from '@styled-system/jsx'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Flex, styled } from '@styled-system/jsx'
 import { useCallback, useRef, useState } from 'react'
-import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
-import { submitSignIn } from './sign-in-submit'
 
-type Status = 'idle' | 'submitting'
+type Status = 'idle' | 'submitting' | 'sent'
 
-export function SignInForm() {
-	const router = useRouter()
-	const searchParams = useSearchParams()
-	const safeNext = sanitizeNextParam(searchParams.get('next'))
+export function ForgotPasswordForm() {
 	const [email, setEmail] = useState('')
-	const [password, setPassword] = useState('')
 	const [status, setStatus] = useState<Status>('idle')
 	const [error, setError] = useState<string | null>(null)
 	const inFlight = useRef(false)
@@ -27,30 +20,61 @@ export function SignInForm() {
 			setError(null)
 
 			try {
-				const result = await submitSignIn({ email, password })
+				const res = await fetch('/api/auth/forgot-password', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ email }),
+				})
 
-				if (!result.ok) {
-					setError(result.message)
+				if (res.status === 429) {
+					setError('Too many requests. Try again in a few minutes.')
 					setStatus('idle')
 					return
 				}
 
-				router.push(safeNext)
+				if (!res.ok) {
+					setError('Something went wrong. Please try again.')
+					setStatus('idle')
+					return
+				}
+
+				setStatus('sent')
+			} catch {
+				setError('Network error. Please try again.')
+				setStatus('idle')
 			} finally {
 				inFlight.current = false
 			}
 		},
-		[email, password, router, safeNext],
+		[email],
 	)
+
+	if (status === 'sent') {
+		return (
+			<styled.div
+				role="status"
+				paddingInline={4}
+				paddingBlock={4}
+				bg="surfaceContainerLowest"
+				border="1px solid"
+				borderColor="outlineVariant"
+				borderRadius="md"
+			>
+				<styled.p textStyle="body.base" color="onSurface" lineHeight="1.6">
+					If an account exists for that email, we sent a reset link. Check your inbox.
+				</styled.p>
+			</styled.div>
+		)
+	}
 
 	const busy = status !== 'idle'
 
 	return (
 		<styled.form onSubmit={handleSubmit} noValidate>
 			<Flex direction="column" gap={4}>
-				<Box>
+				<styled.div>
 					<styled.label
-						htmlFor="signin-email"
+						htmlFor="forgot-email"
 						display="block"
 						textStyle="body.sm"
 						fontWeight="500"
@@ -60,7 +84,7 @@ export function SignInForm() {
 						Email
 					</styled.label>
 					<styled.input
-						id="signin-email"
+						id="forgot-email"
 						type="email"
 						required
 						autoComplete="email"
@@ -80,58 +104,7 @@ export function SignInForm() {
 						transition="border-color 0.2s ease"
 						_focus={{ borderColor: 'primary' }}
 					/>
-				</Box>
-
-				<Box>
-					<styled.label
-						htmlFor="signin-password"
-						display="block"
-						textStyle="body.sm"
-						fontWeight="500"
-						color="onSurface"
-						marginBlockEnd={2}
-					>
-						Password
-					</styled.label>
-					<styled.input
-						id="signin-password"
-						type="password"
-						required
-						autoComplete="current-password"
-						value={password}
-						onChange={(event) => setPassword(event.target.value)}
-						width="100%"
-						paddingInline={4}
-						paddingBlock={3}
-						bg="surfaceContainerLowest"
-						border="1px solid"
-						borderColor="outlineVariant"
-						borderRadius="md"
-						fontFamily="body"
-						fontSize="md"
-						color="onSurface"
-						outline="none"
-						transition="border-color 0.2s ease"
-						_focus={{ borderColor: 'primary' }}
-					/>
-					<Flex justifyContent="flex-end" marginBlockStart={1}>
-						<styled.a
-							href="/forgot-password"
-							textStyle="body.xs"
-							color="onSurfaceVariant/70"
-							textDecoration="none"
-							_hover={{ color: 'primary', textDecoration: 'underline' }}
-							_focusVisible={{
-								outline: '2px solid',
-								outlineColor: 'primary',
-								outlineOffset: '2px',
-								borderRadius: 'sm',
-							}}
-						>
-							Forgot password?
-						</styled.a>
-					</Flex>
-				</Box>
+				</styled.div>
 
 				{error && (
 					<styled.span
@@ -170,7 +143,7 @@ export function SignInForm() {
 						outlineOffset: '2px',
 					}}
 				>
-					{busy ? 'Signing in…' : 'Sign in'}
+					{busy ? 'Sending...' : 'Send reset link'}
 				</styled.button>
 			</Flex>
 		</styled.form>

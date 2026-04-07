@@ -1,13 +1,32 @@
 import type { ReactElement, ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockListUserProjects, mockVerifyToken, mockRedirect, mockCookieGet } = vi.hoisted(() => ({
+const {
+	mockListUserProjects,
+	mockVerifyToken,
+	mockRedirect,
+	mockCookieGet,
+	mockDbSelect,
+	mockDbFrom,
+	mockDbWhere,
+	mockDbLimit,
+} = vi.hoisted(() => ({
 	mockListUserProjects: vi.fn(),
 	mockVerifyToken: vi.fn(),
 	mockRedirect: vi.fn((path: string) => {
 		throw new Error(`REDIRECT:${path}`)
 	}),
 	mockCookieGet: vi.fn(),
+	mockDbSelect: vi.fn(),
+	mockDbFrom: vi.fn(),
+	mockDbWhere: vi.fn(),
+	mockDbLimit: vi.fn(),
+}))
+
+vi.mock('@meldar/db/client', () => ({
+	getDb: () => ({
+		select: mockDbSelect,
+	}),
 }))
 
 vi.mock('@/server/projects/list-user-projects', () => ({
@@ -38,6 +57,13 @@ vi.mock('@/features/auth', () => ({
 }))
 
 vi.mock('@/widgets/workspace', () => ({
+	EmailVerificationBanner: ({ email, verified }: { email: string; verified: boolean }) =>
+		verified
+			? null
+			: {
+					type: 'div',
+					props: { 'data-testid': 'email-verification-banner', children: `Verify ${email}` },
+				},
 	NewProjectButton: () => ({ type: 'button', props: { 'data-testid': 'new-project' } }),
 }))
 
@@ -104,6 +130,10 @@ describe('WorkspaceDashboardPage', () => {
 	beforeEach(() => {
 		mockCookieGet.mockReturnValue({ value: 'cookie_value' })
 		mockVerifyToken.mockReturnValue({ userId: 'user_1', email: 'user@example.com' })
+		mockDbSelect.mockReturnValue({ from: mockDbFrom })
+		mockDbFrom.mockReturnValue({ where: mockDbWhere })
+		mockDbWhere.mockReturnValue({ limit: mockDbLimit })
+		mockDbLimit.mockResolvedValue([{ emailVerified: false }])
 	})
 
 	afterEach(() => {

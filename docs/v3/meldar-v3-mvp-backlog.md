@@ -1,8 +1,8 @@
 # Meldar v3 MVP Backlog
 
-**Last updated:** 2026-04-07 (post cleanup wave)
+**Last updated:** 2026-04-07 (post §NEW-AUTH + §NEW-SANDBOX wave)
 **Replaces:** v2 angle-change MVP backlog
-**Based on:** Carson brainstorming session + game economy design + 2026-04-07 multi-agent review + cleanup
+**Based on:** Carson brainstorming session + game economy design + 2026-04-07 cleanup wave + 2026-04-07 auth/sandbox wave (commit `fbab6cc`)
 
 ---
 
@@ -133,42 +133,209 @@ These items below are now deleted or need to be reframed from scratch:
 
 ### New P0 items added by this wave
 
-**§NEW-AUTH. Standalone auth flow for v3 — BLOCKER.** The legacy auth
-(which piggy-backed on `/api/auth/register` + the quiz/billing flows)
-is gone. The `users` table schema is still intact — `email`,
-`password_hash`, `email_verified`, `verify_token`, `reset_token`,
-`created_at`. What's needed:
+**§NEW-AUTH. Standalone auth flow for v3 — DONE (with caveats).** Shipped
+in the 2026-04-07 evening wave (commit `fbab6cc`). The `users` table
+schema is still intact — `email`, `password_hash`, `email_verified`,
+`verify_token`, `reset_token`, `created_at`.
 
-- `/sign-up`, `/sign-in`, `/sign-out` routes
-- Email verification flow via Resend (reuse the existing
-  `RESEND_API_KEY` wiring)
-- Password reset flow
-- Route guard for `/workspace/*` that redirects to `/sign-in` when
-  the `meldar-auth` cookie is absent (the workspace route group's
-  layout should own this)
-- A minimal sign-up surface on the coming-soon page (or a dedicated
-  sign-up URL that the coming-soon page links to)
+**What shipped:**
 
-Without this, the workspace is literally unreachable for any real
-user. This is the next task after the cleanup wave lands.
+- `/sign-in`, `/sign-up`, `/sign-out` routes (`app/(authed)/`)
+- `meldar-auth` JWT httpOnly cookie (HS256-pinned)
+- Workspace route guard via `app/(authed)/workspace/layout.tsx`
+  (redirects to `/sign-in?next=<path>`)
+- `?next=` deep-link preservation through the sign-in flow with
+  open-redirect guards (`src/shared/lib/sanitize-next-param.ts`)
+- Upstash rate limits on all auth endpoints: `loginLimit`,
+  `registerLimit` (5/15min), `meLimit` (120/min), all hard-fail in
+  production via `mustHaveRateLimit()`
+- `useRef<boolean>` in-flight gates on SignIn/SignUp/SignOut/NewProject
+  forms (prevents duplicate-submit races)
+- Workspace dashboard with empty state + project list + route guards
+- Authorization SQL for `listUserProjects` directly tested at
+  `src/server/projects/__tests__/list-user-projects.test.ts` (SQL
+  shape + bound `userId` params)
+- Route group split: `app/(marketing)/` owns header/footer/cookie
+  consent/GA + SEO metadata; `app/(authed)/` is `noindex` with no
+  marketing chrome
+- `apps/web`: 539 tests passing (from 432 baseline), typecheck clean,
+  biome clean
 
-**§NEW-SANDBOX. Cloudflare Sandbox worker deployment — BLOCKER for
-any real preview.** Needed:
+**What's still missing (file as wave-E follow-ups):**
 
-- New `apps/sandbox-worker/` package with `wrangler.toml`
-- The actual Worker code that implements the contract in
-  `packages/sandbox/src/provider.ts` (`prewarm`, `start`,
-  `writeFiles`, `getPreviewUrl`, `stop`)
-- Deploy to the Cloudflare account
-- Set `CF_SANDBOX_WORKER_URL` + `CF_SANDBOX_HMAC_SECRET` in Vercel
-  for Production and Preview
-- End-to-end smoke: create a project, submit a build, watch
+- **Email verification flow via Resend** — the `users` schema has
+  `email_verified` + `verify_token` columns but no route sends the
+  verification email or accepts the verify click. Currently new users
+  are auto-verified on registration. HIGH priority for the founding-
+  member launch.
+- **Password reset flow** — `reset_token` column exists but no routes
+  use it. Needed before any public launch.
+- **Minimal sign-up surface on the coming-soon page** — coming-soon
+  page still has its own email capture; it should either link out to
+  `/sign-up` or embed the form.
+- **Next.js middleware for `next-url` on hard navigations** — the
+  `?next=` preservation only fires on soft RSC nav. Hard URL-bar
+  navigations lose the deep-link. Needs a middleware that sets
+  `x-pathname` from `request.nextUrl.pathname`.
+
+**§NEW-SANDBOX. Cloudflare Sandbox worker — CODE DONE, DEPLOY PENDING.**
+Code landed in the 2026-04-07 evening wave (commit `fbab6cc`). Deploy
+is blocked on Cloudflare Containers Beta enrollment (requires Workers
+Paid, which is blocked on Claude payments resolving).
+
+**What shipped (`apps/sandbox-worker/`):**
+
+- Full production worker implementing the contract in
+  `packages/sandbox/src/cloudflare-provider.ts`
+- 5 endpoints: `POST /api/v1/{prewarm,start,write,status,stop}` + `GET /healthz`
+- HMAC-SHA256 request auth: `${timestamp}.${rawBody}` signature,
+  constant-time hex compare, 5-min replay window, strict
+  `/^\d{10,16}$/` timestamp regex, fail-closed on missing secret/
+  headers (`src/hmac.ts`)
+- Per-project Durable Object isolation via `project-${projectId}`
+  with strict `/^[a-zA-Z0-9_-]{1,64}$/` projectId validation
+  (prevents DO-namespace injection)
+- Structured JSON error envelopes (401/400/404/409/503/500) mapped
+  to orchestrator error classes; never HTML
+- SDK error-message pinning tests (`mapSandboxError`) so a
+  `@cloudflare/sandbox` version bump will fail CI loud instead of
+  silently reclassifying errors
+- Digest-pinned base image (`cloudflare/sandbox:0.8.4@sha256:12471f71...`)
+- Deterministic pnpm install in Dockerfile (pinned to monorepo's
+  `pnpm@10.18.3` via `npm install -g` since base image lacks corepack)
+- Production `wrangler.jsonc`: `max_instances: 50`, no `assets` block,
+  compat date `2026-04-01`, HMAC_SECRET secret binding
+- `DEPLOY.md` runbook, `SECRETS.md` reference, `PRODUCTION-READINESS.md`
+  punch-list, `scripts/verify-deployment.sh` (bash 3.2 compatible,
+  contract verifier)
+- 44 tests passing covering HMAC failure modes (missing/stale/future/
+  tampered/non-numeric/trailing-garbage), per-project isolation,
+  contract endpoint shapes, error envelope correctness
+
+**What's still pending (out-of-session blockers):**
+
+- **Cloudflare Containers Beta enrollment** — the worker script
+  upload succeeded (4 deployed versions in history at
+  `meldar-sandbox-worker.gosha-skryuchenkov.workers.dev`) but the
+  container image push failed with `GET /containers/me → 401
+  Unauthorized`. Resolution: Cloudflare Paid plan is active, but
+  Containers Beta requires explicit enrollment via dashboard
+  (Workers & Pages → Containers Beta → Get Started). Currently
+  blocked on Claude payments so the user can actually upgrade /
+  enroll.
+- **Enable workers.dev subdomain for the worker** — dashboard shows
+  "workers.dev Disabled" + "No URLs enabled". One toggle in Settings
+  → Domains & Routes.
+- **Push HMAC secret end-to-end** — `wrangler secret put HMAC_SECRET`
+  was done on a stub worker; needs a re-run after the real deploy
+  lands so the secret is bound to the versioned worker.
+- **Vercel env vars** — `CF_SANDBOX_WORKER_URL` + `CF_SANDBOX_HMAC_SECRET`
+  need to be set in both Production and Preview scopes, then Vercel
+  redeployed. Until then, `createSandboxProviderFromEnv()` returns
+  `null` and builds commit DB-only without live preview.
+- **End-to-end smoke test** — create a project, submit a build, watch
   `sandbox_ready` fire in the SSE stream, iframe renders the live
-  preview
+  preview. Run `./scripts/verify-deployment.sh` first.
 
-This can ship after §NEW-AUTH — the workspace works without it
-(builds commit fine, just no live preview), but the MVP demo story
-requires it.
+**Graceful degradation in place:** production builds currently commit
+fine with no live preview. The orchestrator detects missing env vars
+and runs with `deps.sandbox === undefined`; the workspace UI shows
+the placeholder iframe. The `previewUrlUpdatedAt` staleness check
+means stale cached URLs are never rendered.
+
+---
+
+## 2026-04-07 (afternoon) — §NEW-AUTH + §NEW-SANDBOX wave (what shipped)
+
+Committed as `fbab6cc feat: deliver auth` (pushed to `main`).
+
+### Wave structure
+
+Four sub-waves executed with subagent-driven review between each:
+
+| Wave | Scope | Reviewers | Outcome |
+|---|---|---|---|
+| **A** | §NEW-AUTH implementation (sign-in/sign-up/sign-out, workspace dashboard, route guards, rate limits) + route group split (marketing vs authed) | Frontend + Senior (+ standalone re-review after team-mode confabulations) | READY-WITH-CAVEATS, 5 P1s surfaced |
+| **B** | 5 P1 fixes in `apps/web/`: sanitizer tests, `:` false-positive, `list-user-projects` params assertion, consolidate two sanitizer policies, `robots.ts` trailing slash | Frontend spec | READY-TO-COMMIT |
+| **C** | 5 sandbox-worker polish fixes: Dockerfile pnpm switch (later patched for corepack absence), `mapSandboxError` pinning tests, `proxyToSandbox` guard, stricter timestamp regex, tightened exception test | Self-review (small diff) | READY-TO-COMMIT |
+| **D** | 9 follow-up cleanup items from all prior reviews (NewProjectButton race, `?next=` pass-through on already-authed redirects, dead `isFinite` check, `list-user-projects` lifted to `src/server/projects/`, rename/move `format-relative.test.ts`, delete dead `public/index.html`, SignOutButton arrow wrapper, rate-limit comment, D-3 async waterfall verified as load-bearing sequential) | Frontend + Senior | READY-TO-COMMIT |
+
+### Also rewritten in this wave
+
+- **`apps/sandbox-worker/`** — rewrite from spike to production worker
+  (pre-C). See §NEW-SANDBOX above for the full list.
+- **Route group split** — `apps/web/src/app/` reorganized into
+  `(marketing)/` (9 dirs renamed, owns chrome + SEO metadata) and
+  `(authed)/` (3 dirs, `noindex`, no marketing chrome). Root layout
+  collapsed to html/body passthrough with fonts only.
+- **`format-relative.ts`** lifted from `widgets/workspace/lib/` to
+  `shared/lib/` (FSD layering fix).
+- **`list-user-projects.ts`** lifted from `app/(authed)/workspace/`
+  to `src/server/projects/` (removes cross-route-group import smell).
+
+### Security findings closed by this wave
+
+- HMAC byte-perfect against client: senior reviewer walked the
+  `${timestamp}.${rawBody}` signing formula byte-by-byte against
+  `packages/sandbox/src/cloudflare-provider.ts:221`. Both sides use
+  raw body (not parsed+restringified), hex SHA-256, constant-time
+  compare, symmetric 5-min window.
+- Authorization SQL for `listUserProjects` now has direct test
+  coverage that asserts both the SQL shape AND the bound `userId`
+  param (prevents a refactor that swapped `eq(projects.userId, userId)`
+  for `eq(projects.userId, "literal")`).
+- Open-redirect vectors on `?next=` tested: `//evil`, `http://`,
+  `javascript:`, `\\evil`, percent-encoded `%2F%2F`, and paths with
+  `:` in the path segment all get rejected or normalized to
+  `/workspace`. Same-origin URLs with `:` in the query string
+  (`/workspace?x=http://anything`) correctly pass through.
+- Per-project Durable Object isolation via strict `/^[a-zA-Z0-9_-]{1,64}$/`
+  projectId validation prevents DO-namespace injection.
+- Rate limit hard-fail in production via `mustHaveRateLimit()` — if
+  Upstash env vars are missing at module init in production, the
+  route throws and returns 500 (rather than silently fall-open).
+
+### Known follow-ups from this wave (not blocking commit)
+
+Filed as wave-E candidates:
+
+- **Email verification flow via Resend** (§NEW-AUTH gap — high priority)
+- **Password reset flow** (§NEW-AUTH gap — high priority)
+- **Coming-soon → /sign-up link wiring**
+- **Next.js middleware** for `next-url` on hard navigations
+- **`mapSandboxError` typed SDK errors** (pinning tests are sufficient for now)
+- **`entities/` vs `server/` convention** clarification: `src/server/projects/list-user-projects.ts` exports both a row type AND a query function. Establish rule: `entities/` owns pure types/Zod, `server/` owns data access.
+- **Lift sibling query modules out of route groups**:
+  `apps/web/src/app/(marketing)/xray/[id]/get-xray.ts` and
+  `apps/web/src/app/(marketing)/start/[id]/get-session.ts` (same
+  anti-pattern D-6 fixed for `list-user-projects`).
+- **Add `since: Date` to `StorageProvider.getActiveStreamingBuild`** —
+  would let the `[projectId]/page.tsx` reaper+reader pair parallelize
+  via `Promise.all` instead of sequencing. Contract-test fallout in
+  `packages/storage/src/__tests__/provider-contract.ts:837`.
+- **HMAC regex tightening** (`/^\d{10,16}$/` → `/^\d{13}$/` for
+  ms-precision Unix time) — expresses intent, not exploitable today.
+- **Delete justification comments** on `meLimit`, `analyzeLimit`,
+  `adaptiveLimit` in `src/server/lib/rate-limit.ts` as a batch if
+  the zero-comment bar tightens.
+- **`LastBuildRelativeTime` widget** has no direct test (was
+  previously hidden behind the `format-relative` test file that we
+  renamed+moved). If the widget has logic beyond calling
+  `formatRelative`, it needs its own test.
+
+### Cloudflare deploy state (out-of-session blockers)
+
+- ✅ `wrangler login` (Gosha.skryuchenkov@gmail.com account `91b1226f4a34498da8e2c543b0aa0088`)
+- ✅ HMAC secret generated + stored in 1Password (43-char base64url)
+- ✅ `wrangler secret put HMAC_SECRET` uploaded to stub worker
+- ✅ Worker script deploy (4 versions in history: `fa825c9d`, `2c27f5fb`, `26daac74`, `221f820b`)
+- ✅ Docker image builds cleanly locally (verified via `docker build --platform linux/amd64`)
+- ⏸ **Cloudflare Containers Beta enrollment** — blocked on Claude payments → Cloudflare upgrade
+- ⏸ **workers.dev subdomain enable** — toggle in worker Settings → Domains & Routes
+- ⏸ `wrangler deploy` end-to-end (will succeed once Containers Beta is enrolled)
+- ⏸ `./scripts/verify-deployment.sh` against deployed URL
+- ⏸ Vercel env vars: `CF_SANDBOX_WORKER_URL` + `CF_SANDBOX_HMAC_SECRET` (prod + preview)
+- ⏸ Browser smoke test: create project → submit build → watch iframe render
 
 ---
 
@@ -230,17 +397,18 @@ packages/
 
 Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test build`.
 
-### Test baseline (verified 2026-04-07)
+### Test baseline (verified 2026-04-07, post §NEW-AUTH + §NEW-SANDBOX wave)
 
 | Package | Test files | Tests passing | Notes |
 |---|---|---|---|
-| `@meldar/web` | 27 | 432 | + 1 file / 3 tests skipped (legacy integration) |
+| `@meldar/web` | 39 | 539 | + 1 file / 3 tests skipped (legacy integration); was 432 pre-auth wave |
+| `@meldar/sandbox-worker` | 1 | 44 | HMAC failure modes + contract endpoints + SDK error-message pinning (new this wave) |
 | `@meldar/storage` | 4 | 74 | InMemory + Postgres provider contract + R2 blob |
 | `@meldar/sandbox` | 2 | 80 | Safety helpers + Cloudflare provider HMAC |
 | `@meldar/tokens` | 2 | 37 | Pricing math + ledger atomic Lua debit |
 | `@meldar/orchestrator` | 2 | 33 | Engine streaming + SSE round-trip |
 | `@meldar/test-utils` | 4 | 12 | Mock factory smoke tests |
-| **Total** | **41** | **668** | All green; warm `turbo` runs report **FULL TURBO** in <50ms |
+| **Total** | **54** | **819** | All green; warm `turbo` runs report **FULL TURBO** in <50ms |
 
 ### What's wired end-to-end (build flow)
 
@@ -250,15 +418,16 @@ Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test b
 4. `packages/storage/src/r2-blob.ts` — content-addressed PUT/GET via aws4fetch (no AWS SDK on serverless)
 5. `apps/web/src/features/workspace-build/BuildPanel.tsx` — client consumer, `consumeSseStream` from `@meldar/orchestrator/sse`, AbortController cancellation
 
-### What is NOT yet wired (gaps to be aware of, post 2026-04-07 cleanup)
+### What is NOT yet wired (gaps to be aware of, post §NEW-AUTH + §NEW-SANDBOX wave)
 
-- **Standalone auth flow** — §NEW-AUTH above. The workspace route guard
-  exists and checks `meldar-auth` cookie, but there is no sign-up /
-  sign-in / email-verification UI. **This is the next blocker.**
-- **Cloudflare Sandbox worker** — §NEW-SANDBOX above. The client
-  contract is complete; the Worker itself is not deployed, so
-  production builds commit successfully but never render a live
-  preview (the workspace shows the placeholder indefinitely).
+- **Email verification + password reset** — §NEW-AUTH caveat. Sign-up
+  auto-verifies (no email gate); password reset has no flow. **HIGH
+  priority for founding-member launch.**
+- **Cloudflare Sandbox worker deploy** — §NEW-SANDBOX caveat. Code +
+  tests + runbook all landed, but `wrangler deploy` is blocked on
+  Containers Beta enrollment (blocked on Claude payments → Cloudflare
+  Paid upgrade). Production builds commit successfully and fall
+  through to placeholder iframe via graceful degradation.
 - **Project creation flow** — ~~there's no UI to create a new project~~
   **CLOSED** by the 2026-04-07 cleanup wave. `/api/workspace/projects`
   POST exists with rate-limit + Zod validation + prompt-injection
@@ -659,21 +828,27 @@ Determine the second onboarding style and implement.
 
 ---
 
-## Launch Readiness Checklist (post 2026-04-07 cleanup wave)
+## Launch Readiness Checklist (post §NEW-AUTH + §NEW-SANDBOX wave, 2026-04-07 evening)
 
 MVP is ready to show first founding members when:
 
 - [x] ~~Landing page reflects v3 positioning~~ — legacy landing page
   ripped; coming-soon page is the public surface
-- [ ] Coming-soon page has a working email capture (tied to §NEW-AUTH)
-- [ ] §NEW-AUTH — sign-up, sign-in, sign-out, email verification work
-  end-to-end
-- [ ] §NEW-SANDBOX — Cloudflare Sandbox worker deployed, `sandbox_ready`
-  events fire, iframe renders a live preview
-- [ ] User can reach `/workspace/:id` after sign-up without hitting
-  any legacy auth redirects
+- [ ] Coming-soon page has a working email capture that links to
+  `/sign-up` (tied to §NEW-AUTH wave-E cleanup)
+- [x] §NEW-AUTH — sign-up, sign-in, sign-out **shipped** (commit `fbab6cc`)
+- [ ] §NEW-AUTH — email verification flow via Resend (wave-E follow-up)
+- [ ] §NEW-AUTH — password reset flow via Resend (wave-E follow-up)
+- [x] §NEW-SANDBOX — worker code, tests, deploy runbook, HMAC auth
+  (commit `fbab6cc`)
+- [ ] §NEW-SANDBOX — `wrangler deploy` to Cloudflare (blocked on
+  Containers Beta enrollment → Claude payments)
+- [ ] §NEW-SANDBOX — `sandbox_ready` events fire, iframe renders a
+  live preview (blocked on deploy)
+- [x] User can reach `/workspace/:id` after sign-up without hitting
+  any legacy auth redirects (commit `fbab6cc`)
 - [x] Split-screen workspace renders (live preview blocked on
-  §NEW-SANDBOX)
+  §NEW-SANDBOX deploy)
 - [ ] First user actually signs up, creates a project, and sees a
   streaming build commit
 - [ ] Reddit Scanner use case has all 8 steps working

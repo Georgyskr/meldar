@@ -1,3 +1,4 @@
+export { EmailVerificationBanner } from './EmailVerificationBanner'
 export { KanbanColumn, type KanbanColumnProps } from './KanbanColumn'
 export { LastBuildRelativeTime } from './LastBuildRelativeTime'
 export { NewProjectButton } from './NewProjectButton'

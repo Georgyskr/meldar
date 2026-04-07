@@ -1,19 +1,15 @@
 'use client'
 
-import { Box, Flex, styled } from '@styled-system/jsx'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Flex, styled } from '@styled-system/jsx'
+import { useRouter } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
-import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
-import { submitSignIn } from './sign-in-submit'
 
 type Status = 'idle' | 'submitting'
 
-export function SignInForm() {
+export function ResetPasswordForm({ token }: { token: string }) {
 	const router = useRouter()
-	const searchParams = useSearchParams()
-	const safeNext = sanitizeNextParam(searchParams.get('next'))
-	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
+	const [confirm, setConfirm] = useState('')
 	const [status, setStatus] = useState<Status>('idle')
 	const [error, setError] = useState<string | null>(null)
 	const inFlight = useRef(false)
@@ -22,25 +18,49 @@ export function SignInForm() {
 		async (event: React.FormEvent<HTMLFormElement>) => {
 			event.preventDefault()
 			if (inFlight.current) return
+
+			if (password.length < 8) {
+				setError('Password must be at least 8 characters.')
+				return
+			}
+
+			if (password !== confirm) {
+				setError('Passwords do not match.')
+				return
+			}
+
 			inFlight.current = true
 			setStatus('submitting')
 			setError(null)
 
 			try {
-				const result = await submitSignIn({ email, password })
+				const res = await fetch('/api/auth/reset-password', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ token, password }),
+				})
 
-				if (!result.ok) {
-					setError(result.message)
+				if (res.status === 401) {
+					setError('This reset link is invalid or expired.')
 					setStatus('idle')
 					return
 				}
 
-				router.push(safeNext)
+				if (!res.ok) {
+					setError('Something went wrong. Please try again.')
+					setStatus('idle')
+					return
+				}
+
+				router.push('/sign-in')
+			} catch {
+				setError('Network error. Please try again.')
+				setStatus('idle')
 			} finally {
 				inFlight.current = false
 			}
 		},
-		[email, password, router, safeNext],
+		[password, confirm, token, router],
 	)
 
 	const busy = status !== 'idle'
@@ -48,56 +68,23 @@ export function SignInForm() {
 	return (
 		<styled.form onSubmit={handleSubmit} noValidate>
 			<Flex direction="column" gap={4}>
-				<Box>
+				<styled.div>
 					<styled.label
-						htmlFor="signin-email"
+						htmlFor="reset-password"
 						display="block"
 						textStyle="body.sm"
 						fontWeight="500"
 						color="onSurface"
 						marginBlockEnd={2}
 					>
-						Email
+						New password
 					</styled.label>
 					<styled.input
-						id="signin-email"
-						type="email"
-						required
-						autoComplete="email"
-						value={email}
-						onChange={(event) => setEmail(event.target.value)}
-						width="100%"
-						paddingInline={4}
-						paddingBlock={3}
-						bg="surfaceContainerLowest"
-						border="1px solid"
-						borderColor="outlineVariant"
-						borderRadius="md"
-						fontFamily="body"
-						fontSize="md"
-						color="onSurface"
-						outline="none"
-						transition="border-color 0.2s ease"
-						_focus={{ borderColor: 'primary' }}
-					/>
-				</Box>
-
-				<Box>
-					<styled.label
-						htmlFor="signin-password"
-						display="block"
-						textStyle="body.sm"
-						fontWeight="500"
-						color="onSurface"
-						marginBlockEnd={2}
-					>
-						Password
-					</styled.label>
-					<styled.input
-						id="signin-password"
+						id="reset-password"
 						type="password"
 						required
-						autoComplete="current-password"
+						minLength={8}
+						autoComplete="new-password"
 						value={password}
 						onChange={(event) => setPassword(event.target.value)}
 						width="100%"
@@ -114,24 +101,44 @@ export function SignInForm() {
 						transition="border-color 0.2s ease"
 						_focus={{ borderColor: 'primary' }}
 					/>
-					<Flex justifyContent="flex-end" marginBlockStart={1}>
-						<styled.a
-							href="/forgot-password"
-							textStyle="body.xs"
-							color="onSurfaceVariant/70"
-							textDecoration="none"
-							_hover={{ color: 'primary', textDecoration: 'underline' }}
-							_focusVisible={{
-								outline: '2px solid',
-								outlineColor: 'primary',
-								outlineOffset: '2px',
-								borderRadius: 'sm',
-							}}
-						>
-							Forgot password?
-						</styled.a>
-					</Flex>
-				</Box>
+					<styled.span textStyle="body.xs" color="onSurfaceVariant/70" marginBlockStart={1}>
+						At least 8 characters.
+					</styled.span>
+				</styled.div>
+
+				<styled.div>
+					<styled.label
+						htmlFor="reset-confirm"
+						display="block"
+						textStyle="body.sm"
+						fontWeight="500"
+						color="onSurface"
+						marginBlockEnd={2}
+					>
+						Confirm password
+					</styled.label>
+					<styled.input
+						id="reset-confirm"
+						type="password"
+						required
+						autoComplete="new-password"
+						value={confirm}
+						onChange={(event) => setConfirm(event.target.value)}
+						width="100%"
+						paddingInline={4}
+						paddingBlock={3}
+						bg="surfaceContainerLowest"
+						border="1px solid"
+						borderColor="outlineVariant"
+						borderRadius="md"
+						fontFamily="body"
+						fontSize="md"
+						color="onSurface"
+						outline="none"
+						transition="border-color 0.2s ease"
+						_focus={{ borderColor: 'primary' }}
+					/>
+				</styled.div>
 
 				{error && (
 					<styled.span
@@ -144,6 +151,20 @@ export function SignInForm() {
 						borderRadius="md"
 					>
 						{error}
+						{error.includes('invalid or expired') && (
+							<>
+								{' '}
+								<styled.a
+									href="/forgot-password"
+									color="primary"
+									fontWeight="600"
+									textDecoration="none"
+									_hover={{ textDecoration: 'underline' }}
+								>
+									Request a new link
+								</styled.a>
+							</>
+						)}
 					</styled.span>
 				)}
 
@@ -170,7 +191,7 @@ export function SignInForm() {
 						outlineOffset: '2px',
 					}}
 				>
-					{busy ? 'Signing in…' : 'Sign in'}
+					{busy ? 'Resetting...' : 'Reset password'}
 				</styled.button>
 			</Flex>
 		</styled.form>

@@ -12,7 +12,7 @@ const {
 	mockDbLimit,
 	mockDbSet,
 	mockDbUpdateWhere,
-	mockSendEmail,
+	mockSendPasswordResetEmail,
 } = vi.hoisted(() => ({
 	mockDbSelect: vi.fn(),
 	mockDbUpdate: vi.fn(),
@@ -21,7 +21,7 @@ const {
 	mockDbLimit: vi.fn(),
 	mockDbSet: vi.fn(),
 	mockDbUpdateWhere: vi.fn(),
-	mockSendEmail: vi.fn(),
+	mockSendPasswordResetEmail: vi.fn(),
 }))
 
 vi.mock('@meldar/db/client', () => ({
@@ -31,10 +31,9 @@ vi.mock('@meldar/db/client', () => ({
 	}),
 }))
 
-vi.mock('resend', () => ({
-	Resend: class MockResend {
-		emails = { send: mockSendEmail }
-	},
+vi.mock('@/server/email', () => ({
+	sendPasswordResetEmail: (...args: unknown[]) => mockSendPasswordResetEmail(...args),
+	getBaseUrl: () => 'http://localhost',
 }))
 
 vi.mock('nanoid', () => ({
@@ -69,7 +68,7 @@ function setupDbChain(selectResult: unknown[]) {
 describe('POST /api/auth/forgot-password', () => {
 	beforeEach(() => {
 		vi.stubEnv('RESEND_API_KEY', 'test-resend-key')
-		mockSendEmail.mockResolvedValue({ id: 'email-id' })
+		mockSendPasswordResetEmail.mockResolvedValue(undefined)
 	})
 
 	afterEach(() => {
@@ -94,13 +93,11 @@ describe('POST /api/auth/forgot-password', () => {
 			}),
 		)
 
-		// Should send email
-		expect(mockSendEmail).toHaveBeenCalledTimes(1)
-		expect(mockSendEmail).toHaveBeenCalledWith(
-			expect.objectContaining({
-				to: 'user@example.com',
-				subject: 'Reset your Meldar password',
-			}),
+		expect(mockSendPasswordResetEmail).toHaveBeenCalledTimes(1)
+		expect(mockSendPasswordResetEmail).toHaveBeenCalledWith(
+			'user@example.com',
+			'mock-reset-token-32chars-xxxxxxxx',
+			'http://localhost',
 		)
 	})
 
@@ -113,8 +110,7 @@ describe('POST /api/auth/forgot-password', () => {
 		expect(res.status).toBe(200)
 		expect(json.success).toBe(true)
 
-		// Should NOT send email
-		expect(mockSendEmail).not.toHaveBeenCalled()
+		expect(mockSendPasswordResetEmail).not.toHaveBeenCalled()
 		// Should NOT update DB
 		expect(mockDbUpdate).not.toHaveBeenCalled()
 	})
