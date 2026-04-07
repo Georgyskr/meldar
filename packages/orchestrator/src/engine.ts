@@ -71,6 +71,7 @@ export async function* orchestrateBuild(
 				type: 'failed',
 				reason: `insufficient daily budget for build: have ${snapshot.remainingCentsToday}c remaining, need ~${estimatedCents}c (ceiling ${snapshot.ceilingCentsPerDay}c)`,
 				code: 'ceiling_exhausted',
+				kanbanCardId: request.kanbanCardId,
 			}
 			return
 		}
@@ -98,6 +99,7 @@ export async function* orchestrateBuild(
 			type: 'started',
 			buildId: buildContext.buildId,
 			projectId: request.projectId,
+			kanbanCardId: request.kanbanCardId,
 		}
 
 		const promptHash = await sha256Hex(request.prompt)
@@ -191,6 +193,7 @@ export async function* orchestrateBuild(
 					reason: `daily token ceiling exceeded after build (cost: ${actualCents}c)`,
 					buildId,
 					code: 'ceiling_exceeded',
+					kanbanCardId: request.kanbanCardId,
 				}
 				return
 			}
@@ -205,6 +208,7 @@ export async function* orchestrateBuild(
 			tokenCost: totalTokens,
 			actualCents,
 			fileCount: fileIndex,
+			kanbanCardId: request.kanbanCardId,
 		}
 
 		// sandbox_ready MUST be yielded after committed: storage HEAD has to flip
@@ -262,6 +266,7 @@ export async function* orchestrateBuild(
 			reason,
 			buildId,
 			code,
+			kanbanCardId: request.kanbanCardId,
 		}
 	}
 }

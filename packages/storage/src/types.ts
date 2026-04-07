@@ -78,3 +78,71 @@ export type BeginBuildOptions = {
 export const MAX_FILES_PER_BUILD = 200 as const
 
 export const MAX_FILE_CONTENT_BYTES = 10 * 1024 * 1024
+
+export type KanbanCardState =
+	| 'draft'
+	| 'ready'
+	| 'queued'
+	| 'building'
+	| 'built'
+	| 'needs_rework'
+	| 'failed'
+
+export type KanbanCardRow = {
+	readonly id: string
+	readonly projectId: string
+	readonly parentId: string | null
+	readonly position: number
+	readonly state: KanbanCardState
+	readonly required: boolean
+	readonly title: string
+	readonly description: string | null
+	readonly taskType: string
+	readonly acceptanceCriteria: string[] | null
+	readonly explainerText: string | null
+	readonly generatedBy: string
+	readonly tokenCostEstimateMin: number | null
+	readonly tokenCostEstimateMax: number | null
+	readonly tokenCostActual: number | null
+	readonly dependsOn: string[]
+	readonly blockedReason: string | null
+	readonly lastBuildId: string | null
+	readonly createdAt: Date
+	readonly updatedAt: Date
+	readonly builtAt: Date | null
+}
+
+export type CreateKanbanCardInput = {
+	readonly projectId: string
+	readonly parentId?: string | null
+	readonly title: string
+	readonly description?: string | null
+	readonly taskType?: string
+	readonly acceptanceCriteria?: string[] | null
+	readonly explainerText?: string | null
+	readonly generatedBy?: string
+	readonly tokenCostEstimateMin?: number | null
+	readonly tokenCostEstimateMax?: number | null
+	readonly dependsOn?: string[]
+	readonly required?: boolean
+}
+
+export type UpdateKanbanCardInput = Partial<
+	Pick<
+		KanbanCardRow,
+		| 'title'
+		| 'description'
+		| 'taskType'
+		| 'state'
+		| 'acceptanceCriteria'
+		| 'explainerText'
+		| 'tokenCostEstimateMin'
+		| 'tokenCostEstimateMax'
+		| 'tokenCostActual'
+		| 'dependsOn'
+		| 'blockedReason'
+		| 'lastBuildId'
+		| 'builtAt'
+		| 'required'
+	>
+>

@@ -103,6 +103,15 @@ export const workspaceBuildLimit = redis
 		})
 	: null
 
+// 30 card mutations per minute per user (create, update, delete, reorder)
+export const cardsLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(30, '1 m'),
+			prefix: 'rl:cards',
+		})
+	: null
+
 export async function checkRateLimit(limiter: Ratelimit | null, identifier: string) {
 	if (!limiter) return { success: true }
 	return limiter.limit(identifier)

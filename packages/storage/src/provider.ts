@@ -1,10 +1,13 @@
 import type {
 	BeginBuildOptions,
 	BuildRow,
+	CreateKanbanCardInput,
 	CreateProjectOptions,
+	KanbanCardRow,
 	ProjectFileRow,
 	ProjectRow,
 	StorageFile,
+	UpdateKanbanCardInput,
 } from './types'
 
 export type CreatedProject = {
@@ -58,4 +61,16 @@ export interface ProjectStorage {
 	reapStuckBuilds(projectId: string, olderThan: Date): Promise<number>
 
 	getActiveStreamingBuild(projectId: string): Promise<string | null>
+
+	getKanbanCards(projectId: string): Promise<KanbanCardRow[]>
+
+	createKanbanCard(card: CreateKanbanCardInput): Promise<KanbanCardRow>
+
+	createKanbanCards(projectId: string, cards: CreateKanbanCardInput[]): Promise<KanbanCardRow[]>
+
+	updateKanbanCard(cardId: string, updates: UpdateKanbanCardInput): Promise<KanbanCardRow>
+
+	deleteKanbanCard(cardId: string): Promise<void>
+
+	reorderKanbanCards(projectId: string, parentId: string | null, cardIds: string[]): Promise<void>
 }

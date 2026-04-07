@@ -10,7 +10,7 @@ export type OrchestrateBuildRequest = {
 }
 
 export type OrchestratorEvent =
-	| { type: 'started'; buildId: string; projectId: string }
+	| { type: 'started'; buildId: string; projectId: string; kanbanCardId?: string }
 	| { type: 'prompt_sent'; promptHash: string; estimatedCents: number }
 	| {
 			type: 'file_written'
@@ -26,8 +26,9 @@ export type OrchestratorEvent =
 			tokenCost: number
 			actualCents: number
 			fileCount: number
+			kanbanCardId?: string
 	  }
-	| { type: 'failed'; reason: string; buildId?: string; code?: string }
+	| { type: 'failed'; reason: string; buildId?: string; code?: string; kanbanCardId?: string }
 
 export type OrchestratorResult =
 	| { ok: true; buildId: string; fileCount: number; tokenCost: number; centsCharged: number }

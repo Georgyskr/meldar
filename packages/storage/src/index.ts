@@ -37,10 +37,14 @@ export type {
 	BuildRow,
 	BuildStatus,
 	BuildTrigger,
+	CreateKanbanCardInput,
 	CreateProjectOptions,
+	KanbanCardRow,
+	KanbanCardState,
 	ProjectFileRow,
 	ProjectRow,
 	ProjectTier,
 	StorageFile,
+	UpdateKanbanCardInput,
 } from './types'
 export { MAX_FILE_CONTENT_BYTES, MAX_FILES_PER_BUILD } from './types'

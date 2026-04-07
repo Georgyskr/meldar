@@ -207,7 +207,7 @@ export const builds = pgTable(
 		parentBuildId: uuid('parent_build_id'),
 		status: text('status').notNull(), // 'streaming' | 'completed' | 'failed' | 'rolled_back'
 		triggeredBy: text('triggered_by').notNull(), // 'template' | 'user_prompt' | 'kanban_card' | 'rollback' | 'upload' (phase 2)
-		kanbanCardId: text('kanban_card_id'), // nullable — null for template/rollback
+		kanbanCardId: uuid('kanban_card_id'),
 		modelVersion: text('model_version'), // e.g. 'claude-sonnet-4-6'
 		promptHash: text('prompt_hash'), // sha256 of the prompt for reproducibility / cache
 		tokenCost: integer('token_cost'), // cumulative tokens for this Build
@@ -316,5 +316,63 @@ export const projectFiles = pgTable(
 		index('idx_project_files_content_hash').on(table.contentHash),
 		check('project_files_size_positive', sql`${table.sizeBytes} >= 0`),
 		check('project_files_version_positive', sql`${table.version} >= 1`),
+	],
+)
+
+// ── Table 10: Kanban Cards (v3) ──────────────────────────────────────────
+
+export const kanbanCards = pgTable(
+	'kanban_cards',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		projectId: uuid('project_id')
+			.notNull()
+			.references(() => projects.id, { onDelete: 'cascade' }),
+		parentId: uuid('parent_id'),
+		position: integer('position').notNull(),
+		state: text('state').notNull().default('draft'),
+		required: boolean('required').notNull().default(false),
+
+		title: text('title').notNull(),
+		description: text('description'),
+		taskType: text('task_type').notNull().default('feature'),
+
+		acceptanceCriteria: jsonb('acceptance_criteria').$type<string[]>(),
+		explainerText: text('explainer_text'),
+
+		generatedBy: text('generated_by').notNull().default('user'),
+
+		tokenCostEstimateMin: integer('token_cost_estimate_min'),
+		tokenCostEstimateMax: integer('token_cost_estimate_max'),
+		tokenCostActual: integer('token_cost_actual'),
+
+		dependsOn: jsonb('depends_on').$type<string[]>().default([]),
+		blockedReason: text('blocked_reason'),
+
+		lastBuildId: uuid('last_build_id'),
+
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+		builtAt: timestamp('built_at', { withTimezone: true }),
+	},
+	(table) => [
+		index('idx_kanban_cards_project_parent_position').on(
+			table.projectId,
+			table.parentId,
+			table.position,
+		),
+		index('idx_kanban_cards_project').on(table.projectId),
+		check(
+			'kanban_cards_state_valid',
+			sql`${table.state} IN ('draft', 'ready', 'queued', 'building', 'built', 'needs_rework', 'failed')`,
+		),
+		check(
+			'kanban_cards_type_valid',
+			sql`${table.taskType} IN ('feature', 'page', 'integration', 'data', 'fix', 'polish')`,
+		),
+		check(
+			'kanban_cards_generated_by_valid',
+			sql`${table.generatedBy} IN ('template', 'haiku', 'user')`,
+		),
 	],
 )

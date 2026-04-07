@@ -12,12 +12,15 @@ import type { BuildContext, CreatedProject, ProjectStorage } from './provider'
 import {
 	type BeginBuildOptions,
 	type BuildRow,
+	type CreateKanbanCardInput,
 	type CreateProjectOptions,
+	type KanbanCardRow,
 	MAX_FILE_CONTENT_BYTES,
 	MAX_FILES_PER_BUILD,
 	type ProjectFileRow,
 	type ProjectRow,
 	type StorageFile,
+	type UpdateKanbanCardInput,
 } from './types'
 
 type InternalBuildFile = {
@@ -46,6 +49,7 @@ export class InMemoryProjectStorage implements ProjectStorage {
 	private readonly builds = new Map<string, BuildRow>()
 	private readonly buildFiles = new Map<string, InternalBuildFile[]>()
 	private readonly projectFiles = new Map<string, InternalProjectFile[]>()
+	private readonly kanbanCards = new Map<string, KanbanCardRow>()
 
 	constructor(private readonly blob: BlobStorage) {
 		if (process.env.NODE_ENV === 'production') {
@@ -368,6 +372,152 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			}
 		}
 		return latest?.id ?? null
+	}
+
+	async getKanbanCards(projectId: string): Promise<KanbanCardRow[]> {
+		const cards: KanbanCardRow[] = []
+		for (const card of this.kanbanCards.values()) {
+			if (card.projectId === projectId) {
+				cards.push(card)
+			}
+		}
+		return cards.sort((a, b) => {
+			if (a.parentId === null && b.parentId !== null) return -1
+			if (a.parentId !== null && b.parentId === null) return 1
+			return a.position - b.position
+		})
+	}
+
+	async createKanbanCard(card: CreateKanbanCardInput): Promise<KanbanCardRow> {
+		const now = new Date()
+		const id = crypto.randomUUID()
+
+		let maxPos = -1
+		for (const existing of this.kanbanCards.values()) {
+			if (
+				existing.projectId === card.projectId &&
+				existing.parentId === (card.parentId ?? null) &&
+				existing.position > maxPos
+			) {
+				maxPos = existing.position
+			}
+		}
+
+		const row: KanbanCardRow = {
+			id,
+			projectId: card.projectId,
+			parentId: card.parentId ?? null,
+			position: maxPos + 1,
+			state: 'draft',
+			required: card.required ?? false,
+			title: card.title,
+			description: card.description ?? null,
+			taskType: card.taskType ?? 'feature',
+			acceptanceCriteria: card.acceptanceCriteria ?? null,
+			explainerText: card.explainerText ?? null,
+			generatedBy: card.generatedBy ?? 'user',
+			tokenCostEstimateMin: card.tokenCostEstimateMin ?? null,
+			tokenCostEstimateMax: card.tokenCostEstimateMax ?? null,
+			tokenCostActual: null,
+			dependsOn: card.dependsOn ?? [],
+			blockedReason: null,
+			lastBuildId: null,
+			createdAt: now,
+			updatedAt: now,
+			builtAt: null,
+		}
+
+		this.kanbanCards.set(id, row)
+		return row
+	}
+
+	async createKanbanCards(
+		projectId: string,
+		cards: CreateKanbanCardInput[],
+	): Promise<KanbanCardRow[]> {
+		const now = new Date()
+		const parentGroups = new Map<string | null, number>()
+		const results: KanbanCardRow[] = []
+
+		for (const card of cards) {
+			const parentKey = card.parentId ?? null
+			const pos = parentGroups.get(parentKey) ?? 0
+			parentGroups.set(parentKey, pos + 1)
+
+			const row: KanbanCardRow = {
+				id: crypto.randomUUID(),
+				projectId,
+				parentId: parentKey,
+				position: pos,
+				state: 'draft',
+				required: card.required ?? false,
+				title: card.title,
+				description: card.description ?? null,
+				taskType: card.taskType ?? 'feature',
+				acceptanceCriteria: card.acceptanceCriteria ?? null,
+				explainerText: card.explainerText ?? null,
+				generatedBy: card.generatedBy ?? 'user',
+				tokenCostEstimateMin: card.tokenCostEstimateMin ?? null,
+				tokenCostEstimateMax: card.tokenCostEstimateMax ?? null,
+				tokenCostActual: null,
+				dependsOn: card.dependsOn ?? [],
+				blockedReason: null,
+				lastBuildId: null,
+				createdAt: now,
+				updatedAt: now,
+				builtAt: null,
+			}
+
+			this.kanbanCards.set(row.id, row)
+			results.push(row)
+		}
+
+		return results
+	}
+
+	async updateKanbanCard(cardId: string, updates: UpdateKanbanCardInput): Promise<KanbanCardRow> {
+		const existing = this.kanbanCards.get(cardId)
+		if (!existing) {
+			throw new Error(`kanban card not found: ${cardId}`)
+		}
+
+		const updated: KanbanCardRow = {
+			...existing,
+			...updates,
+			dependsOn: updates.dependsOn ?? existing.dependsOn,
+			updatedAt: new Date(),
+		}
+
+		this.kanbanCards.set(cardId, updated)
+		return updated
+	}
+
+	async deleteKanbanCard(cardId: string): Promise<void> {
+		const card = this.kanbanCards.get(cardId)
+		if (card) {
+			this.kanbanCards.delete(cardId)
+			if (card.parentId === null) {
+				for (const child of this.kanbanCards.values()) {
+					if (child.parentId === cardId) {
+						this.kanbanCards.delete(child.id)
+					}
+				}
+			}
+		}
+	}
+
+	async reorderKanbanCards(
+		projectId: string,
+		parentId: string | null,
+		cardIds: string[],
+	): Promise<void> {
+		const now = new Date()
+		for (let i = 0; i < cardIds.length; i++) {
+			const card = this.kanbanCards.get(cardIds[i])
+			if (card && card.projectId === projectId && card.parentId === parentId) {
+				this.kanbanCards.set(card.id, { ...card, position: i, updatedAt: now })
+			}
+		}
 	}
 
 	/** @internal */

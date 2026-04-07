@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
+import { kanbanCardSchema } from '@/entities/kanban-card'
 import { PLACEHOLDER_STEP } from '@/entities/project-step'
 import { verifyToken } from '@/server/identity/jwt'
 import { WorkspaceShell } from '@/widgets/workspace'
@@ -48,11 +49,13 @@ export default async function WorkspacePage({ params }: PageProps) {
 	let project: Awaited<ReturnType<typeof storage.getProject>>
 	let currentFiles: Awaited<ReturnType<typeof storage.getCurrentFiles>>
 	let activeBuildId: Awaited<ReturnType<typeof storage.getActiveStreamingBuild>>
+	let kanbanCards: Awaited<ReturnType<typeof storage.getKanbanCards>>
 	try {
-		;[project, currentFiles, activeBuildId] = await Promise.all([
+		;[project, currentFiles, activeBuildId, kanbanCards] = await Promise.all([
 			storage.getProject(projectId, session.userId),
 			storage.getCurrentFiles(projectId),
 			storage.getActiveStreamingBuild(projectId),
+			storage.getKanbanCards(projectId),
 		])
 	} catch (err) {
 		if (err instanceof ProjectNotFoundError) {
@@ -75,6 +78,7 @@ export default async function WorkspacePage({ params }: PageProps) {
 			currentFiles={currentFiles}
 			step={PLACEHOLDER_STEP}
 			activeBuildId={activeBuildId}
+			initialKanbanCards={kanbanCards.map((c) => kanbanCardSchema.parse(c))}
 		/>
 	)
 }

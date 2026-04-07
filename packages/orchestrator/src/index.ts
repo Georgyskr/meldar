@@ -1,7 +1,8 @@
-/**
- * Public barrel for the v3 orchestrator.
- */
-
+export {
+	COMPONENT_VOCABULARY,
+	type ComponentType,
+	type ComponentTypeId,
+} from './component-vocabulary'
 export { _resetOrchestratorDepsCache, buildOrchestratorDeps } from './deps'
 export { type OrchestratorDeps, orchestrateBuild, previewUrlSchema } from './engine'
 export {

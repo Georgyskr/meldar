@@ -22,13 +22,17 @@ import type { BuildContext, CreatedProject, ProjectStorage } from './provider'
 import {
 	type BeginBuildOptions,
 	type BuildRow,
+	type CreateKanbanCardInput,
 	type CreateProjectOptions,
+	type KanbanCardRow,
+	type KanbanCardState,
 	MAX_FILE_CONTENT_BYTES,
 	MAX_FILES_PER_BUILD,
 	type ProjectFileRow,
 	type ProjectRow,
 	type ProjectTier,
 	type StorageFile,
+	type UpdateKanbanCardInput,
 } from './types'
 
 export type NeonDrizzleDb = ReturnType<typeof drizzleNeonHttp<typeof schema>>
@@ -484,6 +488,196 @@ export class PostgresProjectStorage implements ProjectStorage {
 		return rows[0]?.id ?? null
 	}
 
+	async getKanbanCards(projectId: string): Promise<KanbanCardRow[]> {
+		const rows = await this.db
+			.select()
+			.from(schema.kanbanCards)
+			.where(eq(schema.kanbanCards.projectId, projectId))
+			.orderBy(sql`${schema.kanbanCards.parentId} NULLS FIRST`, asc(schema.kanbanCards.position))
+		return rows.map(rowToKanbanCard)
+	}
+
+	async createKanbanCard(card: CreateKanbanCardInput): Promise<KanbanCardRow> {
+		const now = new Date()
+		const id = crypto.randomUUID()
+		const parentId = card.parentId ?? null
+
+		const positionExpr = sql<number>`COALESCE((SELECT MAX(${schema.kanbanCards.position}) + 1 FROM ${schema.kanbanCards} WHERE ${schema.kanbanCards.projectId} = ${card.projectId} AND ${schema.kanbanCards.parentId} IS NOT DISTINCT FROM ${parentId}), 0)`
+
+		const rows = await this.db
+			.insert(schema.kanbanCards)
+			.values({
+				id,
+				projectId: card.projectId,
+				parentId,
+				position: positionExpr,
+				title: card.title,
+				description: card.description ?? null,
+				taskType: card.taskType ?? 'feature',
+				acceptanceCriteria: card.acceptanceCriteria ?? null,
+				explainerText: card.explainerText ?? null,
+				generatedBy: card.generatedBy ?? 'user',
+				tokenCostEstimateMin: card.tokenCostEstimateMin ?? null,
+				tokenCostEstimateMax: card.tokenCostEstimateMax ?? null,
+				dependsOn: card.dependsOn ?? [],
+				required: card.required ?? false,
+				createdAt: now,
+				updatedAt: now,
+			})
+			.returning()
+
+		const row = rows[0]
+		return {
+			id: row.id,
+			projectId: row.projectId,
+			parentId: row.parentId,
+			position: row.position,
+			state: row.state as KanbanCardState,
+			required: row.required,
+			title: row.title,
+			description: row.description,
+			taskType: row.taskType,
+			acceptanceCriteria: row.acceptanceCriteria,
+			explainerText: row.explainerText,
+			generatedBy: row.generatedBy,
+			tokenCostEstimateMin: row.tokenCostEstimateMin,
+			tokenCostEstimateMax: row.tokenCostEstimateMax,
+			tokenCostActual: row.tokenCostActual,
+			dependsOn: row.dependsOn ?? [],
+			blockedReason: row.blockedReason,
+			lastBuildId: row.lastBuildId,
+			createdAt: row.createdAt,
+			updatedAt: row.updatedAt,
+			builtAt: row.builtAt,
+		}
+	}
+
+	async createKanbanCards(
+		projectId: string,
+		cards: CreateKanbanCardInput[],
+	): Promise<KanbanCardRow[]> {
+		if (cards.length === 0) return []
+
+		const now = new Date()
+		const parentGroups = new Map<string | null, number>()
+
+		const prepared = cards.map((card) => {
+			const parentKey = card.parentId ?? null
+			const pos = parentGroups.get(parentKey) ?? 0
+			parentGroups.set(parentKey, pos + 1)
+
+			return {
+				id: crypto.randomUUID(),
+				projectId,
+				parentId: parentKey,
+				position: pos,
+				title: card.title,
+				description: card.description ?? null,
+				taskType: card.taskType ?? 'feature',
+				acceptanceCriteria: card.acceptanceCriteria ?? null,
+				explainerText: card.explainerText ?? null,
+				generatedBy: card.generatedBy ?? 'user',
+				tokenCostEstimateMin: card.tokenCostEstimateMin ?? null,
+				tokenCostEstimateMax: card.tokenCostEstimateMax ?? null,
+				dependsOn: card.dependsOn ?? [],
+				required: card.required ?? false,
+				createdAt: now,
+				updatedAt: now,
+			}
+		})
+
+		const batch: BatchItem<'pg'>[] = prepared.map((p) =>
+			this.db.insert(schema.kanbanCards).values(p),
+		)
+		await this.db.batch(assertNonEmptyBatch(batch, 'createKanbanCards batch'))
+
+		return prepared.map((p) => ({
+			id: p.id,
+			projectId: p.projectId,
+			parentId: p.parentId,
+			position: p.position,
+			state: 'draft' as KanbanCardState,
+			required: p.required,
+			title: p.title,
+			description: p.description,
+			taskType: p.taskType,
+			acceptanceCriteria: p.acceptanceCriteria,
+			explainerText: p.explainerText,
+			generatedBy: p.generatedBy,
+			tokenCostEstimateMin: p.tokenCostEstimateMin,
+			tokenCostEstimateMax: p.tokenCostEstimateMax,
+			tokenCostActual: null,
+			dependsOn: p.dependsOn,
+			blockedReason: null,
+			lastBuildId: null,
+			createdAt: p.createdAt,
+			updatedAt: p.updatedAt,
+			builtAt: null,
+		}))
+	}
+
+	async updateKanbanCard(cardId: string, updates: UpdateKanbanCardInput): Promise<KanbanCardRow> {
+		const now = new Date()
+		const setClause: Record<string, unknown> = { updatedAt: now }
+
+		if (updates.title !== undefined) setClause.title = updates.title
+		if (updates.description !== undefined) setClause.description = updates.description
+		if (updates.taskType !== undefined) setClause.taskType = updates.taskType
+		if (updates.state !== undefined) setClause.state = updates.state
+		if (updates.acceptanceCriteria !== undefined)
+			setClause.acceptanceCriteria = updates.acceptanceCriteria
+		if (updates.explainerText !== undefined) setClause.explainerText = updates.explainerText
+		if (updates.tokenCostEstimateMin !== undefined)
+			setClause.tokenCostEstimateMin = updates.tokenCostEstimateMin
+		if (updates.tokenCostEstimateMax !== undefined)
+			setClause.tokenCostEstimateMax = updates.tokenCostEstimateMax
+		if (updates.tokenCostActual !== undefined) setClause.tokenCostActual = updates.tokenCostActual
+		if (updates.dependsOn !== undefined) setClause.dependsOn = updates.dependsOn
+		if (updates.blockedReason !== undefined) setClause.blockedReason = updates.blockedReason
+		if (updates.lastBuildId !== undefined) setClause.lastBuildId = updates.lastBuildId
+		if (updates.builtAt !== undefined) setClause.builtAt = updates.builtAt
+		if (updates.required !== undefined) setClause.required = updates.required
+
+		const rows = await this.db
+			.update(schema.kanbanCards)
+			.set(setClause)
+			.where(eq(schema.kanbanCards.id, cardId))
+			.returning()
+		const row = rows[0]
+		if (!row) {
+			throw new Error(`kanban card not found: ${cardId}`)
+		}
+		return rowToKanbanCard(row)
+	}
+
+	async deleteKanbanCard(cardId: string): Promise<void> {
+		await this.db.delete(schema.kanbanCards).where(eq(schema.kanbanCards.id, cardId))
+	}
+
+	async reorderKanbanCards(
+		projectId: string,
+		parentId: string | null,
+		cardIds: string[],
+	): Promise<void> {
+		if (cardIds.length === 0) return
+
+		const batch: BatchItem<'pg'>[] = cardIds.map((id, index) =>
+			this.db
+				.update(schema.kanbanCards)
+				.set({ position: index, updatedAt: new Date() })
+				.where(
+					and(
+						eq(schema.kanbanCards.id, id),
+						eq(schema.kanbanCards.projectId, projectId),
+						parentId
+							? eq(schema.kanbanCards.parentId, parentId)
+							: isNull(schema.kanbanCards.parentId),
+					),
+				),
+		)
+		await this.db.batch(assertNonEmptyBatch(batch, 'reorderKanbanCards batch'))
+	}
+
 	private validateFileBatch(files: readonly StorageFile[]): void {
 		if (files.length > MAX_FILES_PER_BUILD) {
 			throw new BuildFileLimitError(files.length, MAX_FILES_PER_BUILD)
@@ -723,6 +917,32 @@ function rowToBuild(row: typeof schema.builds.$inferSelect): BuildRow {
 		errorMessage: row.errorMessage,
 		createdAt: row.createdAt,
 		completedAt: row.completedAt,
+	}
+}
+
+function rowToKanbanCard(row: typeof schema.kanbanCards.$inferSelect): KanbanCardRow {
+	return {
+		id: row.id,
+		projectId: row.projectId,
+		parentId: row.parentId,
+		position: row.position,
+		state: row.state as KanbanCardState,
+		required: row.required,
+		title: row.title,
+		description: row.description,
+		taskType: row.taskType,
+		acceptanceCriteria: row.acceptanceCriteria,
+		explainerText: row.explainerText,
+		generatedBy: row.generatedBy,
+		tokenCostEstimateMin: row.tokenCostEstimateMin,
+		tokenCostEstimateMax: row.tokenCostEstimateMax,
+		tokenCostActual: row.tokenCostActual,
+		dependsOn: row.dependsOn ?? [],
+		blockedReason: row.blockedReason,
+		lastBuildId: row.lastBuildId,
+		createdAt: row.createdAt,
+		updatedAt: row.updatedAt,
+		builtAt: row.builtAt,
 	}
 }
 

@@ -1,8 +1,5 @@
 'use client'
 
-// Import from `@meldar/orchestrator/sse` (leaf), not the barrel: the barrel
-// re-exports server-only modules (engine/deps/prompts) that pull in
-// Anthropic, Drizzle, etc. The leaf import keeps them out of the client bundle.
 import { consumeSseStream } from '@meldar/orchestrator/sse'
 import type { OrchestratorEvent } from '@meldar/orchestrator/types'
 import { Box, Flex, styled } from '@styled-system/jsx'
@@ -54,9 +51,6 @@ export function BuildPanel({ projectId, blockedByBuildId = null }: BuildPanelPro
 				})
 
 				if (!response.ok) {
-					// Pre-stream errors (auth, validation, rate limit) come back
-					// as JSON, not SSE — surface them as a synthetic failed event
-					// so they appear in the same log.
 					let message: string
 					try {
 						const json = (await response.json()) as { error?: { message?: string } }
