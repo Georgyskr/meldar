@@ -1,0 +1,33 @@
+{
+	"name": "@meldar/orchestrator",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Build orchestrator: drives Anthropic tool-calling, sandbox writes, token accounting, and streams SSE events.",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./sse": "./src/sse.ts",
+		"./types": "./src/types.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@anthropic-ai/sdk": "^0.80.0",
+		"@meldar/sandbox": "workspace:*",
+		"@meldar/storage": "workspace:*",
+		"@meldar/tokens": "workspace:*",
+		"@upstash/redis": "^1.37.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@meldar/test-utils": "workspace:*",
+		"@meldar/tooling-config": "workspace:*",
+		"@types/node": "^20",
+		"typescript": "^5",
+		"vitest": "^4.1.2"
+	}
+}

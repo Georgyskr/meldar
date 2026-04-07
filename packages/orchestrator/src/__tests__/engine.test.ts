@@ -1,0 +1,525 @@
+import type Anthropic from '@anthropic-ai/sdk'
+import type { SandboxProvider } from '@meldar/sandbox'
+import { InMemoryBlobStorage, InMemoryProjectStorage, type ProjectStorage } from '@meldar/storage'
+import { type AnthropicMockResult, makeAnthropicMock } from '@meldar/test-utils'
+import { InMemoryTokenLedger, type TokenLedger } from '@meldar/tokens'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { type OrchestratorDeps, orchestrateBuild } from '../engine'
+import { MAX_OUTPUT_TOKENS_PER_BUILD, type OrchestratorEvent } from '../types'
+
+// Zeroed SDK `Usage` — spread into per-test usage so callers only restate the fields that matter.
+const EMPTY_USAGE: Anthropic.Messages.Usage = {
+	input_tokens: 0,
+	output_tokens: 0,
+	cache_creation: null,
+	cache_creation_input_tokens: null,
+	cache_read_input_tokens: null,
+	inference_geo: null,
+	server_tool_use: null,
+	service_tier: null,
+}
+
+function makeToolUseMock(toolUses: { path: string; content: string }[]): AnthropicMockResult {
+	return makeAnthropicMock(async () => ({
+		id: 'msg_test',
+		type: 'message',
+		role: 'assistant',
+		model: 'claude-sonnet-4-6',
+		stop_reason: 'end_turn',
+		stop_sequence: null,
+		container: null,
+		content: toolUses.map((t, i) => ({
+			type: 'tool_use' as const,
+			id: `tool_${i}`,
+			name: 'write_file',
+			input: t,
+			caller: { type: 'direct' },
+		})),
+		usage: { ...EMPTY_USAGE, input_tokens: 1000, output_tokens: 500 },
+	}))
+}
+
+function makeTextOnlyMock(text: string): AnthropicMockResult {
+	return makeAnthropicMock(async () => ({
+		id: 'msg_test',
+		type: 'message',
+		role: 'assistant',
+		model: 'claude-sonnet-4-6',
+		stop_reason: 'end_turn',
+		stop_sequence: null,
+		container: null,
+		content: [{ type: 'text', text, citations: null }],
+		usage: { ...EMPTY_USAGE, input_tokens: 100, output_tokens: 50 },
+	}))
+}
+
+async function collectEvents(
+	gen: AsyncGenerator<OrchestratorEvent, void, unknown>,
+): Promise<OrchestratorEvent[]> {
+	const events: OrchestratorEvent[] = []
+	for await (const e of gen) {
+		events.push(e)
+	}
+	return events
+}
+
+// ── Test fixture builder ────────────────────────────────────────────────────
+
+async function setupFixture(): Promise<{
+	storage: ProjectStorage
+	ledger: TokenLedger
+	projectId: string
+	userId: string
+}> {
+	const blob = new InMemoryBlobStorage()
+	const storage = new InMemoryProjectStorage(blob)
+	const ledger = new InMemoryTokenLedger({ ceilingCentsPerDay: 200 })
+
+	const created = await storage.createProject({
+		userId: 'user_1',
+		name: 'Test project',
+		templateId: 'next-landing-v1',
+		initialFiles: [{ path: 'src/app/page.tsx', content: 'export default function Page() {}' }],
+	})
+
+	return {
+		storage,
+		ledger,
+		projectId: created.project.id,
+		userId: 'user_1',
+	}
+}
+
+// ── Tests ───────────────────────────────────────────────────────────────────
+
+describe('orchestrateBuild', () => {
+	let fixture: Awaited<ReturnType<typeof setupFixture>>
+
+	beforeEach(async () => {
+		fixture = await setupFixture()
+	})
+
+	describe('happy path', () => {
+		it('emits started → prompt_sent → file_written* → committed for a successful build', async () => {
+			const { client: anthropic } = makeToolUseMock([
+				{
+					path: 'src/app/page.tsx',
+					content: 'export default function Page() { return <div>Hi</div> }',
+				},
+				{ path: 'src/components/button.tsx', content: 'export function Button() {}' },
+			])
+			const deps: OrchestratorDeps = {
+				storage: fixture.storage,
+				sandbox: null,
+				ledger: fixture.ledger,
+				anthropic,
+			}
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'add a button',
+					},
+					deps,
+				),
+			)
+
+			const types = events.map((e) => e.type)
+			expect(types).toEqual(['started', 'prompt_sent', 'file_written', 'file_written', 'committed'])
+
+			const committed = events.find((e) => e.type === 'committed')
+			if (committed?.type !== 'committed') throw new Error('expected committed event')
+			expect(committed.fileCount).toBe(2)
+			expect(committed.tokenCost).toBe(1500)
+			expect(committed.actualCents).toBeGreaterThan(0)
+		})
+
+		it('updates project HEAD after a successful commit', async () => {
+			const { client: anthropic } = makeToolUseMock([
+				{
+					path: 'src/app/page.tsx',
+					content: 'export default function Page() { return <div>v2</div> }',
+				},
+			])
+			const project0 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+
+			await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'change the page',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const project1 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+			expect(project1.currentBuildId).not.toBe(project0.currentBuildId)
+
+			// New file content is the live version
+			const live = await fixture.storage.readFile(fixture.projectId, 'src/app/page.tsx')
+			expect(live).toContain('v2')
+		})
+
+		it('debits the token ledger by the actual cost', async () => {
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/app/page.tsx', content: 'x' }])
+			const before = await fixture.ledger.getSnapshot(fixture.userId)
+
+			await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const after = await fixture.ledger.getSnapshot(fixture.userId)
+			expect(after.spentCentsToday).toBeGreaterThan(before.spentCentsToday)
+		})
+
+		it('mirrors writes to the sandbox provider when one is supplied', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://x',
+				status: 'ready',
+				revision: 1,
+			})
+			// Stub the SandboxProvider surface. The structural cast is narrower
+			// than `as any`: tsc enforces method names and arity, only the
+			// parameter/return shapes of each `vi.fn()` are unverified — and the
+			// test only exercises `writeFiles`.
+			const sandbox: SandboxProvider = {
+				prewarm: vi.fn(),
+				start: vi.fn(),
+				writeFiles,
+				getPreviewUrl: vi.fn(),
+				stop: vi.fn(),
+			} as unknown as SandboxProvider
+			const { client: anthropic } = makeToolUseMock([
+				{ path: 'src/app/page.tsx', content: 'x' },
+				{ path: 'src/lib/util.ts', content: 'y' },
+			])
+
+			await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			expect(writeFiles).toHaveBeenCalledTimes(2)
+		})
+	})
+
+	describe('failures', () => {
+		it('emits failed when Sonnet returns no tool_use blocks', async () => {
+			const { client: anthropic } = makeTextOnlyMock('I cannot help with that request.')
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'do something',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const failed = events[events.length - 1]
+			expect(failed.type).toBe('failed')
+			if (failed.type === 'failed') {
+				expect(failed.reason).toContain('no file writes')
+			}
+		})
+
+		it('does NOT flip HEAD when the build fails', async () => {
+			const { client: anthropic } = makeTextOnlyMock('nope')
+			const project0 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+
+			await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const project1 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+			expect(project1.currentBuildId).toBe(project0.currentBuildId)
+		})
+
+		it('emits failed when token ledger is exhausted', async () => {
+			// Exhaust the user's daily ceiling first
+			await fixture.ledger.tryDebit(fixture.userId, 200)
+
+			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'x' }])
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const failed = events[events.length - 1]
+			expect(failed.type).toBe('failed')
+			if (failed.type === 'failed') {
+				expect(failed.code).toBe('ceiling_exhausted')
+			}
+		})
+
+		it('rejects pre-flight when remaining budget is below the estimate (no Sonnet call)', async () => {
+			// One Sonnet build estimates at ~118 cents (100k input + 64k output
+			// at $3/$15 per Mtok × 0.93 EUR/USD). With 100 cents remaining the
+			// user CANNOT afford this build, but the original `< 1` pre-check
+			// would let it through and we'd burn the Anthropic call before
+			// debiting and rejecting post-hoc. Verify (a) we fail with
+			// ceiling_exhausted and (b) the Anthropic mock was NEVER called.
+			await fixture.ledger.tryDebit(fixture.userId, 100) // 100 remaining of 200
+
+			// The handler should never run — the pre-flight ceiling check must
+			// reject the build BEFORE any Sonnet call. If the handler runs we
+			// fail the test loudly so the failure points at the regression
+			// instead of at a missing/partial response shape.
+			const { client: anthropic, mock: messagesCreate } = makeAnthropicMock(async () => {
+				throw new Error('Sonnet should not have been called: pre-flight ceiling check failed')
+			})
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'do a thing',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const failed = events[events.length - 1]
+			expect(failed.type).toBe('failed')
+			if (failed.type === 'failed') {
+				expect(failed.code).toBe('ceiling_exhausted')
+			}
+			// The critical part: the Sonnet call must not have happened.
+			expect(messagesCreate).not.toHaveBeenCalled()
+		})
+
+		it('rejects unsafe paths from Sonnet output', async () => {
+			const { client: anthropic } = makeToolUseMock([{ path: '../etc/passwd', content: 'pwned' }])
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const failed = events[events.length - 1]
+			expect(failed.type).toBe('failed')
+		})
+
+		it('rejects malformed tool_use input that fails Zod validation', async () => {
+			const { client: anthropic } = makeAnthropicMock(async () => ({
+				id: 'msg',
+				type: 'message',
+				role: 'assistant',
+				model: 'claude-sonnet-4-6',
+				stop_reason: 'end_turn',
+				stop_sequence: null,
+				container: null,
+				content: [
+					{
+						type: 'tool_use',
+						id: 't',
+						name: 'write_file',
+						// Bad shape — Zod at the orchestrator boundary should reject.
+						input: { path: 123 } as Record<string, unknown>,
+						caller: { type: 'direct' },
+					},
+				],
+				usage: { ...EMPTY_USAGE, input_tokens: 100, output_tokens: 50 },
+			}))
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+			const failed = events[events.length - 1]
+			expect(failed.type).toBe('failed')
+			if (failed.type === 'failed') {
+				expect(failed.reason).toContain('Zod')
+			}
+		})
+
+		it('emits failed when project does not belong to the user', async () => {
+			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'x' }])
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: 'someone_else',
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+			const failed = events[events.length - 1]
+			expect(failed.type).toBe('failed')
+		})
+
+		it('aborts the Sonnet call when the request signal fires', async () => {
+			// The route hands its `request.signal` down so a client disconnect
+			// (or a route-level cancel) can short-circuit the in-flight build.
+			// The Anthropic SDK accepts the signal via its second `RequestOptions`
+			// argument; we verify the orchestrator threads it through.
+			const ctrl = new AbortController()
+			ctrl.abort()
+
+			const { client: anthropic } = makeAnthropicMock(async (_body, opts) => {
+				if (opts?.signal?.aborted) {
+					const err = new Error('Request was aborted.')
+					err.name = 'AbortError'
+					throw err
+				}
+				return {
+					id: 'msg',
+					type: 'message',
+					role: 'assistant',
+					model: 'claude-sonnet-4-6',
+					stop_reason: 'end_turn',
+					stop_sequence: null,
+					container: null,
+					content: [],
+					usage: { ...EMPTY_USAGE },
+				}
+			})
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+						signal: ctrl.signal,
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const failed = events[events.length - 1]
+			expect(failed.type).toBe('failed')
+			if (failed.type === 'failed') {
+				expect(failed.code).toBe('aborted')
+			}
+
+			// And the original streaming build should be transitioned to failed,
+			// not orphaned.
+			const started = events.find((e) => e.type === 'started')
+			if (started?.type !== 'started') throw new Error('expected started')
+			const build = await fixture.storage.getBuild(fixture.projectId, started.buildId)
+			expect(build.status).toBe('failed')
+		})
+
+		it('rejects responses truncated by max_tokens (data loss guard)', async () => {
+			// A truncated tool_use input is a partial file body; committing it would overwrite good content with garbage.
+			const { client: anthropic } = makeAnthropicMock(async () => ({
+				id: 'msg_test',
+				type: 'message',
+				role: 'assistant',
+				model: 'claude-sonnet-4-6',
+				stop_reason: 'max_tokens',
+				stop_sequence: null,
+				container: null,
+				content: [
+					{
+						type: 'tool_use' as const,
+						id: 'tool_0',
+						name: 'write_file',
+						input: { path: 'src/app/page.tsx', content: 'export default funct' } as Record<
+							string,
+							unknown
+						>,
+						caller: { type: 'direct' },
+					},
+				],
+				usage: { ...EMPTY_USAGE, input_tokens: 100, output_tokens: MAX_OUTPUT_TOKENS_PER_BUILD },
+			}))
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'do a big thing',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const failed = events[events.length - 1]
+			expect(failed.type).toBe('failed')
+			if (failed.type === 'failed') {
+				expect(failed.code).toBe('max_tokens_truncated')
+			}
+
+			// And nothing should have been committed: the project's HEAD is
+			// still the genesis build.
+			const project = await fixture.storage.getProject(fixture.projectId, fixture.userId)
+			const head = project.currentBuildId
+			if (!head) throw new Error('expected a HEAD')
+			const headBuild = await fixture.storage.getBuild(fixture.projectId, head)
+			expect(headBuild.triggeredBy).toBe('template') // genesis, not user_prompt
+		})
+
+		it('marks the streaming build as failed (does not leave it orphaned)', async () => {
+			// Regression: the catch block used to call beginBuild() AGAIN on the
+			// failure path, leaving the original streaming build row in 'streaming'
+			// status forever (waiting on a reaper that does not exist). Verify that
+			// after a failed run, the build whose `started` event the user saw is
+			// actually transitioned to 'failed'.
+			const { client: anthropic } = makeTextOnlyMock('I cannot help with that.')
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'do something',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const started = events.find((e) => e.type === 'started')
+			if (started?.type !== 'started') throw new Error('expected a started event')
+
+			const build = await fixture.storage.getBuild(fixture.projectId, started.buildId)
+			expect(build.status).toBe('failed')
+		})
+	})
+})

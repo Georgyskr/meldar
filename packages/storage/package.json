@@ -1,0 +1,30 @@
+{
+	"name": "@meldar/storage",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "ProjectStorage and BlobStorage interfaces, in-memory + Postgres + R2 implementations.",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@meldar/db": "workspace:*",
+		"@meldar/sandbox": "workspace:*",
+		"aws4fetch": "^1.0.20",
+		"drizzle-orm": "^0.45.2"
+	},
+	"devDependencies": {
+		"@meldar/test-utils": "workspace:*",
+		"@meldar/tooling-config": "workspace:*",
+		"@neondatabase/serverless": "^1.0.2",
+		"@types/node": "^20",
+		"typescript": "^5",
+		"vitest": "^4.1.2"
+	}
+}

@@ -1,0 +1,21 @@
+{
+	"name": "@meldar/sandbox-worker",
+	"version": "0.0.1",
+	"private": true,
+	"description": "Cloudflare Worker that boots a Next.js dev server inside the Cloudflare Sandbox container, exposing iframe-embeddable preview URLs.",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"typecheck": "tsc --noEmit",
+		"cf-typegen": "wrangler types"
+	},
+	"dependencies": {
+		"@cloudflare/sandbox": "^0.8.4"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20250506.0",
+		"@meldar/tooling-config": "workspace:*",
+		"typescript": "^5",
+		"wrangler": "^4.0.0"
+	}
+}

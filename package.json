@@ -1,65 +1,31 @@
 {
-	"name": "agentgate",
-	"version": "0.1.0",
+	"name": "meldar",
 	"private": true,
+	"packageManager": "pnpm@10.18.3",
 	"scripts": {
-		"dev": "next dev --turbopack",
-		"build": "next build",
-		"start": "next start",
-		"prepare": "panda codegen",
-		"lint": "biome check .",
-		"lint:fix": "biome check --fix .",
-		"db:push": "drizzle-kit push",
-		"db:studio": "drizzle-kit studio",
-		"db:generate": "drizzle-kit generate",
-		"test": "vitest run"
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"start": "turbo run start",
+		"test": "turbo run test",
+		"typecheck": "turbo run typecheck",
+		"format": "biome format --write .",
+		"format-and-lint": "biome check .",
+		"format-and-lint:fix": "biome check --fix ."
 	},
-	"dependencies": {
-		"@anthropic-ai/sdk": "^0.80.0",
-		"@neondatabase/serverless": "^1.0.2",
-		"@pandacss/dev": "^1.8.1",
-		"@park-ui/panda-preset": "^0.43.1",
-		"@upstash/ratelimit": "^2.0.8",
-		"@upstash/redis": "^1.37.0",
-		"bcryptjs": "^3.0.3",
-		"drizzle-orm": "^0.45.2",
-		"html-to-image": "^1.11.13",
-		"jotai": "^2.19.0",
-		"jsonwebtoken": "^9.0.3",
-		"jszip": "^3.10.1",
-		"lucide-react": "^0.563.0",
-		"nanoid": "^5.1.7",
-		"next": "16.1.6",
-		"react": "19.2.3",
-		"react-dom": "19.2.3",
-		"resend": "^6.9.4",
-		"stripe": "^21.0.1",
-		"tesseract.js": "^7.0.0",
-		"zod": "^4.3.6"
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.13",
+		"turbo": "^2.5.8",
+		"typescript": "^5"
+	},
+	"engines": {
+		"node": ">=20"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
 			"@biomejs/biome",
 			"@parcel/watcher",
-			"esbuild"
+			"esbuild",
+			"workerd"
 		]
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.3.13",
-		"@park-ui/cli": "^1.0.1",
-		"@playwright/test": "^1.59.0",
-		"@types/bcryptjs": "^3.0.0",
-		"@types/jsonwebtoken": "^9.0.10",
-		"@types/node": "^20",
-		"@types/react": "^19",
-		"@types/react-dom": "^19",
-		"dotenv": "^17.3.1",
-		"drizzle-kit": "^0.31.10",
-		"jsdom": "^29.0.1",
-		"typescript": "^5",
-		"vitest": "^4.1.2"
-	},
-	"browserslist": [
-		"defaults and fully supports es6-module"
-	]
+	}
 }

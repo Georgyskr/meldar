@@ -1,0 +1,66 @@
+{
+	"$schema": "https://turborepo.dev/schema.json",
+	"ui": "stream",
+	"envMode": "strict",
+	"globalEnv": [
+		"NODE_ENV",
+		"VERCEL",
+		"VERCEL_ENV",
+		"VERCEL_URL",
+		"NEXT_PUBLIC_GA_ID",
+		"NEXT_PUBLIC_BASE_URL",
+		"DATABASE_URL",
+		"AUTH_SECRET",
+		"CRON_SECRET",
+		"RESEND_API_KEY",
+		"STRIPE_SECRET_KEY",
+		"STRIPE_WEBHOOK_SECRET",
+		"ANTHROPIC_API_KEY",
+		"UPSTASH_REDIS_REST_URL",
+		"UPSTASH_REDIS_REST_TOKEN",
+		"CF_SANDBOX_WORKER_URL",
+		"CF_SANDBOX_HMAC_SECRET",
+		"R2_ACCOUNT_ID",
+		"R2_ACCESS_KEY_ID",
+		"R2_SECRET_ACCESS_KEY",
+		"R2_BUCKET"
+	],
+	"globalDependencies": [
+		"pnpm-lock.yaml",
+		"pnpm-workspace.yaml",
+		"biome.json",
+		"packages/tooling-config/tsconfig/*.json"
+	],
+	"tasks": {
+		"build": {
+			"dependsOn": ["^build"],
+			"outputs": [".next/**", "!.next/cache/**", "dist/**"],
+			"inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!**/__tests__/**"]
+		},
+		"typecheck": {
+			"dependsOn": ["^typecheck"],
+			"outputs": [],
+			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
+		},
+		"test": {
+			"dependsOn": ["^typecheck"],
+			"outputs": [],
+			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
+		},
+		"dev": {
+			"persistent": true,
+			"cache": false
+		},
+		"start": {
+			"dependsOn": ["build"],
+			"persistent": true,
+			"cache": false
+		},
+		"//#format-and-lint": {
+			"outputs": []
+		},
+		"//#format-and-lint:fix": {
+			"cache": false
+		}
+	}
+}

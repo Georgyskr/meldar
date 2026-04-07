@@ -1,0 +1,21 @@
+# Exclude host node_modules so they don't conflict with the container's install
+node_modules
+**/node_modules
+
+# Build output
+.next
+**/.next
+dist
+build
+
+# Logs and temp
+*.log
+.DS_Store
+
+# Env files (should be configured via wrangler secrets)
+.env
+.env.local
+.env.*.local
+
+# Wrangler
+.wrangler

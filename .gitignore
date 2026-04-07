@@ -39,3 +39,9 @@ next-env.d.ts
 
 # vercel
 .vercel/
+
+# turbo
+.turbo/
+
+# cloudflare wrangler
+.wrangler/

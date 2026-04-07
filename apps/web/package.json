@@ -1,0 +1,56 @@
+{
+	"name": "@meldar/web",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev --turbopack",
+		"build": "next build",
+		"start": "next start",
+		"prepare": "panda codegen",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@anthropic-ai/sdk": "^0.80.0",
+		"@meldar/db": "workspace:*",
+		"@meldar/orchestrator": "workspace:*",
+		"@meldar/sandbox": "workspace:*",
+		"@meldar/storage": "workspace:*",
+		"@meldar/tokens": "workspace:*",
+		"@pandacss/dev": "^1.8.1",
+		"@park-ui/panda-preset": "^0.43.1",
+		"@upstash/ratelimit": "^2.0.8",
+		"@upstash/redis": "^1.37.0",
+		"bcryptjs": "^3.0.3",
+		"drizzle-orm": "^0.45.2",
+		"html-to-image": "^1.11.13",
+		"jotai": "^2.19.0",
+		"jsonwebtoken": "^9.0.3",
+		"jszip": "^3.10.1",
+		"lucide-react": "^0.563.0",
+		"nanoid": "^5.1.7",
+		"next": "16.1.6",
+		"react": "19.2.3",
+		"react-dom": "19.2.3",
+		"resend": "^6.9.4",
+		"stripe": "^21.0.1",
+		"tesseract.js": "^7.0.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@meldar/test-utils": "workspace:*",
+		"@meldar/tooling-config": "workspace:*",
+		"@park-ui/cli": "^1.0.1",
+		"@playwright/test": "^1.59.0",
+		"@types/bcryptjs": "^3.0.0",
+		"@types/jsonwebtoken": "^9.0.10",
+		"@types/node": "^20",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"jsdom": "^29.0.1",
+		"vitest": "^4.1.2"
+	},
+	"browserslist": [
+		"defaults and fully supports es6-module"
+	]
+}

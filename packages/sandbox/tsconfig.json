@@ -1,0 +1,9 @@
+{
+	"extends": "@meldar/tooling-config/tsconfig/node-lib.json",
+	"compilerOptions": {
+		"lib": ["ES2022", "DOM"],
+		"types": ["vitest/globals"]
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules"]
+}

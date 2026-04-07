@@ -90,6 +90,35 @@ src/
 ### Engineering Standards
 See `AGENTS.md` for coding rules, testing standards, and review process requirements.
 
+### Code Comments (strict)
+
+**Default to zero comments.** Code, types, and tests should carry the intent. A new file or function does not need a doc block.
+
+Write a comment ONLY when:
+- The logic is genuinely non-obvious AND the tests can't express the reason — e.g., a workaround for a library quirk ("JSZip exposes uncompressed size only via internal `_data`"), a non-obvious invariant, or a deliberate divergence from an ambient convention.
+- The surrounding code cannot be rewritten to make the comment unnecessary. Try that first.
+
+**Never write:**
+- Historical comments: "Earlier this used X casts that crashed…", "Previously this was inline…", "Before the Zod boundary…". That's commit-message content. Git has the history; the file is present-tense.
+- Defensive "here's why I made this decision" doc blocks on helpers. The name, type signature, and a single test should tell the reader what the helper does and why it exists. If they don't, fix the name or the test, not the comment.
+- Paragraph-long module headers that restate what the exports already say.
+- `// Note:` preambles stranded at the top of a file that only apply to one test way down inside it. Move the comment next to the code it applies to.
+
+**During `/clean-code` iterations: TRIM comments, don't add new ones to justify the cleanup.** If a change needs justification, that belongs in the commit message or PR description.
+
+### App Builder Prompt Guidelines
+
+When Meldar builds apps for users (via the orchestrator in `src/server/orchestrator/prompts.ts`), the system prompt enforces the same quality bar we hold ourselves to in this repo:
+
+- **Minimum viable change.** Do the thing that was asked, not the thing around it.
+- **No comments unless the logic is non-obvious.** Same rule as above.
+- **Match the existing code style.** If the project uses `VStack`, use `VStack`. Don't introduce a new pattern for one file.
+- **No `console.log`, no debug code, no `TODO`.** Finish the work or don't take the build.
+- **Self-contained code only.** No external HTTP fetches to user-controlled URLs. No remote installs.
+- **Smallest defensible interpretation when the request is unclear.** Ship it and let the user iterate; do not ask clarifying questions you can't hear the answer to.
+
+These rules are source of truth in `BUILD_SYSTEM_PROMPT`. When editing that prompt, keep it tight — every additional line costs tokens on every build.
+
 ### Components
 - Default to React Server Components. Only `"use client"` when interactive behavior requires it.
 - Park UI components added via CLI: `npx @park-ui/cli add <component>`
