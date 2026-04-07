@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getBaseUrl, sendVerificationEmail } from '@/server/email'
 import { getUserFromRequest } from '@/server/identity/jwt'
-import { mustHaveRateLimit, resendVerifyLimit } from '@/server/lib/rate-limit'
+import { checkRateLimit, mustHaveRateLimit, resendVerifyLimit } from '@/server/lib/rate-limit'
 
 const limiter = mustHaveRateLimit(resendVerifyLimit, 'resend-verification')
 
@@ -19,14 +19,14 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		if (limiter) {
-			const { success } = await limiter.limit(session.userId)
-			if (!success) {
-				return NextResponse.json(
-					{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Try again later.' } },
-					{ status: 429 },
-				)
-			}
+		const rateResult = await checkRateLimit(limiter, session.userId, true)
+		if (!rateResult.success) {
+			const status = rateResult.serviceError ? 503 : 429
+			const code = rateResult.serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED'
+			return NextResponse.json(
+				{ error: { code, message: 'Too many requests. Try again later.' } },
+				{ status },
+			)
 		}
 
 		const db = getDb()
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 			.where(eq(users.id, user.id))
 
 		try {
-			await sendVerificationEmail(session.email, verifyToken, getBaseUrl(request))
+			await sendVerificationEmail(session.email, verifyToken, getBaseUrl())
 		} catch (err) {
 			console.error('Verification email failed:', err instanceof Error ? err.message : 'Unknown')
 		}

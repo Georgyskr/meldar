@@ -1,8 +1,8 @@
 # Meldar v3 MVP Backlog
 
-**Last updated:** 2026-04-07 (post Build Plan engine wave)
+**Last updated:** 2026-04-08 (post 6-feature wave + 5-round review + payment architecture audit)
 **Replaces:** v2 angle-change MVP backlog
-**Based on:** Carson brainstorming session + game economy design + 2026-04-07 cleanup wave + auth/sandbox wave (`fbab6cc`) + email flows (`f6e24d2`) + Build Plan engine (`39f6ba5`)
+**Based on:** 2026-04-07 cleanup wave + auth/sandbox (`fbab6cc`) + email flows (`f6e24d2`) + Build Plan engine (`39f6ba5`) + 6-feature wave (model routing, prompt anatomy, improve-prompt, templates, email touchpoints, token economy) + 5-round scrupulous review + payment architecture audit (2 iterations, 7 agents)
 
 ---
 
@@ -339,6 +339,53 @@ Filed as wave-E candidates:
 
 ---
 
+## 2026-04-07 (late evening) — Tech debt sweep (17 items)
+
+Dispatched 4 parallel agents (DB optimizer, backend architect, frontend
+developer, senior developer) to close all review-surfaced tech debt.
+
+### Database (migration `0005_token_indexes.sql`)
+- Partial indexes on `users.verify_token` and `users.reset_token`
+  (`WHERE NOT NULL`) — previously sequential scans
+- Dropped redundant `idx_users_email` (UNIQUE constraint already creates
+  an index)
+- Dropped redundant `idx_kanban_cards_project` (prefix of composite
+  `idx_kanban_cards_project_parent_position`)
+
+### Auth
+- `emailVerified` encoded in JWT claims — eliminates a DB query per
+  workspace page load. Legacy tokens without the claim default to
+  `false` via `?? false`. Login reads `emailVerified` from DB row;
+  verify-email refreshes the JWT cookie on success.
+
+### API hardening
+- `componentType` validated against `COMPONENT_VOCABULARY` enum (was
+  accepting any string from Haiku)
+- `ask-question` response validated with fallback questions on failure
+- All Haiku calls get `request.signal` for abort + explicit timeout
+  (30s for questions, 60s for plan generation)
+- `verify-email` endpoint rate-limited (reuses `resetLimit`, 3/hr/IP)
+- `verify-email` redirect changed from `/` to `/workspace`
+
+### Build Plan
+- Multi-card sequential build queue — BuildButton now processes ALL
+  ready subtasks in dependency order (was single-card only). Stops
+  on first failure. Shared AbortController across the queue.
+
+### Frontend
+- `EmailVerificationBanner` setTimeout cleanup via `useRef` + `useEffect`
+- `PlanReviewPrompt` buttons get `type="button"` (prevent form submit)
+- `WhatJustHappenedSlot` imports from barrel (FSD compliance)
+- `OnboardingChat` gets `aria-live="polite"` for screen readers
+- `.env.example` created documenting all 17 env vars
+
+### Confirmed safe (no fix needed)
+- `createKanbanCards` batch positions start at 0 — confirmed zero
+  callers outside the storage layer itself; the generate-plan route
+  uses its own insert logic with proper position offset.
+
+---
+
 ## Engineering Infrastructure (current state, 2026-04-07)
 
 The repo is a **pnpm + Turborepo monorepo**. All planning items below assume this layout — when a task says "the orchestrator," it means `packages/orchestrator/`, not a folder under `apps/web/src/server/`.
@@ -397,18 +444,18 @@ packages/
 
 Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test build`.
 
-### Test baseline (verified 2026-04-07, post Build Plan engine wave)
+### Test baseline (verified 2026-04-08, post 5-round review + payment audit)
 
 | Package | Test files | Tests passing | Notes |
 |---|---|---|---|
-| `@meldar/web` | 48 | 636 | + 1 file / 3 tests skipped; was 539 post-auth, 432 pre-auth |
+| `@meldar/web` | 56 | 699 | + 1 file / 3 tests skipped; was 638 post-tech-debt, 548 post-email, 432 pre-auth |
 | `@meldar/sandbox-worker` | 1 | 44 | HMAC failure modes + contract endpoints + SDK error-message pinning |
 | `@meldar/storage` | 4 | 93 | InMemory + Postgres provider contract + R2 blob + kanban CRUD |
 | `@meldar/sandbox` | 2 | 80 | Safety helpers + Cloudflare provider HMAC |
-| `@meldar/tokens` | 2 | 37 | Pricing math + ledger atomic Lua debit |
-| `@meldar/orchestrator` | 2 | 41 | Engine streaming + SSE round-trip + event extension |
+| `@meldar/tokens` | 3 | 48 | Pricing + ledger Lua + game economy (CTE atomic debit/credit) |
+| `@meldar/orchestrator` | 4 | 319 | Engine + SSE + model routing (21 tests) + template plans (252 tests) |
 | `@meldar/test-utils` | 4 | 12 | Mock factory smoke tests |
-| **Total** | **63** | **943** | All green; warm `turbo` runs report **FULL TURBO** in <50ms |
+| **Total** | **74** | **1,295** | All green; 5-round scrupulous review passed |
 
 ### What's wired end-to-end (build flow)
 
@@ -572,22 +619,22 @@ Before any destructive or expensive action, require user approval:
 
 ## P0 — Prompt Anatomy & Learning
 
-### 12. Prompt anatomy side panel
-When user opens the prompt builder, a side panel shows:
-- **Role**: "You are a..." (explains what this does)
-- **Context**: "Given that..." (why context matters)
-- **Task**: "Do X..." (the actual ask)
-- **Constraints**: "But don't..." (guardrails)
-- **Format**: "Respond as..." (output shape)
+### 12. Prompt anatomy side panel — **DONE**
+~~When user opens the prompt builder, a side panel shows...~~
 
-For any prompt the user writes, Meldar parses it and highlights what's there and what's missing.
+**What shipped:** Client-side regex parser (`features/kanban/lib/parse-prompt-anatomy.ts`)
+detects Role/Context/Task/Constraints/Format segments in card descriptions.
+Expandable section in `CardEditorModal` with score 0-5, present/missing
+indicators, matched text snippets. Zero API cost (`useMemo`). 10 tests.
 
-### 13. Prompt improvement widget
-User clicks "Improve my prompt" button:
-- Costs 1 token
-- Routes to Haiku
-- Returns: suggested rewrite + 2-3 sentence explanation of what changed and why
-- User can accept, reject, or modify further
+### 13. Prompt improvement widget — **DONE**
+~~User clicks "Improve my prompt" button:~~
+- ~~Costs 1 token~~
+**What shipped:** Haiku-powered rewrite with defensive system prompt (ignores
+embedded instructions, no code/URL generation), output length cap 2× input,
+Zod validation. Inline Original/Improved view with Accept/Keep buttons in
+`CardEditorModal`. Balance check before API call, debit after success (user
+only pays for value received). 1 token per successful improvement. 9 tests.
 
 ### 14. "What just happened?" micro-explainer
 After every AI action, a small popup/card shows:
@@ -613,24 +660,49 @@ Backend service that:
 
 **What's actually shipped:** `orchestrateBuild()` async generator runs an Anthropic tool-calling loop with the `write_file` tool, debits the `TokenLedger` per turn, persists via `ProjectStorage`, optionally mirrors to a `SandboxProvider`, and yields a typed `OrchestratorEvent` stream that the build route turns into SSE. **Gaps vs. spec:** task triage / cost logging table / per-step `task_type` field are not implemented — see #16.
 
-### 16. Model routing logic — **PARTIAL**
-Decision tree:
-- `task_type: 'help' | 'improve' | 'brainstorm'` → **Haiku**
-- `task_type: 'standard_build' | 'modify'` → **Sonnet**
-- `task_type: 'heavy_feature'` → triage by Sonnet first: if "easy" → stay on Sonnet, if "heavy" → route to Opus
-- Always log which model was used and actual cost
+### 16. Model routing logic — **DONE** (Haiku/Sonnet, no Opus)
+~~Decision tree: ...~~
 
-**What's actually shipped:** `MODELS` constant lives in `packages/tokens/src/models.ts` and the orchestrator accepts a per-request `model` field (`request.model ?? MODELS.SONNET`). Discovery flows already pick Haiku directly in `apps/web/src/server/discovery/*`. **What's missing:** the automatic `task_type` → model decision tree, the cost-logging table (model + actual tokens + cents), and the Sonnet-triages-Opus escalation path.
+**What shipped:** Static lookup table in `packages/orchestrator/src/model-routing.ts`.
+Simple components (chart, table, form, filter, export, data-input, page,
+search, notification, file-upload, import) route to Haiku (~29% cost savings
+per session). Complex components (auth, api-connector, dashboard, scheduler,
+email-sender, layout) stay on Sonnet. Server-side only — client `model` field
+stripped by Zod. Card `taskType` queried from DB in the build route. **No Opus**
+— exceeds daily ceiling, needs per-tier ceilings. 21 tests.
 
-### 17. Token accounting system — **DONE** for cost ceiling, **NOT DONE** for game economy (`packages/tokens/`)
-Track per-user:
-- Monthly allowance (500 base + referral bonuses)
-- Daily earn cap (50/day, resets at midnight UTC)
-- Current balance
-- Transaction history
-- Cost ceiling enforcement (EUR 2/day soft wall)
+### 17. Token accounting system — **DONE** (both ceiling + game economy)
+~~Track per-user: ...~~
 
-**What's actually shipped:** `UpstashTokenLedger` enforces a per-user daily EUR-cents ceiling (default EUR 2/day) via an atomic Lua script that combines `INCRBY` + `EXPIRE` + the ceiling check in one round-trip. Key shape: `meldar:tokens:{userId}:{YYYY-MM-DD}`. Fail-closed on Redis errors (cannot debit if we don't know current spend). The orchestrator pre-debits a worst-case estimate before each Anthropic call. **What's missing:** the *game economy* layer — monthly allowances, daily earn cap, token transactions, balance UI, referral bonuses. The current ledger is a hard *cost* ceiling, not a token *balance*.
+**What shipped (two-layer architecture):**
+
+**Layer 1 — Daily EUR ceiling (Redis, unchanged):**
+`UpstashTokenLedger` with atomic Lua script, EUR 2/day per user, fail-closed.
+
+**Layer 2 — Game economy (Postgres, new):**
+- `users.token_balance` with `CHECK (token_balance >= 0)` constraint
+- `token_transactions` table for full audit trail
+- CTE-based atomic `debitTokens`/`creditTokens` (single SQL statement per
+  operation, INSERT conditional on UPDATE success)
+- Signup bonus: 200 tokens, recorded in audit trail
+- Daily bonus: 15 tokens/day via Redis SETNX (fail-closed, split-brain
+  recovery on credit failure)
+- Build debit: pre-build, refund on pre-file failures only (post-API
+  failures are non-refundable to prevent free-API-call attacks)
+- `TokenBalancePill` in workspace top bar (green/amber/red thresholds)
+- `withTokenRefund` generator wrapper with `try/finally` (covers client
+  abort, errors, natural completion)
+- `lifetimeTokensEarned` not incremented on refunds
+- Tiered rate-limit: auth routes fail-closed, non-auth fail-open, 503 vs
+  429 distinguished via `serviceError` flag
+
+**What's deferred:**
+- Monthly allowance reset (Sprint 2)
+- Referral bonuses (Sprint 2, needs referral tracking)
+- Stripe token-meter integration (requires Private Preview access for
+  Billing for LLM Tokens — requested)
+- System-wide daily spend cap (Sprint 2, ~EUR 500/day threshold)
+- Opus support (needs per-tier ceilings)
 
 ### 18. Per-user Vercel deployment management
 - Meldar holds a Vercel API key
@@ -772,11 +844,15 @@ Determine the second onboarding style and implement.
 - Social share buttons
 - OG image for Twitter/LinkedIn/Instagram
 
-### 35. Email touchpoints
-- Welcome email (Day 0)
-- Day 1 nudge: "Come back for Step 3"
-- Day 7 celebration: "You're on a streak"
-- Abandoned session recovery: "Your app is waiting for you"
+### 35. Email touchpoints — **DONE**
+~~Welcome email, nudges, celebration~~
+
+**What shipped:** Welcome email on register (fire-and-forget), first-build
+email on committed event (dedup via `first_build_email_sent_at`), Day 1/7
+nudge emails via Vercel Cron (`0 9 * * *`, capped 50/batch, parallel via
+`Promise.allSettled`). All user content HTML-escaped. Shared email template
+helpers in `src/server/email/send-email.ts`. `vercel.json` updated with
+cron entry. 11 tests across register + cron routes.
 
 ---
 
@@ -845,57 +921,105 @@ Determine the second onboarding style and implement.
 
 ---
 
-## Launch Readiness Checklist (post Build Plan engine wave, 2026-04-07)
+## Launch Readiness Checklist (post 6-feature wave + 5-round review + payment audit, 2026-04-08)
 
 MVP is ready to show first founding members when:
 
 ### Auth + infrastructure
-- [x] §NEW-AUTH — sign-up, sign-in, sign-out (`fbab6cc`)
-- [x] §NEW-AUTH — email verification (non-gating, nag banner) (`f6e24d2`)
-- [x] §NEW-AUTH — password reset flow (forgot + reset UI) (`f6e24d2`)
-- [x] User can reach `/workspace/:id` after sign-up (`fbab6cc`)
-- [x] §NEW-SANDBOX — worker code, tests, deploy runbook (`fbab6cc`)
-- [ ] §NEW-SANDBOX — `wrangler deploy` (blocked: Containers Beta enrollment)
+- [x] Sign-up, sign-in, sign-out with JWT httpOnly cookie
+- [x] Email verification (non-gating, nag banner)
+- [x] Password reset flow (forgot + reset UI)
+- [x] User can reach `/workspace/:id` after sign-up
+- [x] §NEW-SANDBOX — worker code, tests, deploy runbook
+- [ ] §NEW-SANDBOX — `wrangler deploy` (blocked: Cloudflare Containers Beta)
 - [ ] §NEW-SANDBOX — live preview in iframe (blocked: deploy)
 - [ ] Coming-soon page links to `/sign-up`
 
-### Build Plan engine (kanban)
-- [x] Step state machine with milestone→subtask hierarchy (`39f6ba5`)
-- [x] Kanban task execution engine — Build Plan with card-driven
-  builds via SSE (`39f6ba5`)
-- [x] 5-question onboarding: user intent → Haiku Q&A → generated
-  milestone plan (`39f6ba5`)
-- [x] AI-generated "What You'll Learn" per card (`39f6ba5`)
-- [x] BuildButton wired to orchestrator via SSE (`39f6ba5`)
-- [ ] Multi-card sequential build queue (Sprint 1 does first card only)
+### Env vars + external services (must set up before first real test)
+
+All code is written but these external services need accounts/credentials
+set in both `.env.local` (local dev) and Vercel (production). Check
+`apps/web/.env.example` for the full list.
+
+- [ ] **Upstash Redis** — create database at `console.upstash.com`
+  (free tier, eu-west-1). Get `UPSTASH_REDIS_REST_URL` +
+  `UPSTASH_REDIS_REST_TOKEN`. Required for: rate limiting, daily
+  spend ceiling, daily bonus dedup.
+- [ ] **Neon Postgres** — create database at `neon.tech` (free tier).
+  Get `DATABASE_URL`. Run migrations 0000-0008 via `psql`. Required
+  for: all data storage.
+- [ ] **Anthropic** — get `ANTHROPIC_API_KEY` from
+  `console.anthropic.com`. Required for: builds, improve-prompt,
+  plan generation, onboarding questions.
+- [ ] **R2 (Cloudflare)** — create R2 bucket for content-addressed
+  blob storage. Get `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+  `R2_ENDPOINT`, `R2_BUCKET_NAME`. Required for: file storage during
+  builds.
+- [ ] **Cloudflare Workers** — resolve Containers Beta enrollment
+  (blocked on Claude payments). Then `wrangler deploy` + set
+  `CF_SANDBOX_WORKER_URL` + `CF_SANDBOX_HMAC_SECRET` on Vercel.
+  Required for: live preview iframe.
+- [ ] **Stripe** (future) — `STRIPE_SECRET_KEY`,
+  `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_BUILDER`. Not needed for
+  founding-member launch if shipping without a paywall. Request
+  Private Preview for Billing for LLM Tokens
+  (`docs.stripe.com/billing/token-billing`) for future `@stripe/token-meter`
+  integration.
+- [ ] **`JWT_SECRET`** — generate with `openssl rand -hex 32`. Set in
+  `.env.local` + Vercel. Required for: auth.
+- [ ] **`NEXT_PUBLIC_BASE_URL`** — set to `https://meldar.ai` in
+  Vercel production, `http://localhost:3000` in `.env.local`.
+  Required for: email links.
+- [ ] **`CRON_SECRET`** — generate with `openssl rand -hex 16`. Set in
+  Vercel. Required for: email touchpoint cron auth.
+- [ ] **Set ALL env vars on Vercel** (production + preview scopes) —
+  run `vercel env pull apps/web/.env.local` after setting them on
+  Vercel to sync locally.
+- [ ] **Resend** — already set up (domain verified, API key in
+  `.env.local` + Vercel). ✅
+
+### Build Plan engine
+- [x] Step state machine with milestone→subtask hierarchy
+- [x] Kanban task execution engine — card-driven builds via SSE
+- [x] 5-question onboarding: user intent → Haiku Q&A → plan
+- [x] AI-generated "What You'll Learn" per card
+- [x] Multi-card sequential build queue (dependency-ordered, stops on failure)
+- [x] Card editor wired to API (Save/Delete/MarkReady)
+- [x] Token balance refresh after builds (`router.refresh()`)
 - [ ] Drag-and-drop reorder (Sprint 2)
 
+### Features (6-feature wave)
+- [x] Model routing — Haiku/Sonnet static lookup, server-side only (§16)
+- [x] Prompt anatomy side panel — client-side parser, score 0-5 (§12)
+- [x] Improve-my-prompt — Haiku rewrite, 1 token, balance check before / debit after (§13)
+- [x] Template plans — 5 templates (Weight/Expense/Portfolio/Task/Booking) (§19)
+- [x] Email touchpoints — welcome, first-build, Day 1/7 nudges via Vercel Cron (§35)
+- [x] Token game economy — CTE atomic debit/credit, daily bonus, balance pill (§17)
+
+### Payment integrity (5-round review + payment audit)
+- [x] CTE-based atomic debit/credit (single SQL, no phantom records)
+- [x] `CHECK (token_balance >= 0)` DB constraint
+- [x] `withTokenRefund` try/finally (covers client abort)
+- [x] Refund only on pre-file failures (blocks free-API-call attack)
+- [x] `'refund'` in CHECK constraint (migration 0008)
+- [x] Tiered rate-limit: auth fail-closed, non-auth fail-open, 503 vs 429
+- [x] Signup bonus in audit trail
+- [ ] System-wide daily spend cap (Sprint 2)
+- [ ] Stripe token-meter integration (requires Private Preview)
+
 ### Workspace
-- [x] Split-screen workspace: build plan left, preview right (`39f6ba5`)
-- [x] Token cost ceiling (EUR 2/day) — `packages/tokens/`
+- [x] Split-screen: build plan left, preview right
+- [x] Token cost ceiling (EUR 2/day, Redis Lua)
 - [ ] First user signs up → creates project → sees streaming build
+  (blocked on Cloudflare deploy for iframe preview)
 
-### Content + learning
-- [ ] Prompt anatomy side panel (§12)
-- [ ] Improve-my-prompt widget, 1 token (§13)
-- [ ] All inline explainers written and reviewed (§29)
-
-### Use cases
-- [ ] First complete use case (weight tracker, expense tracker, or
-  similar) tested end-to-end through the Build Plan engine
-- [ ] Template plans for common use cases (Sprint 2 accelerator)
-
-### Monetization + growth
-- [ ] Token game economy (monthly allowances, earn cap, referral) (§17)
-- [ ] Billing re-integration (§24)
+### Not started (ship after first users)
+- [ ] Billing re-integration / Stripe checkout (§24)
 - [ ] Referral system (§21–23)
 - [ ] Done-for-me button (§25)
-- [ ] Model routing Sonnet/Opus/Haiku (§16)
-
-### Analytics + ops
 - [ ] Product analytics events (§27)
 - [ ] Founder cost monitoring dashboard (§26)
-- [ ] Email sequence (welcome, nudges) (§35)
+- [ ] All inline explainers copywriting (§29)
 
 ---
 

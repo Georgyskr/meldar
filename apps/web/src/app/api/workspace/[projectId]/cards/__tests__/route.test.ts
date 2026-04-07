@@ -114,6 +114,7 @@ vi.mock('@meldar/db/schema', () => ({
 vi.mock('@/server/lib/rate-limit', () => ({
 	cardsLimit: null,
 	mustHaveRateLimit: (limiter: unknown, _name: string) => limiter,
+	checkRateLimit: async () => ({ success: true }),
 }))
 
 const { mockVerifyProjectOwnership } = vi.hoisted(() => ({

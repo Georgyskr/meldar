@@ -3,7 +3,7 @@ import { users } from '@meldar/db/schema'
 import { and, eq, gt } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest, signToken } from '@/server/identity/jwt'
-import { mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
+import { checkRateLimit, mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
 
 const limiter = mustHaveRateLimit(resetLimit, 'verify-email')
 
@@ -14,12 +14,13 @@ export async function GET(request: NextRequest) {
 		return NextResponse.redirect(new URL('/sign-in?error=invalid-token', request.url))
 	}
 
-	if (limiter) {
-		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
-		const { success } = await limiter.limit(ip)
-		if (!success) {
-			return NextResponse.redirect(new URL('/sign-in?error=rate-limited', request.url))
+	const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+	const rateResult = await checkRateLimit(limiter, ip, true)
+	if (!rateResult.success) {
+		if (rateResult.serviceError) {
+			return NextResponse.redirect(new URL('/sign-in?error=service-unavailable', request.url))
 		}
+		return NextResponse.redirect(new URL('/sign-in?error=rate-limited', request.url))
 	}
 
 	const db = getDb()

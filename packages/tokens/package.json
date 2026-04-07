@@ -14,7 +14,11 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@meldar/db": "workspace:*",
 		"@upstash/redis": "^1.37.0"
+	},
+	"peerDependencies": {
+		"drizzle-orm": "^0.45.0"
 	},
 	"devDependencies": {
 		"@meldar/test-utils": "workspace:*",

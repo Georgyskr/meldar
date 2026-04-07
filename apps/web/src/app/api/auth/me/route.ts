@@ -3,7 +3,7 @@ import { users } from '@meldar/db/schema'
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/server/identity/jwt'
-import { meLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
+import { checkRateLimit, meLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 
 const limiter = mustHaveRateLimit(meLimit, 'me')
 
@@ -14,14 +14,12 @@ export async function GET(request: NextRequest) {
 		return NextResponse.json({ user: null })
 	}
 
-	if (limiter) {
-		const { success } = await limiter.limit(tokenPayload.userId)
-		if (!success) {
-			return NextResponse.json(
-				{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
-				{ status: 429 },
-			)
-		}
+	const { success } = await checkRateLimit(limiter, tokenPayload.userId)
+	if (!success) {
+		return NextResponse.json(
+			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
+			{ status: 429 },
+		)
 	}
 
 	const db = getDb()

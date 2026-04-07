@@ -4,7 +4,7 @@ import { and, eq, gt } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { hashPassword } from '@/server/identity/password'
-import { mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
+import { checkRateLimit, mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
 
 const resetSchema = z.object({
 	token: z.string().min(1),
@@ -16,14 +16,14 @@ const limiter = mustHaveRateLimit(resetLimit, 'reset-password')
 export async function POST(request: NextRequest) {
 	try {
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-		if (limiter) {
-			const { success } = await limiter.limit(ip)
-			if (!success) {
-				return NextResponse.json(
-					{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Try again later.' } },
-					{ status: 429 },
-				)
-			}
+		const rateResult = await checkRateLimit(limiter, ip, true)
+		if (!rateResult.success) {
+			const status = rateResult.serviceError ? 503 : 429
+			const code = rateResult.serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED'
+			return NextResponse.json(
+				{ error: { code, message: 'Too many requests. Try again later.' } },
+				{ status },
+			)
 		}
 
 		const body = await request.json()

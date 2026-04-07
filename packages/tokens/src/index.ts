@@ -4,6 +4,16 @@ export {
 	TokenLedgerError,
 } from './errors'
 export {
+	creditTokens,
+	DEFAULT_TOKEN_ECONOMY,
+	debitTokens,
+	getTokenBalance,
+	getTransactionHistory,
+	InsufficientBalanceError,
+	type TokenEconomyConfig,
+	type TokenTransaction,
+} from './game-economy'
+export {
 	InMemoryTokenLedger,
 	type TokenLedger,
 	UpstashTokenLedger,

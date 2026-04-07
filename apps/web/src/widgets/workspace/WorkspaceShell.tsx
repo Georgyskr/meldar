@@ -15,6 +15,7 @@ export type WorkspaceShellProps = {
 	readonly projectId: string
 	readonly projectName: string
 	readonly tier: string
+	readonly tokenBalance: number
 	readonly initialPreviewUrl: string | null
 	readonly currentFiles: readonly ProjectFileRow[]
 	readonly step: ProjectStep
@@ -43,7 +44,11 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 				bg="surface"
 				color="onSurface"
 			>
-				<WorkspaceTopBar projectName={props.projectName} step={props.step} />
+				<WorkspaceTopBar
+					projectName={props.projectName}
+					step={props.step}
+					tokenBalance={props.tokenBalance}
+				/>
 
 				<Flex
 					flex="1"
@@ -65,6 +70,7 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 						<LeftPane
 							projectId={props.projectId}
 							projectName={props.projectName}
+							tokenBalance={props.tokenBalance}
 							activeBuildId={props.activeBuildId}
 							pendingBuild={pendingBuild}
 							onBuildDismiss={() => setPendingBuild(null)}

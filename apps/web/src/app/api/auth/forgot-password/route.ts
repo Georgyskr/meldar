@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getBaseUrl, sendPasswordResetEmail } from '@/server/email'
-import { mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
+import { checkRateLimit, mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
 
 const forgotSchema = z.object({
 	email: z.string().email(),
@@ -16,14 +16,14 @@ const limiter = mustHaveRateLimit(resetLimit, 'forgot-password')
 export async function POST(request: NextRequest) {
 	try {
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-		if (limiter) {
-			const { success } = await limiter.limit(ip)
-			if (!success) {
-				return NextResponse.json(
-					{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Try again later.' } },
-					{ status: 429 },
-				)
-			}
+		const rateResult = await checkRateLimit(limiter, ip, true)
+		if (!rateResult.success) {
+			const status = rateResult.serviceError ? 503 : 429
+			const code = rateResult.serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED'
+			return NextResponse.json(
+				{ error: { code, message: 'Too many requests. Try again later.' } },
+				{ status },
+			)
 		}
 
 		const body = await request.json()
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 			.where(eq(users.email, email))
 
 		try {
-			await sendPasswordResetEmail(email, resetToken, getBaseUrl(request))
+			await sendPasswordResetEmail(email, resetToken, getBaseUrl())
 		} catch (err) {
 			console.error('Password reset email failed:', err instanceof Error ? err.message : 'Unknown')
 		}

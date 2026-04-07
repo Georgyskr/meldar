@@ -1,14 +1,16 @@
 import { Flex, styled } from '@styled-system/jsx'
 import type { ProjectStep } from '@/entities/project-step'
+import { TokenBalancePill } from '@/features/token-economy'
 import { NewProjectButton } from './NewProjectButton'
 import { StepIndicator } from './StepIndicator'
 
 export type WorkspaceTopBarProps = {
 	readonly projectName: string
 	readonly step: ProjectStep
+	readonly tokenBalance: number
 }
 
-export function WorkspaceTopBar({ projectName, step }: WorkspaceTopBarProps) {
+export function WorkspaceTopBar({ projectName, step, tokenBalance }: WorkspaceTopBarProps) {
 	return (
 		<Flex
 			as="header"
@@ -39,6 +41,7 @@ export function WorkspaceTopBar({ projectName, step }: WorkspaceTopBarProps) {
 				>
 					{projectName}
 				</styled.h1>
+				<TokenBalancePill balance={tokenBalance} />
 			</Flex>
 			<Flex alignItems="center" gap={4}>
 				<StepIndicator step={step} />

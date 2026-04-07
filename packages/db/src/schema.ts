@@ -14,6 +14,15 @@ import {
 	uuid,
 } from 'drizzle-orm/pg-core'
 
+export type TokenTransactionReason =
+	| 'build'
+	| 'improve_prompt'
+	| 'daily_bonus'
+	| 'signup_bonus'
+	| 'referral_bonus'
+	| 'monthly_allowance'
+	| 'refund'
+
 // ── Table 1: X-Ray Results ──────────────────────────────────────────────────
 
 export const xrayResults = pgTable(
@@ -71,9 +80,18 @@ export const users = pgTable(
 		resetTokenExpiresAt: timestamp('reset_token_expires_at', { withTimezone: true }),
 		xrayUsageCount: integer('xray_usage_count').notNull().default(0),
 		marketingConsent: boolean('marketing_consent').notNull().default(false),
+		welcomeEmailSentAt: timestamp('welcome_email_sent_at', { withTimezone: true }),
+		firstBuildEmailSentAt: timestamp('first_build_email_sent_at', { withTimezone: true }),
+		lastNudgeSentAt: timestamp('last_nudge_sent_at', { withTimezone: true }),
+		tokenBalance: integer('token_balance').notNull().default(200),
+		referralCode: text('referral_code').unique(),
+		lifetimeTokensEarned: integer('lifetime_tokens_earned').notNull().default(0),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	},
-	() => [],
+	(table) => [
+		index('idx_users_created_at').on(table.createdAt),
+		check('users_token_balance_non_negative', sql`${table.tokenBalance} >= 0`),
+	],
 )
 
 // ── Table 4: Subscribers ────────────────────────────────────────────────────
@@ -372,6 +390,30 @@ export const kanbanCards = pgTable(
 		check(
 			'kanban_cards_generated_by_valid',
 			sql`${table.generatedBy} IN ('template', 'haiku', 'user')`,
+		),
+	],
+)
+
+// ── Table 11: Token Transactions ──────────────────────────────────────────
+
+export const tokenTransactions = pgTable(
+	'token_transactions',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		amount: integer('amount').notNull(),
+		reason: text('reason').notNull().$type<TokenTransactionReason>(),
+		referenceId: text('reference_id'),
+		balanceAfter: integer('balance_after').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		index('idx_token_transactions_user_created').on(table.userId, table.createdAt.desc()),
+		check(
+			'token_txn_reason_valid',
+			sql`${table.reason} IN ('build', 'improve_prompt', 'daily_bonus', 'signup_bonus', 'referral_bonus', 'monthly_allowance', 'refund')`,
 		),
 	],
 )

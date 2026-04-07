@@ -2,18 +2,30 @@ import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockDbInsert, mockDbValues, mockDbReturning, mockSendVerificationEmail } = vi.hoisted(
-	() => ({
-		mockDbInsert: vi.fn(),
-		mockDbValues: vi.fn(),
-		mockDbReturning: vi.fn(),
-		mockSendVerificationEmail: vi.fn(),
-	}),
-)
+const {
+	mockDbInsert,
+	mockDbValues,
+	mockDbReturning,
+	mockDbUpdate,
+	mockDbSet,
+	mockDbUpdateWhere,
+	mockSendVerificationEmail,
+	mockSendWelcomeEmail,
+} = vi.hoisted(() => ({
+	mockDbInsert: vi.fn(),
+	mockDbValues: vi.fn(),
+	mockDbReturning: vi.fn(),
+	mockDbUpdate: vi.fn(),
+	mockDbSet: vi.fn(),
+	mockDbUpdateWhere: vi.fn(),
+	mockSendVerificationEmail: vi.fn(),
+	mockSendWelcomeEmail: vi.fn(),
+}))
 
 vi.mock('@meldar/db/client', () => ({
 	getDb: () => ({
 		insert: mockDbInsert,
+		update: mockDbUpdate,
 	}),
 }))
 
@@ -27,6 +39,7 @@ vi.mock('@/server/identity/password', () => ({
 
 vi.mock('@/server/email', () => ({
 	sendVerificationEmail: (...args: unknown[]) => mockSendVerificationEmail(...args),
+	sendWelcomeEmail: (...args: unknown[]) => mockSendWelcomeEmail(...args),
 	getBaseUrl: () => 'http://localhost',
 }))
 
@@ -42,8 +55,12 @@ function makeRequest(body: unknown): NextRequest {
 
 function setupDbChain() {
 	mockDbInsert.mockReturnValue({ values: mockDbValues })
-	mockDbValues.mockReturnValue({ returning: mockDbReturning })
+	const valuesResult = Object.assign(Promise.resolve(), { returning: mockDbReturning })
+	mockDbValues.mockReturnValue(valuesResult)
 	mockDbReturning.mockResolvedValue([{ id: '550e8400-e29b-41d4-a716-446655440000' }])
+	mockDbUpdate.mockReturnValue({ set: mockDbSet })
+	mockDbSet.mockReturnValue({ where: mockDbUpdateWhere })
+	mockDbUpdateWhere.mockResolvedValue([])
 }
 
 describe('POST /api/auth/register', () => {
@@ -52,6 +69,7 @@ describe('POST /api/auth/register', () => {
 		vi.stubEnv('RESEND_API_KEY', 'test-resend-key')
 		setupDbChain()
 		mockSendVerificationEmail.mockResolvedValue(undefined)
+		mockSendWelcomeEmail.mockResolvedValue(undefined)
 	})
 
 	afterEach(() => {
@@ -204,5 +222,45 @@ describe('POST /api/auth/register', () => {
 		expect(res.status).toBe(500)
 		const json = await res.json()
 		expect(json.error.code).toBe('INTERNAL_ERROR')
+	})
+
+	it('sends welcome email after registration', async () => {
+		await POST(
+			makeRequest({
+				email: 'new@example.com',
+				password: 'securepassword',
+				name: 'Test User',
+			}),
+		)
+
+		expect(mockSendWelcomeEmail).toHaveBeenCalledTimes(1)
+		expect(mockSendWelcomeEmail).toHaveBeenCalledWith('new@example.com', 'Test User')
+	})
+
+	it('sends welcome email with null name when name not provided', async () => {
+		await POST(
+			makeRequest({
+				email: 'noname@example.com',
+				password: 'securepassword',
+			}),
+		)
+
+		expect(mockSendWelcomeEmail).toHaveBeenCalledTimes(1)
+		expect(mockSendWelcomeEmail).toHaveBeenCalledWith('noname@example.com', null)
+	})
+
+	it('registration succeeds even if welcome email throws', async () => {
+		mockSendWelcomeEmail.mockRejectedValueOnce(new Error('Resend API down'))
+
+		const res = await POST(
+			makeRequest({
+				email: 'new@example.com',
+				password: 'securepassword',
+			}),
+		)
+
+		const json = await res.json()
+		expect(res.status).toBe(200)
+		expect(json.success).toBe(true)
 	})
 })

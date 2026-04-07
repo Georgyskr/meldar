@@ -11,6 +11,7 @@ vi.mock('@/server/identity/jwt', () => ({
 vi.mock('@/server/lib/rate-limit', () => ({
 	mustHaveRateLimit: (limiter: unknown, _name: string) => limiter,
 	projectsCreateLimit: null,
+	checkRateLimit: async () => ({ success: true }),
 }))
 
 const { mockDbSelect, mockDbInsert, mockMessagesCreate } = vi.hoisted(() => ({
@@ -235,7 +236,7 @@ describe('POST /api/workspace/[projectId]/generate-plan', () => {
 				model: 'claude-haiku-4-5-20251001',
 				system: expect.stringContaining("Meldar's build planner"),
 			}),
-			expect.objectContaining({ timeout: 60_000 }),
+			expect.objectContaining({ timeout: 25_000 }),
 		)
 	})
 

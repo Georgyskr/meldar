@@ -48,6 +48,7 @@ vi.mock('@/server/identity/jwt', () => ({
 vi.mock('@/server/lib/rate-limit', () => ({
 	resendVerifyLimit: 'mock-limiter',
 	mustHaveRateLimit: () => ({ limit: (...args: unknown[]) => mockLimiterLimit(...args) }),
+	checkRateLimit: (..._args: unknown[]) => mockLimiterLimit(),
 }))
 
 import { POST } from '../../auth/resend-verification/route'

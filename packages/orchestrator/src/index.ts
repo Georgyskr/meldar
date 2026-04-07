@@ -5,6 +5,7 @@ export {
 } from './component-vocabulary'
 export { _resetOrchestratorDepsCache, buildOrchestratorDeps } from './deps'
 export { type OrchestratorDeps, orchestrateBuild, previewUrlSchema } from './engine'
+export { routeModel } from './model-routing'
 export {
 	BUILD_SYSTEM_PROMPT,
 	buildUserMessage,
@@ -16,6 +17,8 @@ export {
 	parseSseRecord,
 	SSE_DONE_SENTINEL,
 } from './sse'
+export { TEMPLATE_PLANS, type TemplatePlan } from './template-plans'
+export { TEMPLATE_SUMMARIES, type TemplateSummary } from './template-plans/summaries'
 export {
 	MAX_INPUT_TOKENS_PER_BUILD,
 	MAX_OUTPUT_TOKENS_PER_BUILD,

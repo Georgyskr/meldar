@@ -3,9 +3,9 @@
 import { consumeSseStream } from '@meldar/orchestrator/sse'
 import { Box, VStack } from '@styled-system/jsx'
 import { useRouter } from 'next/navigation'
-import { lazy, Suspense, useCallback, useRef } from 'react'
+import { lazy, Suspense, useCallback, useRef, useState } from 'react'
 import { KanbanBoard, type KanbanCard, topologicalSort } from '@/features/kanban'
-import { OnboardingChat } from '@/features/project-onboarding'
+import { OnboardingChat, TemplatePicker } from '@/features/project-onboarding'
 import { BuildPanel, useWorkspaceBuild } from '@/features/workspace-build'
 
 const CardEditorModal = lazy(() =>
@@ -18,6 +18,7 @@ const BuildConfirmModal = lazy(() =>
 export type LeftPaneProps = {
 	readonly projectId: string
 	readonly projectName: string
+	readonly tokenBalance: number
 	readonly activeBuildId: string | null
 	readonly pendingBuild: readonly KanbanCard[] | null
 	readonly onBuildDismiss: () => void
@@ -26,6 +27,7 @@ export type LeftPaneProps = {
 export function LeftPane({
 	projectId,
 	projectName,
+	tokenBalance,
 	activeBuildId,
 	pendingBuild,
 	onBuildDismiss,
@@ -38,18 +40,88 @@ export function LeftPane({
 		router.refresh()
 	}, [router])
 
+	const savingRef = useRef(false)
+	const deletingRef = useRef(false)
+	const markingReadyRef = useRef(false)
+
 	const handleAddMilestone = useCallback(() => {}, [])
 
 	const handleAddSubtask = useCallback((_milestoneId: string) => {}, [])
 
-	const handleSaveCard = useCallback((_cardId: string, _updates: Record<string, unknown>) => {}, [])
+	const handleSaveCard = useCallback(
+		async (cardId: string, updates: Record<string, unknown>) => {
+			if (savingRef.current) return
+			savingRef.current = true
+			try {
+				const res = await fetch(`/api/workspace/${projectId}/cards/${cardId}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(updates),
+				})
+				if (!res.ok) throw new Error(`HTTP ${res.status}`)
+				router.refresh()
+			} catch (err) {
+				console.error('Save card failed:', err instanceof Error ? err.message : 'Unknown')
+			} finally {
+				savingRef.current = false
+			}
+		},
+		[projectId, router],
+	)
 
-	const handleDeleteCard = useCallback((_cardId: string) => {}, [])
+	const handleDeleteCard = useCallback(
+		async (cardId: string) => {
+			if (deletingRef.current) return
+			deletingRef.current = true
+			try {
+				const res = await fetch(`/api/workspace/${projectId}/cards/${cardId}`, {
+					method: 'DELETE',
+				})
+				if (!res.ok) throw new Error(`HTTP ${res.status}`)
+				router.refresh()
+			} catch (err) {
+				console.error('Delete card failed:', err instanceof Error ? err.message : 'Unknown')
+			} finally {
+				deletingRef.current = false
+			}
+		},
+		[projectId, router],
+	)
 
-	const handleMarkReady = useCallback((_cardId: string) => {}, [])
+	const handleMarkReady = useCallback(
+		async (cardId: string) => {
+			if (markingReadyRef.current) return
+			markingReadyRef.current = true
+			try {
+				const res = await fetch(`/api/workspace/${projectId}/cards/${cardId}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ state: 'ready' }),
+				})
+				if (!res.ok) throw new Error(`HTTP ${res.status}`)
+				router.refresh()
+			} catch (err) {
+				console.error('Mark ready failed:', err instanceof Error ? err.message : 'Unknown')
+			} finally {
+				markingReadyRef.current = false
+			}
+		},
+		[projectId, router],
+	)
 
 	const executeBuild = useCallback(
 		async (subtasks: readonly KanbanCard[]) => {
+			if (tokenBalance <= 0) {
+				publish({
+					type: 'failed',
+					reason:
+						'Insufficient token balance. Claim your daily bonus or wait for your monthly allowance.',
+					code: 'insufficient_tokens',
+					kanbanCardId: subtasks[0]?.id,
+				})
+				return
+			}
+
 			const result = topologicalSort(subtasks)
 			if (!result.ok) return
 
@@ -123,9 +195,10 @@ export function LeftPane({
 				})
 			} finally {
 				abortRef.current = null
+				router.refresh()
 			}
 		},
-		[projectId, publish],
+		[projectId, publish, tokenBalance, router],
 	)
 
 	const handleConfirmBuild = useCallback(() => {
@@ -135,14 +208,26 @@ export function LeftPane({
 		}
 	}, [pendingBuild, executeBuild, onBuildDismiss])
 
+	const [showChat, setShowChat] = useState(false)
+
 	if (cards.length === 0) {
 		return (
 			<VStack flex="1" alignItems="stretch" gap={0}>
-				<OnboardingChat
-					projectId={projectId}
-					projectName={projectName}
-					onPlanGenerated={handlePlanGenerated}
-				/>
+				{showChat ? (
+					<OnboardingChat
+						projectId={projectId}
+						projectName={projectName}
+						onPlanGenerated={handlePlanGenerated}
+					/>
+				) : (
+					<Box flex={1} overflowY="auto">
+						<TemplatePicker
+							projectId={projectId}
+							onTemplateApplied={handlePlanGenerated}
+							onStartChat={() => setShowChat(true)}
+						/>
+					</Box>
+				)}
 				<BuildPanelSection projectId={projectId} activeBuildId={activeBuildId} />
 			</VStack>
 		)
@@ -162,6 +247,7 @@ export function LeftPane({
 
 			<Suspense fallback={null}>
 				<CardEditorModal
+					projectId={projectId}
 					cards={cards}
 					onSave={handleSaveCard}
 					onDelete={handleDeleteCard}

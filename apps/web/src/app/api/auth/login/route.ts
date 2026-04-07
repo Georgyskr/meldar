@@ -5,7 +5,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { signToken } from '@/server/identity/jwt'
 import { verifyPassword } from '@/server/identity/password'
-import { loginLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
+import { checkRateLimit, loginLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 
 const loginSchema = z.object({
 	email: z.string().email(),
@@ -21,19 +21,19 @@ const limiter = mustHaveRateLimit(loginLimit, 'login')
 export async function POST(request: NextRequest) {
 	try {
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-		if (limiter) {
-			const { success } = await limiter.limit(ip)
-			if (!success) {
-				return NextResponse.json(
-					{
-						error: {
-							code: 'RATE_LIMITED',
-							message: 'Too many login attempts. Try again in 15 minutes.',
-						},
+		const rateResult = await checkRateLimit(limiter, ip, true)
+		if (!rateResult.success) {
+			const status = rateResult.serviceError ? 503 : 429
+			const code = rateResult.serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED'
+			return NextResponse.json(
+				{
+					error: {
+						code,
+						message: 'Too many login attempts. Try again in 15 minutes.',
 					},
-					{ status: 429 },
-				)
-			}
+				},
+				{ status },
+			)
 		}
 
 		const body = await request.json()

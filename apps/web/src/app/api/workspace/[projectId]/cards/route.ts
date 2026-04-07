@@ -5,7 +5,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { kanbanCardGeneratedBySchema, kanbanCardTaskTypeSchema } from '@/entities/kanban-card'
 import { verifyToken } from '@/server/identity/jwt'
-import { cardsLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
+import { cardsLimit, checkRateLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
@@ -78,14 +78,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	if (limiter) {
-		const { success } = await limiter.limit(session.userId)
-		if (!success) {
-			return NextResponse.json(
-				{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
-				{ status: 429 },
-			)
-		}
+	const { success } = await checkRateLimit(limiter, session.userId)
+	if (!success) {
+		return NextResponse.json(
+			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
+			{ status: 429 },
+		)
 	}
 
 	const { projectId } = await context.params

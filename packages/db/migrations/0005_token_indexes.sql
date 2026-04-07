@@ -20,3 +20,6 @@ DROP INDEX IF EXISTS idx_users_email;
 -- idx_kanban_cards_project_parent_position on (project_id, parent_id, position).
 -- Postgres can use the composite for project_id-only queries.
 DROP INDEX IF EXISTS idx_kanban_cards_project;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_created_at
+  ON users (created_at);

@@ -1,14 +1,16 @@
 'use client'
 
-import { Flex, styled, VStack } from '@styled-system/jsx'
+import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { useAtom } from 'jotai'
-import { Trash2, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { ChevronDown, ChevronRight, Sparkles, Trash2, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KanbanCard } from '@/entities/kanban-card'
+import { type PromptAnatomy, parsePromptAnatomy } from '../lib/parse-prompt-anatomy'
 import { canTransition } from '../model/card-state-machine'
 import { editingCardIdAtom } from '../model/kanban-atoms'
 
 export type CardEditorModalProps = {
+	readonly projectId: string
 	readonly cards: readonly KanbanCard[]
 	readonly onSave: (cardId: string, updates: CardEditorUpdates) => void
 	readonly onDelete: (cardId: string) => void
@@ -22,7 +24,19 @@ export type CardEditorUpdates = {
 	readonly taskType: string
 }
 
-export function CardEditorModal({ cards, onSave, onDelete, onMarkReady }: CardEditorModalProps) {
+type ImproveResult = {
+	readonly original: string
+	readonly improved: string
+	readonly explanation: string
+}
+
+export function CardEditorModal({
+	projectId,
+	cards,
+	onSave,
+	onDelete,
+	onMarkReady,
+}: CardEditorModalProps) {
 	const [editingCardId, setEditingCardId] = useAtom(editingCardIdAtom)
 	const dialogRef = useRef<HTMLDialogElement>(null)
 	const card = editingCardId ? cards.find((c) => c.id === editingCardId) : null
@@ -31,6 +45,14 @@ export function CardEditorModal({ cards, onSave, onDelete, onMarkReady }: CardEd
 	const [description, setDescription] = useState('')
 	const [criteria, setCriteria] = useState<string[]>([])
 	const [taskType, setTaskType] = useState('feature')
+	const [anatomyExpanded, setAnatomyExpanded] = useState(false)
+
+	const [improving, setImproving] = useState(false)
+	const [improveResult, setImproveResult] = useState<ImproveResult | null>(null)
+	const [improveError, setImproveError] = useState<string | null>(null)
+	const improvingRef = useRef(false)
+
+	const anatomy = useMemo(() => parsePromptAnatomy(description), [description])
 
 	useEffect(() => {
 		if (card) {
@@ -38,6 +60,9 @@ export function CardEditorModal({ cards, onSave, onDelete, onMarkReady }: CardEd
 			setDescription(card.description ?? '')
 			setCriteria(card.acceptanceCriteria ?? [])
 			setTaskType(card.taskType)
+			setImproveResult(null)
+			setImproveError(null)
+			setImproving(false)
 		}
 	}, [card])
 
@@ -88,6 +113,54 @@ export function CardEditorModal({ cards, onSave, onDelete, onMarkReady }: CardEd
 	const handleRemoveCriterion = (index: number) => {
 		setCriteria((prev) => prev.filter((_, i) => i !== index))
 	}
+
+	const handleImprove = useCallback(async () => {
+		if (improvingRef.current || !description.trim()) return
+		improvingRef.current = true
+		setImproving(true)
+		setImproveResult(null)
+		setImproveError(null)
+
+		try {
+			const activeCriteria = criteria.filter((c) => c.trim().length > 0)
+			const res = await fetch(`/api/workspace/${projectId}/improve-prompt`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					description: description.trim(),
+					...(activeCriteria.length > 0 ? { acceptanceCriteria: activeCriteria } : {}),
+				}),
+			})
+
+			if (!res.ok) {
+				setImproveError('Could not improve this prompt. Try again.')
+				return
+			}
+
+			const data = (await res.json()) as { improved: string; explanation: string }
+			setImproveResult({
+				original: description.trim(),
+				improved: data.improved,
+				explanation: data.explanation,
+			})
+		} catch {
+			setImproveError('Network error. Check your connection and try again.')
+		} finally {
+			improvingRef.current = false
+			setImproving(false)
+		}
+	}, [description, criteria, projectId])
+
+	const handleAcceptImprovement = useCallback(() => {
+		if (improveResult) {
+			setDescription(improveResult.improved)
+			setImproveResult(null)
+		}
+	}, [improveResult])
+
+	const handleDismissImprovement = useCallback(() => {
+		setImproveResult(null)
+	}, [])
 
 	const showMarkReady = card ? canTransition(card.state, 'ready') : false
 
@@ -198,6 +271,50 @@ export function CardEditorModal({ cards, onSave, onDelete, onMarkReady }: CardEd
 							}}
 						/>
 					</VStack>
+
+					<Flex gap={2} alignItems="center">
+						<styled.button
+							type="button"
+							onClick={() => void handleImprove()}
+							disabled={improving || !description.trim()}
+							display="flex"
+							alignItems="center"
+							gap={1}
+							background="transparent"
+							textStyle="body.xs"
+							color={improving || !description.trim() ? 'onSurfaceVariant/50' : 'primary'}
+							cursor={improving || !description.trim() ? 'default' : 'pointer'}
+							paddingBlock={0}
+							paddingInline={0}
+							_hover={improving || !description.trim() ? {} : { textDecoration: 'underline' }}
+						>
+							<Sparkles size={14} />
+							{improving ? 'Improving...' : 'Improve this'}
+						</styled.button>
+						<styled.span textStyle="body.xs" color="onSurfaceVariant/50">
+							1 token
+						</styled.span>
+					</Flex>
+
+					{improveError && (
+						<styled.p textStyle="body.xs" color="red.600">
+							{improveError}
+						</styled.p>
+					)}
+
+					{improveResult && (
+						<ImproveSuggestion
+							result={improveResult}
+							onAccept={handleAcceptImprovement}
+							onDismiss={handleDismissImprovement}
+						/>
+					)}
+
+					<PromptAnatomySection
+						anatomy={anatomy}
+						expanded={anatomyExpanded}
+						onToggle={() => setAnatomyExpanded((prev) => !prev)}
+					/>
 
 					<VStack alignItems="stretch" gap={1}>
 						<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
@@ -373,5 +490,191 @@ export function CardEditorModal({ cards, onSave, onDelete, onMarkReady }: CardEd
 				</Flex>
 			</VStack>
 		</styled.dialog>
+	)
+}
+
+const SEGMENT_SUGGESTIONS: Record<string, string> = {
+	role: 'try adding who the AI should be',
+	context: 'try adding what data to use',
+	task: 'try adding what to do',
+	constraints: 'try adding what to avoid',
+	format: 'try specifying the output shape',
+}
+
+const SEGMENT_LABELS: Record<string, string> = {
+	role: 'Role',
+	context: 'Context',
+	task: 'Task',
+	constraints: 'Constraints',
+	format: 'Format',
+}
+
+function truncate(text: string, max: number) {
+	return text.length > max ? `${text.slice(0, max)}...` : text
+}
+
+function scoreColor(score: number) {
+	if (score >= 5) return 'green.700'
+	if (score >= 3) return 'green.600'
+	return 'amber.600'
+}
+
+function scoreWeight(score: number): '700' | '600' {
+	return score >= 5 ? '700' : '600'
+}
+
+type PromptAnatomySectionProps = {
+	readonly anatomy: PromptAnatomy
+	readonly expanded: boolean
+	readonly onToggle: () => void
+}
+
+type ImproveSuggestionProps = {
+	readonly result: ImproveResult
+	readonly onAccept: () => void
+	readonly onDismiss: () => void
+}
+
+function ImproveSuggestion({ result, onAccept, onDismiss }: ImproveSuggestionProps) {
+	return (
+		<Box background="surfaceContainerLow" borderRadius="md" paddingBlock={3} paddingInline={4}>
+			<VStack alignItems="stretch" gap={2}>
+				<Flex gap={4}>
+					<VStack alignItems="stretch" gap={1} flex="1">
+						<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
+							Original
+						</styled.span>
+						<styled.p
+							textStyle="body.sm"
+							color="onSurfaceVariant"
+							lineHeight="1.5"
+							whiteSpace="pre-wrap"
+						>
+							{result.original}
+						</styled.p>
+					</VStack>
+					<VStack alignItems="stretch" gap={1} flex="1">
+						<styled.span textStyle="body.xs" fontWeight="600" color="green.700">
+							Improved
+						</styled.span>
+						<styled.p textStyle="body.sm" color="onSurface" lineHeight="1.5" whiteSpace="pre-wrap">
+							{result.improved}
+						</styled.p>
+					</VStack>
+				</Flex>
+
+				<styled.p textStyle="body.xs" color="onSurfaceVariant" fontStyle="italic">
+					{result.explanation}
+				</styled.p>
+
+				<Flex gap={2}>
+					<styled.button
+						type="button"
+						onClick={() => onAccept()}
+						paddingBlock={1}
+						paddingInline={3}
+						borderRadius="md"
+						background="primary"
+						color="onPrimary"
+						textStyle="body.xs"
+						fontWeight="600"
+						cursor="pointer"
+						_hover={{ opacity: 0.9 }}
+					>
+						Accept
+					</styled.button>
+					<styled.button
+						type="button"
+						onClick={() => onDismiss()}
+						paddingBlock={1}
+						paddingInline={3}
+						borderRadius="md"
+						background="transparent"
+						color="onSurfaceVariant"
+						textStyle="body.xs"
+						fontWeight="600"
+						cursor="pointer"
+						_hover={{ color: 'onSurface' }}
+					>
+						Keep original
+					</styled.button>
+				</Flex>
+			</VStack>
+		</Box>
+	)
+}
+
+function PromptAnatomySection({ anatomy, expanded, onToggle }: PromptAnatomySectionProps) {
+	const foundByType = useMemo(() => {
+		const map = new Map<string, string>()
+		for (const seg of anatomy.segments) {
+			map.set(seg.type, seg.text)
+		}
+		return map
+	}, [anatomy.segments])
+
+	return (
+		<VStack alignItems="stretch" gap={2}>
+			<styled.button
+				type="button"
+				onClick={() => onToggle()}
+				display="flex"
+				alignItems="center"
+				gap={1}
+				background="transparent"
+				textStyle="body.xs"
+				fontWeight="600"
+				color="onSurfaceVariant"
+				cursor="pointer"
+				paddingBlock={0}
+				paddingInline={0}
+				_hover={{ color: 'onSurface' }}
+				aria-expanded={expanded}
+			>
+				{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+				Analyze prompt
+			</styled.button>
+
+			{expanded && (
+				<Box background="surfaceContainerLow" borderRadius="md" paddingBlock={3} paddingInline={4}>
+					<VStack alignItems="stretch" gap={1}>
+						<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
+							Your prompt has:
+						</styled.span>
+
+						{(['role', 'context', 'task', 'constraints', 'format'] as const).map((segment) => {
+							const matched = foundByType.get(segment)
+							return (
+								<Flex key={segment} gap={2} alignItems="baseline" textStyle="body.xs">
+									<styled.span flexShrink={0} color={matched ? 'green.600' : 'onSurfaceVariant'}>
+										{matched ? '\u2713' : '\u2717'}
+									</styled.span>
+									<styled.span flexShrink={0} fontWeight="500" color="onSurface" minWidth="80px">
+										{SEGMENT_LABELS[segment]}
+									</styled.span>
+									{matched ? (
+										<styled.span color="primary">&ldquo;{truncate(matched, 40)}&rdquo;</styled.span>
+									) : (
+										<styled.span color="onSurfaceVariant" fontStyle="italic">
+											&mdash; {SEGMENT_SUGGESTIONS[segment]}
+										</styled.span>
+									)}
+								</Flex>
+							)
+						})}
+
+						<styled.span
+							role="status"
+							textStyle="body.xs"
+							fontWeight={scoreWeight(anatomy.score)}
+							color={scoreColor(anatomy.score)}
+							marginBlockStart={1}
+						>
+							Prompt score: {anatomy.score}/5
+						</styled.span>
+					</VStack>
+				</Box>
+			)}
+		</VStack>
 	)
 }

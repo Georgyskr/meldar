@@ -1,7 +1,3 @@
-/**
- * Typed errors emitted by the TokenLedger.
- */
-
 export abstract class TokenLedgerError extends Error {
 	abstract readonly code: string
 	readonly userId?: string
@@ -13,11 +9,6 @@ export abstract class TokenLedgerError extends Error {
 	}
 }
 
-/**
- * The user's daily spend ceiling has been hit. The orchestrator should
- * surface a friendly "you've hit your daily limit, come back tomorrow"
- * message in the workspace UI rather than silently failing the Build.
- */
 export class CeilingExceededError extends TokenLedgerError {
 	readonly code = 'ceiling_exceeded'
 	readonly spentCentsToday: number
@@ -40,10 +31,6 @@ export class CeilingExceededError extends TokenLedgerError {
 	}
 }
 
-/**
- * The Redis backend failed. Caller should fail-closed: if we can't track
- * spend, we don't allow more spend.
- */
 export class TokenLedgerBackendError extends TokenLedgerError {
 	readonly code = 'token_ledger_backend_error'
 }

@@ -11,6 +11,7 @@ vi.mock('@/server/identity/jwt', () => ({
 vi.mock('@/server/lib/rate-limit', () => ({
 	mustHaveRateLimit: (limiter: unknown, _name: string) => limiter,
 	adaptiveLimit: null,
+	checkRateLimit: async () => ({ success: true }),
 }))
 
 const { mockDbSelect, mockMessagesCreate } = vi.hoisted(() => ({

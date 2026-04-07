@@ -19,6 +19,7 @@
 		"@meldar/tokens": "workspace:*",
 		"@pandacss/dev": "^1.8.1",
 		"@park-ui/panda-preset": "^0.43.1",
+		"@stripe/agent-toolkit": "^0.9.0",
 		"@upstash/ratelimit": "^2.0.8",
 		"@upstash/redis": "^1.37.0",
 		"bcryptjs": "^3.0.3",

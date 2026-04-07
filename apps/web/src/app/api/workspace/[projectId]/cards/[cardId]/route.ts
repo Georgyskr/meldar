@@ -11,7 +11,7 @@ import {
 } from '@/entities/kanban-card'
 import { canTransition } from '@/features/kanban/model/card-state-machine'
 import { verifyToken } from '@/server/identity/jwt'
-import { cardsLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
+import { cardsLimit, checkRateLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
@@ -50,14 +50,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	if (limiter) {
-		const { success } = await limiter.limit(session.userId)
-		if (!success) {
-			return NextResponse.json(
-				{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
-				{ status: 429 },
-			)
-		}
+	const { success } = await checkRateLimit(limiter, session.userId)
+	if (!success) {
+		return NextResponse.json(
+			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
+			{ status: 429 },
+		)
 	}
 
 	const { projectId, cardId } = await context.params
@@ -173,14 +171,12 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	if (limiter) {
-		const { success } = await limiter.limit(session.userId)
-		if (!success) {
-			return NextResponse.json(
-				{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
-				{ status: 429 },
-			)
-		}
+	const { success } = await checkRateLimit(limiter, session.userId)
+	if (!success) {
+		return NextResponse.json(
+			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
+			{ status: 429 },
+		)
 	}
 
 	const { projectId, cardId } = await context.params

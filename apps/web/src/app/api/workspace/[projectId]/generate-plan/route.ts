@@ -1,7 +1,4 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { getDb } from '@meldar/db/client'
-import { kanbanCards } from '@meldar/db/schema'
-import { and, eq, isNull, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import {
@@ -10,13 +7,13 @@ import {
 } from '@/features/project-onboarding/lib/prompts'
 import {
 	generatePlanRequestSchema,
-	getTokenCostRange,
 	type PlanOutput,
 	planOutputSchema,
 } from '@/features/project-onboarding/lib/schemas'
 import { verifyToken } from '@/server/identity/jwt'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
-import { mustHaveRateLimit, projectsCreateLimit } from '@/server/lib/rate-limit'
+import { insertPlanCards } from '@/server/lib/insert-plan-cards'
+import { checkRateLimit, mustHaveRateLimit, projectsCreateLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
@@ -43,7 +40,7 @@ async function callHaiku(
 			system: systemPrompt,
 			messages: messages.map((m) => ({ role: m.role, content: m.content })),
 		},
-		{ signal, timeout: 60_000 },
+		{ signal, timeout: 25_000 },
 	)
 
 	const textBlock = response.content.find((block) => block.type === 'text')
@@ -81,14 +78,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	if (limiter) {
-		const { success } = await limiter.limit(session.userId)
-		if (!success) {
-			return NextResponse.json(
-				{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Wait a few minutes.' } },
-				{ status: 429 },
-			)
-		}
+	const { success } = await checkRateLimit(limiter, session.userId)
+	if (!success) {
+		return NextResponse.json(
+			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Wait a few minutes.' } },
+			{ status: 429 },
+		)
 	}
 
 	const project = await verifyProjectOwnership(projectId, session.userId)
@@ -134,7 +129,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 	}
 
 	try {
-		const cards = await insertPlanAsCards(projectId, plan)
+		const cards = await insertPlanCards(projectId, plan.milestones, 'haiku')
 		return NextResponse.json({ cards }, { status: 201 })
 	} catch (err) {
 		console.error('[generate-plan] card insertion failed', err)
@@ -161,64 +156,4 @@ async function generatePlanWithRetry(
 	]
 	const retryRaw = await callHaiku(client, PLAN_GENERATION_SYSTEM_PROMPT, retryMessages, signal)
 	return parseAndValidatePlan(retryRaw)
-}
-
-async function insertPlanAsCards(projectId: string, plan: PlanOutput) {
-	const db = getDb()
-	const now = new Date()
-
-	const [maxPos] = await db
-		.select({ maxPosition: sql<number>`COALESCE(MAX(${kanbanCards.position}), -1)` })
-		.from(kanbanCards)
-		.where(and(eq(kanbanCards.projectId, projectId), isNull(kanbanCards.parentId)))
-
-	let milestonePosition = (maxPos?.maxPosition ?? -1) + 1
-
-	const allValues: (typeof kanbanCards.$inferInsert)[] = []
-
-	for (const milestone of plan.milestones) {
-		const milestoneId = crypto.randomUUID()
-
-		allValues.push({
-			id: milestoneId,
-			projectId,
-			parentId: null,
-			position: milestonePosition++,
-			title: milestone.title,
-			description: milestone.description,
-			taskType: milestone.taskType,
-			explainerText: milestone.whatYouLearn,
-			generatedBy: 'haiku',
-			dependsOn: [],
-			createdAt: now,
-			updatedAt: now,
-		})
-
-		for (let subtaskIdx = 0; subtaskIdx < milestone.subtasks.length; subtaskIdx++) {
-			const subtask = milestone.subtasks[subtaskIdx]
-			const tokenCost = getTokenCostRange(subtask.componentType)
-
-			allValues.push({
-				id: crypto.randomUUID(),
-				projectId,
-				parentId: milestoneId,
-				position: subtaskIdx,
-				title: subtask.title,
-				description: subtask.description,
-				taskType: subtask.taskType,
-				acceptanceCriteria: subtask.acceptanceCriteria,
-				explainerText: subtask.whatYouLearn,
-				generatedBy: 'haiku',
-				tokenCostEstimateMin: tokenCost.min,
-				tokenCostEstimateMax: tokenCost.max,
-				dependsOn: [],
-				createdAt: now,
-				updatedAt: now,
-			})
-		}
-	}
-
-	if (allValues.length === 0) return []
-
-	return db.insert(kanbanCards).values(allValues).returning()
 }

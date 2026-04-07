@@ -1,12 +1,13 @@
 import { getDb } from '@meldar/db/client'
-import { users } from '@meldar/db/schema'
+import { tokenTransactions, users } from '@meldar/db/schema'
+import { eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getBaseUrl, sendVerificationEmail } from '@/server/email'
+import { getBaseUrl, sendVerificationEmail, sendWelcomeEmail } from '@/server/email'
 import { signToken } from '@/server/identity/jwt'
 import { hashPassword } from '@/server/identity/password'
-import { mustHaveRateLimit, registerLimit } from '@/server/lib/rate-limit'
+import { checkRateLimit, mustHaveRateLimit, registerLimit } from '@/server/lib/rate-limit'
 
 const registerSchema = z.object({
 	email: z.string().email(),
@@ -23,14 +24,14 @@ const limiter = mustHaveRateLimit(registerLimit, 'register')
 export async function POST(request: NextRequest) {
 	try {
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-		if (limiter) {
-			const { success } = await limiter.limit(ip)
-			if (!success) {
-				return NextResponse.json(
-					{ error: { code: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' } },
-					{ status: 429 },
-				)
-			}
+		const rateResult = await checkRateLimit(limiter, ip, true)
+		if (!rateResult.success) {
+			const status = rateResult.serviceError ? 503 : 429
+			const code = rateResult.serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED'
+			return NextResponse.json(
+				{ error: { code, message: 'Too many attempts. Try again later.' } },
+				{ status },
+			)
 		}
 
 		const body = await request.json()
@@ -71,9 +72,26 @@ export async function POST(request: NextRequest) {
 			throw err
 		}
 
-		sendVerificationEmail(email, verifyToken, getBaseUrl(request)).catch((err) => {
+		await db.insert(tokenTransactions).values({
+			id: crypto.randomUUID(),
+			userId,
+			amount: 200,
+			reason: 'signup_bonus',
+			referenceId: null,
+			balanceAfter: 200,
+		})
+
+		sendVerificationEmail(email, verifyToken, getBaseUrl()).catch((err) => {
 			console.error('Verification email failed:', err instanceof Error ? err.message : 'Unknown')
 		})
+
+		sendWelcomeEmail(email, name || null)
+			.then(async () => {
+				await db.update(users).set({ welcomeEmailSentAt: new Date() }).where(eq(users.id, userId))
+			})
+			.catch((err) => {
+				console.error('Welcome email failed:', err instanceof Error ? err.message : 'Unknown')
+			})
 
 		const token = signToken({ userId, email, emailVerified: false })
 

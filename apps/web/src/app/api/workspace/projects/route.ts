@@ -2,7 +2,12 @@ import { buildProjectStorageFromEnv } from '@meldar/storage'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifyToken } from '@/server/identity/jwt'
-import { mustHaveRateLimit, projectsCreateLimit, projectsListLimit } from '@/server/lib/rate-limit'
+import {
+	checkRateLimit,
+	mustHaveRateLimit,
+	projectsCreateLimit,
+	projectsListLimit,
+} from '@/server/lib/rate-limit'
 import { listUserProjects } from '@/server/projects/list-user-projects'
 
 export const runtime = 'nodejs'
@@ -30,19 +35,17 @@ export async function GET(request: NextRequest) {
 		)
 	}
 
-	if (listLimiter) {
-		const { success } = await listLimiter.limit(session.userId)
-		if (!success) {
-			return NextResponse.json(
-				{
-					error: {
-						code: 'RATE_LIMITED',
-						message: 'Too many requests. Slow down.',
-					},
+	const { success } = await checkRateLimit(listLimiter, session.userId)
+	if (!success) {
+		return NextResponse.json(
+			{
+				error: {
+					code: 'RATE_LIMITED',
+					message: 'Too many requests. Slow down.',
 				},
-				{ status: 429 },
-			)
-		}
+			},
+			{ status: 429 },
+		)
 	}
 
 	try {
@@ -68,19 +71,17 @@ export async function POST(request: NextRequest) {
 		)
 	}
 
-	if (limiter) {
-		const { success } = await limiter.limit(session.userId)
-		if (!success) {
-			return NextResponse.json(
-				{
-					error: {
-						code: 'RATE_LIMITED',
-						message: 'Too many projects. Wait an hour and try again.',
-					},
+	const { success: createSuccess } = await checkRateLimit(limiter, session.userId)
+	if (!createSuccess) {
+		return NextResponse.json(
+			{
+				error: {
+					code: 'RATE_LIMITED',
+					message: 'Too many projects. Wait an hour and try again.',
 				},
-				{ status: 429 },
-			)
-		}
+			},
+			{ status: 429 },
+		)
 	}
 
 	let body: unknown

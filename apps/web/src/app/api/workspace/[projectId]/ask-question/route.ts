@@ -7,7 +7,7 @@ import {
 } from '@/features/project-onboarding/lib/schemas'
 import { verifyToken } from '@/server/identity/jwt'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
-import { adaptiveLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
+import { adaptiveLimit, checkRateLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
@@ -45,14 +45,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	if (limiter) {
-		const { success } = await limiter.limit(session.userId)
-		if (!success) {
-			return NextResponse.json(
-				{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
-				{ status: 429 },
-			)
-		}
+	const { success } = await checkRateLimit(limiter, session.userId)
+	if (!success) {
+		return NextResponse.json(
+			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
+			{ status: 429 },
+		)
 	}
 
 	const project = await verifyProjectOwnership(projectId, session.userId)
