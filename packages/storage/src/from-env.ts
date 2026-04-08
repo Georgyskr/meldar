@@ -34,9 +34,12 @@ export function buildProjectStorageFromEnv(): PostgresProjectStorage {
 	return cached
 }
 
+// TODO: replace noop blob warnings with structured logging + alerting (Victoria Metrics / Grafana)
 export function buildProjectStorageWithoutR2(): PostgresProjectStorage {
 	const noopBlob = {
-		put: async () => {},
+		put: async (projectId: string, hash: string) => {
+			console.warn(`[noop-blob] PUT discarded: project=${projectId} hash=${hash.slice(0, 8)}… — R2 not configured`)
+		},
 		get: async () => null,
 		delete: async () => {},
 		exists: async () => false,

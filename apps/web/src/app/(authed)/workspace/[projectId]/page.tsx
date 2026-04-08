@@ -1,5 +1,9 @@
 import { getDb } from '@meldar/db/client'
-import { buildProjectStorageFromEnv, ProjectNotFoundError } from '@meldar/storage'
+import {
+	buildProjectStorageFromEnv,
+	buildProjectStorageWithoutR2,
+	ProjectNotFoundError,
+} from '@meldar/storage'
 import { getTokenBalance } from '@meldar/tokens'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
@@ -39,7 +43,14 @@ export default async function WorkspacePage({ params }: PageProps) {
 		)
 	}
 
-	const storage = buildProjectStorageFromEnv()
+	let storage: ReturnType<typeof buildProjectStorageFromEnv>
+	try {
+		storage = buildProjectStorageFromEnv()
+	} catch (err) {
+		// TODO: replace console.warn with structured logging + alert (Victoria Metrics / Grafana)
+		console.warn('[workspace/project] R2 not configured, running in degraded mode:', err instanceof Error ? err.message : 'Unknown')
+		storage = buildProjectStorageWithoutR2()
+	}
 
 	const cutoff = new Date(Date.now() - STUCK_BUILD_THRESHOLD_MS)
 	try {
