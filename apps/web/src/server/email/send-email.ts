@@ -3,7 +3,9 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export function getBaseUrl(): string {
-	return process.env.NEXT_PUBLIC_BASE_URL || 'https://meldar.ai'
+	if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL
+	if (process.env.NODE_ENV === 'development') return 'http://localhost:3000'
+	return 'https://meldar.ai'
 }
 
 function escapeHtml(s: string): string {
