@@ -21,7 +21,11 @@ export {
 	ProjectNotFoundError,
 	StorageError,
 } from './errors'
-export { _resetProjectStorageCache, buildProjectStorageFromEnv } from './from-env'
+export {
+	_resetProjectStorageCache,
+	buildProjectStorageFromEnv,
+	buildProjectStorageWithoutR2,
+} from './from-env'
 export { InMemoryBlobStorage } from './in-memory-blob'
 export { InMemoryProjectStorage } from './in-memory-provider'
 export { type NeonDrizzleDb, PostgresProjectStorage } from './postgres-provider'

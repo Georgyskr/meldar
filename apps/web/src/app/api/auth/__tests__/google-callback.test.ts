@@ -116,8 +116,20 @@ describe('GET /api/auth/google/callback', () => {
 	})
 
 	afterEach(() => {
-		vi.clearAllMocks()
+		vi.restoreAllMocks()
 		vi.unstubAllEnvs()
+		mockFetch.mockReset()
+		mockDbSelect.mockReset()
+		mockDbFrom.mockReset()
+		mockDbWhere.mockReset()
+		mockDbLimit.mockReset()
+		mockDbInsert.mockReset()
+		mockDbValues.mockReset()
+		mockDbReturning.mockReset()
+		mockDbUpdate.mockReset()
+		mockDbSet.mockReset()
+		mockDbUpdateWhere.mockReset()
+		mockHashPassword.mockReset()
 	})
 
 	it('redirects to sign-in with error when no code param', async () => {
@@ -249,6 +261,56 @@ describe('GET /api/auth/google/callback', () => {
 			'http://localhost:3000/sign-in?error=google-account-exists',
 		)
 		expect(mockDbInsert).not.toHaveBeenCalled()
+	})
+
+	it('rejects when CSRF state param does not match cookie', async () => {
+		mockGoogleApis('csrf@example.com')
+
+		const res = await GET(makeCallbackRequest({ code: 'valid-code', state: 'wrong-state' }))
+
+		expect(res.status).toBe(307)
+		expect(res.headers.get('location')).toBe(
+			'http://localhost:3000/sign-in?error=google-auth-failed',
+		)
+		expect(mockDbSelect).not.toHaveBeenCalled()
+	})
+
+	it('rejects when CSRF state cookie is missing', async () => {
+		mockGoogleApis('no-cookie@example.com')
+		mockCookieStore.get.mockReturnValueOnce(undefined)
+
+		const res = await GET(makeCallbackRequest({ code: 'valid-code' }))
+
+		expect(res.status).toBe(307)
+		expect(res.headers.get('location')).toBe(
+			'http://localhost:3000/sign-in?error=google-auth-failed',
+		)
+		expect(mockDbSelect).not.toHaveBeenCalled()
+	})
+
+	it('rejects when Google email is not verified', async () => {
+		mockFetch
+			.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ access_token: 'google-access-token' }),
+			})
+			.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						email: 'unverified@example.com',
+						name: 'Unverified',
+						verified_email: false,
+					}),
+			})
+
+		const res = await GET(makeCallbackRequest({ code: 'valid-code' }))
+
+		expect(res.status).toBe(307)
+		expect(res.headers.get('location')).toBe(
+			'http://localhost:3000/sign-in?error=google-email-not-verified',
+		)
+		expect(mockDbSelect).not.toHaveBeenCalled()
 	})
 
 	it('marks existing unverified Google user as verified', async () => {

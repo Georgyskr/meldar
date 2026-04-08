@@ -1,4 +1,5 @@
 export { EmailVerificationBanner } from './EmailVerificationBanner'
+export { FirstTimeWelcome, type FirstTimeWelcomeProps } from './FirstTimeWelcome'
 export { LastBuildRelativeTime } from './LastBuildRelativeTime'
 export { LeftPane, type LeftPaneProps } from './LeftPane'
 export { NewProjectButton } from './NewProjectButton'

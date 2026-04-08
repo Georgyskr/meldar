@@ -10,6 +10,7 @@ const {
 	mockDbFrom,
 	mockDbWhere,
 	mockDbLimit,
+	mockGetTokenBalance,
 } = vi.hoisted(() => ({
 	mockListUserProjects: vi.fn(),
 	mockVerifyToken: vi.fn(),
@@ -21,12 +22,17 @@ const {
 	mockDbFrom: vi.fn(),
 	mockDbWhere: vi.fn(),
 	mockDbLimit: vi.fn(),
+	mockGetTokenBalance: vi.fn(),
 }))
 
 vi.mock('@meldar/db/client', () => ({
 	getDb: () => ({
 		select: mockDbSelect,
 	}),
+}))
+
+vi.mock('@meldar/tokens', () => ({
+	getTokenBalance: (...args: unknown[]) => mockGetTokenBalance(...args),
 }))
 
 vi.mock('@/server/projects/list-user-projects', () => ({
@@ -64,6 +70,13 @@ vi.mock('@/widgets/workspace', () => ({
 					type: 'div',
 					props: { 'data-testid': 'email-verification-banner', children: `Verify ${email}` },
 				},
+	FirstTimeWelcome: ({ email, tokenBalance }: { email: string; tokenBalance: number }) => ({
+		type: 'div',
+		props: {
+			'data-testid': 'first-time-welcome',
+			children: `Welcome ${email}, ${tokenBalance} tokens`,
+		},
+	}),
 	NewProjectButton: () => ({ type: 'button', props: { 'data-testid': 'new-project' } }),
 }))
 
@@ -134,6 +147,7 @@ describe('WorkspaceDashboardPage', () => {
 		mockDbFrom.mockReturnValue({ where: mockDbWhere })
 		mockDbWhere.mockReturnValue({ limit: mockDbLimit })
 		mockDbLimit.mockResolvedValue([{ emailVerified: false }])
+		mockGetTokenBalance.mockResolvedValue(200)
 	})
 
 	afterEach(() => {
@@ -145,14 +159,15 @@ describe('WorkspaceDashboardPage', () => {
 		await expect(WorkspaceDashboardPage()).rejects.toThrow(/layout should have redirected/)
 	})
 
-	it('renders the empty state when the user has zero projects', async () => {
+	it('renders the first-time welcome when the user has zero projects', async () => {
 		mockListUserProjects.mockResolvedValue([])
 		const tree = (await WorkspaceDashboardPage()) as ReactElement
 		const text = findAllText(tree).join(' ')
 		expect(text).toContain('Your projects')
 		expect(text).toContain('user@example.com')
-		expect(text).toContain('Nothing here yet')
-		expect(findByTestId(tree, 'new-project')).toBe(true)
+		expect(findByTestId(tree, 'first-time-welcome')).toBe(true)
+		expect(text).toContain('Welcome user@example.com')
+		expect(text).toContain('200 tokens')
 		expect(findByTestId(tree, 'sign-out')).toBe(true)
 		expect(mockListUserProjects).toHaveBeenCalledWith('user_1')
 	})
@@ -179,7 +194,7 @@ describe('WorkspaceDashboardPage', () => {
 		expect(text).toContain('My first build')
 		expect(text).toContain('Second build')
 		expect(text).toContain('No builds yet')
-		expect(text).not.toContain('Nothing here yet')
+		expect(findByTestId(tree, 'first-time-welcome')).toBe(false)
 		expect(findByTestId(tree, 'new-project')).toBe(true)
 		expect(findByTestId(tree, 'sign-out')).toBe(true)
 	})

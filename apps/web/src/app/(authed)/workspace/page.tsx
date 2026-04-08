@@ -1,3 +1,5 @@
+import { getDb } from '@meldar/db/client'
+import { getTokenBalance } from '@meldar/tokens'
 import { Box, Flex, Grid, styled } from '@styled-system/jsx'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
@@ -9,7 +11,7 @@ import {
 	type WorkspaceProjectListItem,
 } from '@/server/projects/list-user-projects'
 import { formatRelative } from '@/shared/lib/format-relative'
-import { EmailVerificationBanner, NewProjectButton } from '@/widgets/workspace'
+import { EmailVerificationBanner, FirstTimeWelcome, NewProjectButton } from '@/widgets/workspace'
 
 export const metadata: Metadata = {
 	title: 'Workspace — Meldar',
@@ -28,11 +30,21 @@ export default async function WorkspaceDashboardPage() {
 
 	let projectsList: WorkspaceProjectListItem[] = []
 	let loadFailed = false
+	let tokenBalance = 0
 
-	const projectsResult = await listUserProjects(session.userId).catch((err) => {
-		console.error('[workspace/page] listUserProjects failed', err)
-		return null
-	})
+	const db = getDb()
+	const [projectsResult, balanceResult] = await Promise.all([
+		listUserProjects(session.userId).catch((err) => {
+			console.error('[workspace/page] listUserProjects failed', err)
+			return null
+		}),
+		getTokenBalance(db, session.userId).catch((err) => {
+			console.error('[workspace/page] getTokenBalance failed', err)
+			return 0
+		}),
+	])
+
+	tokenBalance = balanceResult
 
 	if (projectsResult === null) {
 		loadFailed = true
@@ -80,45 +92,12 @@ export default async function WorkspaceDashboardPage() {
 						We couldn&apos;t load your projects. Refresh and try again.
 					</styled.div>
 				) : projectsList.length === 0 ? (
-					<EmptyState />
+					<FirstTimeWelcome email={session.email} tokenBalance={tokenBalance} />
 				) : (
 					<ProjectsGrid projects={projectsList} />
 				)}
 			</Box>
 		</styled.main>
-	)
-}
-
-function EmptyState() {
-	return (
-		<Flex
-			direction="column"
-			alignItems="center"
-			gap={6}
-			paddingBlock={20}
-			paddingInline={6}
-			textAlign="center"
-			bg="surfaceContainerLowest"
-			border="1px dashed"
-			borderColor="outlineVariant"
-			borderRadius="lg"
-		>
-			<styled.h2
-				fontFamily="heading"
-				fontSize={{ base: '2xl', md: '3xl' }}
-				fontWeight="700"
-				letterSpacing="-0.02em"
-				color="onSurface"
-				maxWidth="32ch"
-			>
-				Nothing here yet. Build your first thing.
-			</styled.h2>
-			<styled.p textStyle="body.base" color="onSurfaceVariant" maxWidth="48ch">
-				Spin up a fresh project from a template. You can rename it, prompt it, and rebuild it as
-				many times as you want.
-			</styled.p>
-			<NewProjectButton />
-		</Flex>
 	)
 }
 

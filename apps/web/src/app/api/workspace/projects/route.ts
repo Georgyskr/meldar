@@ -1,4 +1,4 @@
-import { buildProjectStorageFromEnv } from '@meldar/storage'
+import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@meldar/storage'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifyToken } from '@/server/identity/jwt'
@@ -111,14 +111,12 @@ export async function POST(request: NextRequest) {
 	const name = parsed.data.name ?? 'Untitled build'
 
 	let storage: ReturnType<typeof buildProjectStorageFromEnv>
+	let hasR2 = true
 	try {
 		storage = buildProjectStorageFromEnv()
-	} catch (err) {
-		console.error('[api/workspace/projects] failed to build storage', err)
-		return NextResponse.json(
-			{ error: { code: 'INTERNAL_ERROR', message: 'Storage is unavailable' } },
-			{ status: 500 },
-		)
+	} catch {
+		hasR2 = false
+		storage = buildProjectStorageWithoutR2()
 	}
 
 	try {
@@ -126,7 +124,7 @@ export async function POST(request: NextRequest) {
 			userId: session.userId,
 			name,
 			templateId: 'next-landing-v1',
-			initialFiles: [{ path: 'README.md', content: STARTER_README }],
+			initialFiles: hasR2 ? [{ path: 'README.md', content: STARTER_README }] : [],
 		})
 		return NextResponse.json({ projectId: created.project.id }, { status: 200 })
 	} catch (err) {

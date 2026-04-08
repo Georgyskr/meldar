@@ -34,6 +34,16 @@ export function buildProjectStorageFromEnv(): PostgresProjectStorage {
 	return cached
 }
 
+export function buildProjectStorageWithoutR2(): PostgresProjectStorage {
+	const noopBlob = {
+		put: async () => {},
+		get: async () => null,
+		delete: async () => {},
+		exists: async () => false,
+	}
+	return new PostgresProjectStorage(getDb(), noopBlob as never)
+}
+
 /** Reset the cache. Used by tests that mutate process.env. */
 export function _resetProjectStorageCache(): void {
 	cached = null
