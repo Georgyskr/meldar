@@ -154,7 +154,7 @@ describe('POST /api/auth/register', () => {
 		expect(setCookie).toContain('meldar-auth=mock-jwt-token')
 	})
 
-	it('rejects duplicate email with 409', async () => {
+	it('rejects duplicate email with generic 400', async () => {
 		const uniqueViolation = Object.assign(new Error('duplicate key value'), {
 			code: '23505',
 		})
@@ -168,8 +168,8 @@ describe('POST /api/auth/register', () => {
 		)
 
 		const json = await res.json()
-		expect(res.status).toBe(409)
-		expect(json.error.code).toBe('CONFLICT')
+		expect(res.status).toBe(400)
+		expect(json.error.code).toBe('REGISTRATION_FAILED')
 	})
 
 	it('rejects invalid email format with 400', async () => {

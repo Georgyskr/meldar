@@ -107,7 +107,7 @@ describe('submitSignUp', () => {
 		expect(result.message).toBe('Server returned an unexpected response')
 	})
 
-	it('passes through the optional name field when present', async () => {
+	it('strips unknown fields from the request body', async () => {
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValue(
@@ -119,7 +119,7 @@ describe('submitSignUp', () => {
 		)
 		const callArgs = fetchMock.mock.calls[0]
 		const init = callArgs[1] as RequestInit
-		const body = JSON.parse(init.body as string) as { name?: string }
-		expect(body.name).toBe('Alice')
+		const body = JSON.parse(init.body as string) as Record<string, unknown>
+		expect(body.name).toBeUndefined()
 	})
 })

@@ -4,6 +4,7 @@ type TokenPayload = {
 	userId: string
 	email: string
 	emailVerified: boolean
+	tokenVersion: number
 }
 
 /**
@@ -39,6 +40,7 @@ export function verifyToken(token: string): TokenPayload | null {
 			userId: decoded.userId as string,
 			email: decoded.email as string,
 			emailVerified: (decoded.emailVerified as boolean) ?? false,
+			tokenVersion: (decoded.tokenVersion as number) ?? 0,
 		}
 	} catch {
 		return null

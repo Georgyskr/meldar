@@ -4,14 +4,27 @@ import { Box, Flex, styled } from '@styled-system/jsx'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
 import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
+import { GoogleButton, OrDivider } from '@/shared/ui/google-auth'
 import { submitSignIn } from './sign-in-submit'
 
 type Status = 'idle' | 'submitting'
+
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+	'google-auth-failed': 'Google sign-in was cancelled or failed. Try again.',
+	'google-token-exchange-failed': 'Google sign-in failed. Please try again.',
+	'google-userinfo-failed': 'Could not get your Google account info. Try again.',
+	'google-no-email': "Your Google account doesn't have an email. Use email sign-up instead.",
+	'google-account-exists':
+		'An account with this email already exists. Sign in with your password instead.',
+	'session-expired': 'Your session has expired. Please sign in again.',
+}
 
 export function SignInForm() {
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const safeNext = sanitizeNextParam(searchParams.get('next'))
+	const googleError = searchParams.get('error')
+	const googleErrorMessage = googleError ? GOOGLE_ERROR_MESSAGES[googleError] : null
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [status, setStatus] = useState<Status>('idle')
@@ -46,133 +59,153 @@ export function SignInForm() {
 	const busy = status !== 'idle'
 
 	return (
-		<styled.form onSubmit={handleSubmit} noValidate>
-			<Flex direction="column" gap={4}>
-				<Box>
-					<styled.label
-						htmlFor="signin-email"
-						display="block"
-						textStyle="body.sm"
-						fontWeight="500"
-						color="onSurface"
-						marginBlockEnd={2}
-					>
-						Email
-					</styled.label>
-					<styled.input
-						id="signin-email"
-						type="email"
-						required
-						autoComplete="email"
-						value={email}
-						onChange={(event) => setEmail(event.target.value)}
-						width="100%"
-						paddingInline={4}
-						paddingBlock={3}
-						bg="surfaceContainerLowest"
-						border="1px solid"
-						borderColor="outlineVariant"
-						borderRadius="md"
-						fontFamily="body"
-						fontSize="md"
-						color="onSurface"
-						outline="none"
-						transition="border-color 0.2s ease"
-						_focus={{ borderColor: 'primary' }}
-					/>
-				</Box>
+		<Flex direction="column" gap={5}>
+			<GoogleButton />
 
-				<Box>
-					<styled.label
-						htmlFor="signin-password"
-						display="block"
-						textStyle="body.sm"
-						fontWeight="500"
-						color="onSurface"
-						marginBlockEnd={2}
-					>
-						Password
-					</styled.label>
-					<styled.input
-						id="signin-password"
-						type="password"
-						required
-						autoComplete="current-password"
-						value={password}
-						onChange={(event) => setPassword(event.target.value)}
-						width="100%"
-						paddingInline={4}
-						paddingBlock={3}
-						bg="surfaceContainerLowest"
-						border="1px solid"
-						borderColor="outlineVariant"
-						borderRadius="md"
-						fontFamily="body"
-						fontSize="md"
-						color="onSurface"
-						outline="none"
-						transition="border-color 0.2s ease"
-						_focus={{ borderColor: 'primary' }}
-					/>
-					<Flex justifyContent="flex-end" marginBlockStart={1}>
-						<styled.a
-							href="/forgot-password"
-							textStyle="body.xs"
-							color="onSurfaceVariant/70"
-							textDecoration="none"
-							_hover={{ color: 'primary', textDecoration: 'underline' }}
-							_focusVisible={{
-								outline: '2px solid',
-								outlineColor: 'primary',
-								outlineOffset: '2px',
-								borderRadius: 'sm',
-							}}
-						>
-							Forgot password?
-						</styled.a>
-					</Flex>
-				</Box>
-
-				{error && (
-					<styled.span
-						role="alert"
-						textStyle="body.sm"
-						color="red.500"
-						paddingInline={3}
-						paddingBlock={2}
-						bg="surfaceContainerHigh"
-						borderRadius="md"
-					>
-						{error}
-					</styled.span>
-				)}
-
-				<styled.button
-					type="submit"
-					disabled={busy}
-					marginBlockStart={2}
-					paddingInline={6}
-					paddingBlock={3}
-					background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-					color="white"
-					fontFamily="heading"
-					fontWeight="700"
-					fontSize="md"
+			{googleErrorMessage && (
+				<styled.span
+					role="alert"
+					textStyle="body.sm"
+					color="red.500"
+					paddingInline={3}
+					paddingBlock={2}
+					bg="surfaceContainerHigh"
 					borderRadius="md"
-					border="none"
-					cursor={busy ? 'wait' : 'pointer'}
-					opacity={busy ? 0.6 : 1}
-					transition="opacity 0.2s ease"
-					_hover={{ opacity: busy ? 0.6 : 0.9 }}
-					_focusVisible={{
-						outline: '2px solid',
-						outlineColor: 'primary',
-						outlineOffset: '2px',
-					}}
 				>
-					{busy ? 'Signing in…' : 'Sign in'}
-				</styled.button>
-			</Flex>
-		</styled.form>
+					{googleErrorMessage}
+				</styled.span>
+			)}
+
+			<OrDivider />
+
+			<styled.form onSubmit={handleSubmit} noValidate>
+				<Flex direction="column" gap={4}>
+					<Box>
+						<styled.label
+							htmlFor="signin-email"
+							display="block"
+							textStyle="body.sm"
+							fontWeight="500"
+							color="onSurface"
+							marginBlockEnd={2}
+						>
+							Email
+						</styled.label>
+						<styled.input
+							id="signin-email"
+							type="email"
+							required
+							autoComplete="email"
+							value={email}
+							onChange={(event) => setEmail(event.target.value)}
+							width="100%"
+							paddingInline={4}
+							paddingBlock={3}
+							bg="surfaceContainerLowest"
+							border="1px solid"
+							borderColor="outlineVariant"
+							borderRadius="md"
+							fontFamily="body"
+							fontSize="md"
+							color="onSurface"
+							outline="none"
+							transition="border-color 0.2s ease"
+							_focus={{ borderColor: 'primary' }}
+						/>
+					</Box>
+
+					<Box>
+						<styled.label
+							htmlFor="signin-password"
+							display="block"
+							textStyle="body.sm"
+							fontWeight="500"
+							color="onSurface"
+							marginBlockEnd={2}
+						>
+							Password
+						</styled.label>
+						<styled.input
+							id="signin-password"
+							type="password"
+							required
+							autoComplete="current-password"
+							value={password}
+							onChange={(event) => setPassword(event.target.value)}
+							width="100%"
+							paddingInline={4}
+							paddingBlock={3}
+							bg="surfaceContainerLowest"
+							border="1px solid"
+							borderColor="outlineVariant"
+							borderRadius="md"
+							fontFamily="body"
+							fontSize="md"
+							color="onSurface"
+							outline="none"
+							transition="border-color 0.2s ease"
+							_focus={{ borderColor: 'primary' }}
+						/>
+						<Flex justifyContent="flex-end" marginBlockStart={1}>
+							<styled.a
+								href="/forgot-password"
+								textStyle="body.xs"
+								color="onSurfaceVariant/70"
+								textDecoration="none"
+								_hover={{ color: 'primary', textDecoration: 'underline' }}
+								_focusVisible={{
+									outline: '2px solid',
+									outlineColor: 'primary',
+									outlineOffset: '2px',
+									borderRadius: 'sm',
+								}}
+							>
+								Forgot password?
+							</styled.a>
+						</Flex>
+					</Box>
+
+					{error && (
+						<styled.span
+							role="alert"
+							textStyle="body.sm"
+							color="red.500"
+							paddingInline={3}
+							paddingBlock={2}
+							bg="surfaceContainerHigh"
+							borderRadius="md"
+						>
+							{error}
+						</styled.span>
+					)}
+
+					<styled.button
+						type="submit"
+						disabled={busy}
+						marginBlockStart={2}
+						paddingInline={6}
+						paddingBlock={3}
+						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
+						color="white"
+						fontFamily="heading"
+						fontWeight="700"
+						fontSize="md"
+						borderRadius="md"
+						border="none"
+						cursor={busy ? 'wait' : 'pointer'}
+						opacity={busy ? 0.6 : 1}
+						transition="opacity 0.2s ease"
+						_hover={{ opacity: busy ? 0.6 : 0.9 }}
+						_focusVisible={{
+							outline: '2px solid',
+							outlineColor: 'primary',
+							outlineOffset: '2px',
+						}}
+					>
+						{busy ? 'Signing in...' : 'Sign in'}
+					</styled.button>
+				</Flex>
+			</styled.form>
+		</Flex>
 	)
 }

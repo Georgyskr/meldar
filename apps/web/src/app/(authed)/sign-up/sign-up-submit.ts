@@ -3,7 +3,6 @@ import { z } from 'zod'
 export const signUpInputSchema = z.object({
 	email: z.string().trim().email('Enter a valid email address'),
 	password: z.string().min(8, 'Password must be at least 8 characters'),
-	name: z.string().trim().min(1).optional(),
 })
 
 export type SignUpInput = z.infer<typeof signUpInputSchema>
@@ -15,7 +14,7 @@ const signUpResponseSchema = z.object({
 
 export type SignUpResult =
 	| { ok: true; userId: string }
-	| { ok: false; message: string; field?: 'email' | 'password' | 'name' | 'form' }
+	| { ok: false; message: string; field?: 'email' | 'password' | 'form' }
 
 export async function submitSignUp(
 	rawInput: unknown,
@@ -28,7 +27,7 @@ export async function submitSignUp(
 		return {
 			ok: false,
 			message: first?.message ?? 'Invalid input',
-			field: field === 'email' || field === 'password' || field === 'name' ? field : 'form',
+			field: field === 'email' || field === 'password' ? field : 'form',
 		}
 	}
 

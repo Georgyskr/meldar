@@ -1,6 +1,6 @@
 import { getDb } from '@meldar/db/client'
 import { users } from '@meldar/db/schema'
-import { and, eq, gt } from 'drizzle-orm'
+import { and, eq, gt, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { hashPassword } from '@/server/identity/password'
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
 				passwordHash,
 				resetToken: null,
 				resetTokenExpiresAt: null,
+				tokenVersion: sql`token_version + 1`,
 			})
 			.where(eq(users.id, user.id))
 

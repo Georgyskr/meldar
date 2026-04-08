@@ -83,6 +83,8 @@ export const users = pgTable(
 		welcomeEmailSentAt: timestamp('welcome_email_sent_at', { withTimezone: true }),
 		firstBuildEmailSentAt: timestamp('first_build_email_sent_at', { withTimezone: true }),
 		lastNudgeSentAt: timestamp('last_nudge_sent_at', { withTimezone: true }),
+		authProvider: text('auth_provider').notNull().default('email'),
+		tokenVersion: integer('token_version').notNull().default(0),
 		tokenBalance: integer('token_balance').notNull().default(200),
 		referralCode: text('referral_code').unique(),
 		lifetimeTokensEarned: integer('lifetime_tokens_earned').notNull().default(0),

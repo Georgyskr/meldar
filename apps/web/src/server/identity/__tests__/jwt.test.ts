@@ -19,6 +19,7 @@ describe('JWT utilities', () => {
 				userId: 'user-123',
 				email: 'test@example.com',
 				emailVerified: false,
+				tokenVersion: 0,
 			})
 			expect(typeof token).toBe('string')
 			expect(token.split('.')).toHaveLength(3) // JWT has 3 parts
@@ -31,6 +32,7 @@ describe('JWT utilities', () => {
 				userId: 'user-123',
 				email: 'test@example.com',
 				emailVerified: false,
+				tokenVersion: 0,
 			})
 			const payload = verifyToken(token)
 			expect(payload).not.toBeNull()
@@ -48,6 +50,7 @@ describe('JWT utilities', () => {
 				userId: 'user-123',
 				email: 'test@example.com',
 				emailVerified: false,
+				tokenVersion: 0,
 			})
 			// Tamper with the payload section
 			const parts = token.split('.')
@@ -91,6 +94,7 @@ describe('JWT utilities', () => {
 				userId: 'user-123',
 				email: 'test@example.com',
 				emailVerified: true,
+				tokenVersion: 0,
 			})
 			const payload = verifyToken(token)
 			expect(payload?.emailVerified).toBe(true)
@@ -120,7 +124,12 @@ describe('JWT utilities', () => {
 		}
 
 		it('returns payload for valid meldar-auth cookie', () => {
-			const token = signToken({ userId: 'user-456', email: 'user@test.com', emailVerified: true })
+			const token = signToken({
+				userId: 'user-456',
+				email: 'user@test.com',
+				emailVerified: true,
+				tokenVersion: 0,
+			})
 			const request = makeRequest(`meldar-auth=${token}`)
 			const result = getUserFromRequest(request)
 			expect(result).not.toBeNull()
@@ -147,7 +156,12 @@ describe('JWT utilities', () => {
 		})
 
 		it('extracts token from cookie with multiple cookies', () => {
-			const token = signToken({ userId: 'user-789', email: 'multi@test.com', emailVerified: false })
+			const token = signToken({
+				userId: 'user-789',
+				email: 'multi@test.com',
+				emailVerified: false,
+				tokenVersion: 0,
+			})
 			const request = makeRequest(`other=abc; meldar-auth=${token}; session=xyz`)
 			const result = getUserFromRequest(request)
 			expect(result).not.toBeNull()
@@ -158,9 +172,9 @@ describe('JWT utilities', () => {
 	describe('getSecret', () => {
 		it('throws if AUTH_SECRET is not set', () => {
 			vi.stubEnv('AUTH_SECRET', '')
-			expect(() => signToken({ userId: 'u', email: 'e', emailVerified: false })).toThrow(
-				'AUTH_SECRET is not set',
-			)
+			expect(() =>
+				signToken({ userId: 'u', email: 'e', emailVerified: false, tokenVersion: 0 }),
+			).toThrow('AUTH_SECRET is not set')
 		})
 	})
 })

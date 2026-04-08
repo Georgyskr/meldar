@@ -48,7 +48,12 @@ export async function GET(request: NextRequest) {
 
 	const session = getUserFromRequest(request)
 	if (session && session.userId === user.id) {
-		const refreshed = signToken({ userId: user.id, email: user.email, emailVerified: true })
+		const refreshed = signToken({
+			userId: user.id,
+			email: user.email,
+			emailVerified: true,
+			tokenVersion: session.tokenVersion,
+		})
 		response.cookies.set('meldar-auth', refreshed, {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',

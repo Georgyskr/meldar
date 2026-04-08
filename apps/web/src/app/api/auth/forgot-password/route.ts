@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
 		const db = getDb()
 
 		const [user] = await db
-			.select({ id: users.id })
+			.select({ id: users.id, authProvider: users.authProvider })
 			.from(users)
 			.where(eq(users.email, email))
 			.limit(1)
 
-		if (!user) {
+		if (!user || user.authProvider === 'google') {
 			await new Promise((resolve) => setTimeout(resolve, 150))
 			return NextResponse.json({ success: true })
 		}

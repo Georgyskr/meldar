@@ -65,8 +65,13 @@ export async function POST(request: NextRequest) {
 		} catch (err) {
 			if (isUniqueViolation(err)) {
 				return NextResponse.json(
-					{ error: { code: 'CONFLICT', message: 'An account with this email already exists' } },
-					{ status: 409 },
+					{
+						error: {
+							code: 'REGISTRATION_FAILED',
+							message: 'Registration failed. Try signing in instead.',
+						},
+					},
+					{ status: 400 },
 				)
 			}
 			throw err
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
 				console.error('Welcome email failed:', err instanceof Error ? err.message : 'Unknown')
 			})
 
-		const token = signToken({ userId, email, emailVerified: false })
+		const token = signToken({ userId, email, emailVerified: false, tokenVersion: 0 })
 
 		const response = NextResponse.json({ success: true, userId })
 		response.cookies.set('meldar-auth', token, {
