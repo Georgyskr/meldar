@@ -1,4 +1,7 @@
+import { getDb } from '@meldar/db/client'
+import { kanbanCards } from '@meldar/db/schema'
 import { TEMPLATE_PLANS } from '@meldar/orchestrator'
+import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifyToken } from '@/server/identity/jwt'
@@ -84,6 +87,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 	try {
 		const cards = await insertPlanCards(projectId, template.milestones, 'template')
+
+		const firstMilestone = cards.find((c) => c.parentId === null)
+		if (firstMilestone) {
+			const firstSubtask = cards.find((c) => c.parentId === firstMilestone.id)
+			if (firstSubtask) {
+				const db = getDb()
+				await db
+					.update(kanbanCards)
+					.set({ state: 'ready', updatedAt: new Date() })
+					.where(and(eq(kanbanCards.id, firstSubtask.id), eq(kanbanCards.projectId, projectId)))
+			}
+		}
+
 		return NextResponse.json({ cards }, { status: 201 })
 	} catch (err) {
 		console.error('[apply-template] card insertion failed', err)

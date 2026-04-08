@@ -2,8 +2,8 @@ import { TEMPLATE_PLANS } from '@meldar/orchestrator'
 import { describe, expect, it } from 'vitest'
 
 describe('TemplatePicker data integration', () => {
-	it('TEMPLATE_PLANS has 5 templates available for the picker', () => {
-		expect(TEMPLATE_PLANS.length).toBe(5)
+	it('TEMPLATE_PLANS has 9 templates available for the picker', () => {
+		expect(TEMPLATE_PLANS.length).toBe(9)
 	})
 
 	it('each template has a unique id suitable for URL params', () => {

@@ -8,6 +8,7 @@ export { type PromptAnatomy, parsePromptAnatomy } from './lib/parse-prompt-anato
 export { type TopologicalSortResult, topologicalSort } from './lib/topological-sort'
 export { canTransition, userVisibleLabel } from './model/card-state-machine'
 export { deriveMilestoneState } from './model/derive-milestone-state'
+export { editingCardIdAtom } from './model/kanban-atoms'
 export { BuildButton, type BuildButtonProps } from './ui/BuildButton'
 export { BuildConfirmModal, type BuildConfirmModalProps } from './ui/BuildConfirmModal'
 export {
@@ -15,4 +16,8 @@ export {
 	type CardEditorModalProps,
 	type CardEditorUpdates,
 } from './ui/CardEditorModal'
+export {
+	FirstBuildCelebration,
+	type FirstBuildCelebrationProps,
+} from './ui/FirstBuildCelebration'
 export { KanbanBoard, type KanbanBoardProps } from './ui/KanbanBoard'

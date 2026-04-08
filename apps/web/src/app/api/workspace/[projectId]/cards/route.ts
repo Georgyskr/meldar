@@ -35,6 +35,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 		)
 	}
 
+	const { success: rateLimitSuccess } = await checkRateLimit(limiter, session.userId)
+	if (!rateLimitSuccess) {
+		return NextResponse.json(
+			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
+			{ status: 429 },
+		)
+	}
+
 	const { projectId } = await context.params
 
 	if (!z.string().uuid().safeParse(projectId).success) {

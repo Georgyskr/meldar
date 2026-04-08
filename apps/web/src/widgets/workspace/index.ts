@@ -5,6 +5,10 @@ export { LeftPane, type LeftPaneProps } from './LeftPane'
 export { NewProjectButton } from './NewProjectButton'
 export { PreviewPane, type PreviewPaneProps } from './PreviewPane'
 export { StepIndicator, type StepIndicatorProps } from './StepIndicator'
+export {
+	TemplatePreviewDrawer,
+	type TemplatePreviewDrawerProps,
+} from './TemplatePreviewDrawer'
 export { WhatJustHappenedSlot, type WhatJustHappenedSlotProps } from './WhatJustHappenedSlot'
 export { WorkspaceBottomBar, type WorkspaceBottomBarProps } from './WorkspaceBottomBar'
 export { WorkspaceShell, type WorkspaceShellProps } from './WorkspaceShell'

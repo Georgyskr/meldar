@@ -1,12 +1,19 @@
 'use client'
 
 import { consumeSseStream } from '@meldar/orchestrator/sse'
-import { Box, VStack } from '@styled-system/jsx'
+import { Box, Flex, HStack, styled, VStack } from '@styled-system/jsx'
+import { LayoutList, Workflow } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { lazy, Suspense, useCallback, useRef, useState } from 'react'
 import { KanbanBoard, type KanbanCard, topologicalSort } from '@/features/kanban'
 import { OnboardingChat, TemplatePicker } from '@/features/project-onboarding'
 import { BuildPanel, useWorkspaceBuild } from '@/features/workspace-build'
+
+const FlowGraph = dynamic(
+	() => import('@/features/flow-graph').then((m) => ({ default: m.FlowGraph })),
+	{ ssr: false },
+)
 
 const CardEditorModal = lazy(() =>
 	import('@/features/kanban/ui/CardEditorModal').then((m) => ({ default: m.CardEditorModal })),
@@ -14,6 +21,8 @@ const CardEditorModal = lazy(() =>
 const BuildConfirmModal = lazy(() =>
 	import('@/features/kanban/ui/BuildConfirmModal').then((m) => ({ default: m.BuildConfirmModal })),
 )
+
+type ViewMode = 'flow' | 'list'
 
 export type LeftPaneProps = {
 	readonly projectId: string
@@ -209,6 +218,16 @@ export function LeftPane({
 	}, [pendingBuild, executeBuild, onBuildDismiss])
 
 	const [showChat, setShowChat] = useState(false)
+	const [viewMode, setViewMode] = useState<ViewMode>('flow')
+
+	const handleFlowBuild = useCallback(
+		(readySubtasks: readonly KanbanCard[]) => {
+			if (readySubtasks.length > 0) {
+				void executeBuild(readySubtasks)
+			}
+		},
+		[executeBuild],
+	)
 
 	if (cards.length === 0) {
 		return (
@@ -233,14 +252,62 @@ export function LeftPane({
 		)
 	}
 
+	const isBuilding = cards.some((c) => c.state === 'queued' || c.state === 'building')
+
 	return (
 		<VStack flex="1" alignItems="stretch" gap={0}>
-			<Box flex="1" overflowY="auto">
-				<KanbanBoard
-					cards={cards}
-					onAddMilestone={handleAddMilestone}
-					onAddSubtask={handleAddSubtask}
-				/>
+			<Flex
+				alignItems="center"
+				justifyContent="space-between"
+				paddingInline={3}
+				paddingBlock={2}
+				borderBlockEnd="1px solid"
+				borderColor="outlineVariant/20"
+				flexShrink={0}
+			>
+				<styled.h2
+					textStyle="body.xs"
+					color="onSurfaceVariant"
+					textTransform="uppercase"
+					letterSpacing="wide"
+					fontWeight="600"
+				>
+					Your build plan
+				</styled.h2>
+				<HStack gap={1}>
+					<ViewToggleButton
+						active={viewMode === 'flow'}
+						onClick={() => setViewMode('flow')}
+						label="Flow view"
+					>
+						<Workflow size={14} />
+					</ViewToggleButton>
+					<ViewToggleButton
+						active={viewMode === 'list'}
+						onClick={() => setViewMode('list')}
+						label="List view"
+					>
+						<LayoutList size={14} />
+					</ViewToggleButton>
+				</HStack>
+			</Flex>
+
+			<Box flex="1" overflow="hidden" position="relative">
+				{viewMode === 'flow' ? (
+					<FlowGraph
+						cards={cards}
+						onBuild={handleFlowBuild}
+						buildDisabled={isBuilding || !!activeBuildId}
+					/>
+				) : (
+					<Box height="100%" overflowY="auto">
+						<KanbanBoard
+							cards={cards}
+							onAddMilestone={handleAddMilestone}
+							onAddSubtask={handleAddSubtask}
+						/>
+					</Box>
+				)}
 			</Box>
 
 			<BuildPanelSection projectId={projectId} activeBuildId={activeBuildId} />
@@ -265,6 +332,41 @@ export function LeftPane({
 				</Suspense>
 			)}
 		</VStack>
+	)
+}
+
+function ViewToggleButton({
+	active,
+	onClick,
+	label,
+	children,
+}: {
+	active: boolean
+	onClick: () => void
+	label: string
+	children: React.ReactNode
+}) {
+	return (
+		<styled.button
+			type="button"
+			onClick={() => onClick()}
+			aria-label={label}
+			aria-pressed={active}
+			display="flex"
+			alignItems="center"
+			justifyContent="center"
+			width="28px"
+			height="28px"
+			borderRadius="md"
+			border="none"
+			cursor="pointer"
+			transition="all 0.15s"
+			background={active ? 'primary/10' : 'transparent'}
+			color={active ? 'primary' : 'onSurfaceVariant'}
+			_hover={{ background: active ? 'primary/15' : 'surfaceContainerLow' }}
+		>
+			{children}
+		</styled.button>
 	)
 }
 

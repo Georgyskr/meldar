@@ -5,7 +5,9 @@ import { Box, Flex } from '@styled-system/jsx'
 import { useCallback, useState } from 'react'
 import type { ProjectStep } from '@/entities/project-step'
 import type { KanbanCard } from '@/features/kanban'
-import { WorkspaceBuildProvider } from '@/features/workspace-build'
+import { FirstBuildCelebration } from '@/features/kanban'
+import { PricingDrawer, TokenNudgeBanner } from '@/features/token-economy'
+import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace-build'
 import { LeftPane } from './LeftPane'
 import { PreviewPane } from './PreviewPane'
 import { WorkspaceBottomBar } from './WorkspaceBottomBar'
@@ -25,6 +27,7 @@ export type WorkspaceShellProps = {
 
 export function WorkspaceShell(props: WorkspaceShellProps) {
 	const [pendingBuild, setPendingBuild] = useState<readonly KanbanCard[] | null>(null)
+	const [pricingOpen, setPricingOpen] = useState(false)
 
 	const handleBuildRequest = useCallback((subtasks: readonly KanbanCard[]) => {
 		setPendingBuild(subtasks)
@@ -49,6 +52,8 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 					step={props.step}
 					tokenBalance={props.tokenBalance}
 				/>
+
+				<TokenNudgeBanner balance={props.tokenBalance} onSeePlans={() => setPricingOpen(true)} />
 
 				<Flex
 					flex="1"
@@ -84,6 +89,16 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 
 				<WorkspaceBottomBar tier={props.tier} onBuild={handleBuildRequest} />
 			</Flex>
+
+			<PricingDrawer open={pricingOpen} onClose={() => setPricingOpen(false)} />
+
+			<FirstBuildCelebrationBridge projectId={props.projectId} />
 		</WorkspaceBuildProvider>
 	)
+}
+
+function FirstBuildCelebrationBridge({ projectId }: { projectId: string }) {
+	const { lastBuildReceipt, cards } = useWorkspaceBuild()
+	if (!lastBuildReceipt) return null
+	return <FirstBuildCelebration projectId={projectId} receipt={lastBuildReceipt} cards={cards} />
 }

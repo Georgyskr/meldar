@@ -63,18 +63,27 @@ export async function debitTokens(
 	const txnId = crypto.randomUUID()
 	const ref = referenceId ?? null
 
-	const result = await db.execute(sql`
-		WITH updated AS (
-			UPDATE users
-			SET token_balance = token_balance - ${amount}
-			WHERE id = ${userId} AND token_balance >= ${amount}
-			RETURNING token_balance
-		)
-		INSERT INTO token_transactions (id, user_id, amount, reason, reference_id, balance_after)
-		SELECT ${txnId}, ${userId}, ${-amount}, ${reason}, ${ref}, token_balance
-		FROM updated
-		RETURNING balance_after
-	`)
+	let result: Awaited<ReturnType<typeof db.execute>>
+	try {
+		result = await db.execute(sql`
+			WITH updated AS (
+				UPDATE users
+				SET token_balance = token_balance - ${amount}
+				WHERE id = ${userId} AND token_balance >= ${amount}
+				RETURNING token_balance
+			)
+			INSERT INTO token_transactions (id, user_id, amount, reason, reference_id, balance_after)
+			SELECT ${txnId}, ${userId}, ${-amount}, ${reason}, ${ref}, token_balance
+			FROM updated
+			RETURNING balance_after
+		`)
+	} catch (err) {
+		if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23514') {
+			const currentBalance = await getTokenBalance(db, userId)
+			throw new InsufficientBalanceError(currentBalance, amount)
+		}
+		throw err
+	}
 
 	if (!result.rows.length) {
 		const currentBalance = await getTokenBalance(db, userId)
