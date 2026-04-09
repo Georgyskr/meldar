@@ -33,9 +33,10 @@ let cached: OrchestratorDeps | null = null
  * this is intentional. The orchestrator route is gated behind auth and a 500
  * here is a deployment misconfiguration we want to see loudly in logs.
  */
-export function buildOrchestratorDeps(
-	overrides?: { globalSpendGuard?: GlobalSpendGuard; aiCallLogger?: AiCallLogger },
-): OrchestratorDeps {
+export function buildOrchestratorDeps(overrides?: {
+	globalSpendGuard?: GlobalSpendGuard
+	aiCallLogger?: AiCallLogger
+}): OrchestratorDeps {
 	if (cached && !overrides) return cached
 
 	const storage = buildProjectStorageFromEnv()

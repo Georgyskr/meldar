@@ -43,9 +43,7 @@ export function buildProjectFilesBlock(
 	projectFiles: ReadonlyArray<{ path: string; content: string }>,
 ): string {
 	const sorted = [...projectFiles].sort((a, b) => a.path.localeCompare(b.path))
-	const fileBlocks = sorted
-		.map((f) => `--- FILE: ${f.path} ---\n${f.content}`)
-		.join('\n\n')
+	const fileBlocks = sorted.map((f) => `--- FILE: ${f.path} ---\n${f.content}`).join('\n\n')
 
 	return `# Current project files
 
