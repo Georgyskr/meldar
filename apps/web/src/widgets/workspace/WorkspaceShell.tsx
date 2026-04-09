@@ -9,6 +9,7 @@ import { FirstBuildCelebration } from '@/features/kanban'
 import { PricingDrawer, TokenNudgeBanner } from '@/features/token-economy'
 import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace'
 import { WorkspaceBottomBar } from './WorkspaceBottomBar'
+import { WorkspaceEmptyState } from './WorkspaceEmptyState'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
 
 export type WorkspaceShellProps = {
@@ -23,9 +24,11 @@ export type WorkspaceShellProps = {
 
 export function WorkspaceShell(props: WorkspaceShellProps) {
 	const [pricingOpen, setPricingOpen] = useState(false)
+	const providerKey = props.initialKanbanCards.length === 0 ? 'empty' : 'loaded'
 
 	return (
 		<WorkspaceBuildProvider
+			key={providerKey}
 			projectId={props.projectId}
 			initialPreviewUrl={props.initialPreviewUrl}
 			initialKanbanCards={props.initialKanbanCards}
@@ -65,15 +68,6 @@ function GalaxySurface({ projectId }: { projectId: string }) {
 		useWorkspaceBuild()
 	const milestones = useMemo(() => kanbanToGalaxy(cards), [cards])
 
-	const fallbackMode: 'plan' | 'taskFocus' | 'building' | 'review' =
-		mode.type === 'taskFocus'
-			? 'taskFocus'
-			: mode.type === 'building'
-				? 'building'
-				: mode.type === 'review'
-					? 'review'
-					: 'plan'
-
 	const handleTaskSelect = useCallback((task: { id: string }) => selectTask(task.id), [selectTask])
 
 	const handleTaskDeselect = useCallback(() => clearSelection(), [clearSelection])
@@ -84,6 +78,19 @@ function GalaxySurface({ projectId }: { projectId: string }) {
 		},
 		[projectId],
 	)
+
+	if (cards.length === 0) {
+		return <WorkspaceEmptyState projectId={projectId} />
+	}
+
+	const fallbackMode: 'plan' | 'taskFocus' | 'building' | 'review' =
+		mode.type === 'taskFocus'
+			? 'taskFocus'
+			: mode.type === 'building'
+				? 'building'
+				: mode.type === 'review'
+					? 'review'
+					: 'plan'
 
 	return (
 		<GalaxyView

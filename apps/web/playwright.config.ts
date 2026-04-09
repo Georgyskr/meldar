@@ -1,29 +1,44 @@
+import path from 'node:path'
 import { defineConfig } from '@playwright/test'
+import * as dotenv from 'dotenv'
+
+dotenv.config({ path: path.resolve(__dirname, '.env.local') })
 
 export default defineConfig({
-	testDir: './test/e2e',
-	timeout: 15_000,
+	testDir: './e2e',
+	expect: {
+		// One generous ceiling for all .toBeVisible / .toHaveText retries.
+		// Dev-server route compiles can take a few seconds cold.
+		timeout: 20_000,
+	},
 	retries: 0,
+	fullyParallel: false,
+	workers: 1,
 	use: {
-		baseURL: 'http://localhost:3001',
+		baseURL: 'http://localhost:3101',
 		headless: true,
 		screenshot: 'only-on-failure',
+		trace: 'retain-on-failure',
 	},
 	webServer: {
-		command: 'pnpm build && PORT=3001 pnpm start',
-		port: 3001,
+		command: 'pnpm dev --port 3101',
+		port: 3101,
 		reuseExistingServer: true,
-		timeout: 120_000,
 	},
 	projects: [
+		{
+			name: 'setup',
+			testMatch: /.*\.setup\.ts/,
+		},
 		{
 			name: 'chromium',
 			use: {
 				browserName: 'chromium',
-				contextOptions: {
-					reducedMotion: 'reduce',
-				},
+				storageState: 'e2e/.auth/user.json',
+				contextOptions: { reducedMotion: 'reduce' },
 			},
+			dependencies: ['setup'],
+			testMatch: /.*\.spec\.ts/,
 		},
 	],
 })

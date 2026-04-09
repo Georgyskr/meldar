@@ -57,7 +57,7 @@
 	"files": {
 		"includes": [
 			"apps/*/src/**",
-			"apps/*/test/**",
+			"apps/*/e2e/**",
 			"apps/*/*.ts",
 			"apps/*/*.json",
 			"packages/*/src/**",
@@ -71,7 +71,10 @@
 			"!**/styled-system",
 			"!**/node_modules",
 			"!**/.turbo",
-			"!**/dist"
+			"!**/dist",
+			"!**/e2e/.auth",
+			"!**/playwright-report",
+			"!**/test-results"
 		]
 	}
 }

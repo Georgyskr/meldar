@@ -5,8 +5,8 @@ export default defineConfig({
 	test: {
 		globals: true,
 		environment: 'node',
-		// test/e2e/** is Playwright, not vitest.
-		exclude: ['**/node_modules/**', 'dist/**', '.next/**', 'test/e2e/**'],
+		// e2e/** is Playwright, not vitest.
+		exclude: ['**/node_modules/**', 'dist/**', '.next/**', 'e2e/**'],
 	},
 	resolve: {
 		alias: {

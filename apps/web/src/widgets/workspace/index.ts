@@ -8,5 +8,6 @@ export {
 	type TemplatePreviewDrawerProps,
 } from './TemplatePreviewDrawer'
 export { WorkspaceBottomBar, type WorkspaceBottomBarProps } from './WorkspaceBottomBar'
+export { WorkspaceEmptyState } from './WorkspaceEmptyState'
 export { WorkspaceShell, type WorkspaceShellProps } from './WorkspaceShell'
 export { WorkspaceTopBar, type WorkspaceTopBarProps } from './WorkspaceTopBar'

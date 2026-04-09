@@ -29,7 +29,7 @@ function makeFakeSandbox(overrides: Partial<FakeSandbox> = {}): FakeSandbox {
 		exposePort: vi
 			.fn()
 			.mockResolvedValue({ url: 'https://3001-project.workers.dev', port: 3001, name: undefined }),
-		startProcess: vi.fn().mockResolvedValue(undefined),
+		startProcess: vi.fn().mockResolvedValue(proc),
 		getProcess: vi.fn().mockResolvedValue(proc),
 		writeFile: vi.fn().mockResolvedValue(undefined),
 		killProcess: vi.fn().mockResolvedValue(undefined),
@@ -54,7 +54,7 @@ async function signedRequest(
 	const rawBody = JSON.stringify(body)
 	const signed = options.tamperBody ?? rawBody
 	const signature = await hmacSha256Hex(secret, `${timestamp}.${signed}`)
-	return new Request(`https://example.com${path}`, {
+	return new Request(`https://sandbox.meldar.ai${path}`, {
 		method: 'POST',
 		headers: {
 			'content-type': 'application/json',
@@ -99,16 +99,83 @@ describe('sandbox worker', () => {
 
 	describe('healthz', () => {
 		it('GET /healthz returns 200 with no auth required', async () => {
-			const req = new Request('https://example.com/healthz', { method: 'GET' })
+			const req = new Request('https://sandbox.meldar.ai/healthz', { method: 'GET' })
 			const res = await worker.fetch(req, env)
 			expect(res.status).toBe(200)
 			expect(await res.json()).toEqual({ status: 'ok' })
 		})
 
 		it('healthz works without HMAC headers', async () => {
-			const req = new Request('https://example.com/healthz')
+			const req = new Request('https://sandbox.meldar.ai/healthz')
 			const res = await worker.fetch(req, env)
 			expect(res.status).toBe(200)
+		})
+	})
+
+	describe('passthrough for non-API hostnames', () => {
+		it('forwards www.meldar.ai requests to origin via passthroughFetch', async () => {
+			const passthroughFetch = vi
+				.fn()
+				.mockResolvedValue(new Response('landing page', { status: 200 }))
+			const w = createSandboxWorker({
+				getSandbox: getSandboxFn as never,
+				passthroughFetch,
+				now: () => FIXED_NOW,
+			})
+			const req = new Request('https://www.meldar.ai/about', { method: 'GET' })
+			const res = await w.fetch(req, env)
+			expect(res.status).toBe(200)
+			expect(await res.text()).toBe('landing page')
+			expect(passthroughFetch).toHaveBeenCalledOnce()
+			expect(passthroughFetch).toHaveBeenCalledWith(req)
+		})
+
+		it('forwards meldar.ai apex requests to origin via passthroughFetch', async () => {
+			const passthroughFetch = vi.fn().mockResolvedValue(new Response('apex', { status: 200 }))
+			const w = createSandboxWorker({
+				getSandbox: getSandboxFn as never,
+				passthroughFetch,
+				now: () => FIXED_NOW,
+			})
+			const req = new Request('https://meldar.ai/', { method: 'GET' })
+			const res = await w.fetch(req, env)
+			expect(res.status).toBe(200)
+			expect(passthroughFetch).toHaveBeenCalledOnce()
+		})
+
+		it('does NOT passthrough sandbox.meldar.ai (it is the API host)', async () => {
+			const passthroughFetch = vi
+				.fn()
+				.mockResolvedValue(new Response('should not reach', { status: 200 }))
+			const w = createSandboxWorker({
+				getSandbox: getSandboxFn as never,
+				passthroughFetch,
+				now: () => FIXED_NOW,
+			})
+			const req = new Request('https://sandbox.meldar.ai/healthz', { method: 'GET' })
+			const res = await w.fetch(req, env)
+			expect(res.status).toBe(200)
+			expect(await res.json()).toEqual({ status: 'ok' })
+			expect(passthroughFetch).not.toHaveBeenCalled()
+		})
+
+		it('proxyToSandbox preview URL path takes priority over passthrough', async () => {
+			const proxyToSandbox = vi
+				.fn()
+				.mockResolvedValue(new Response('sandbox preview', { status: 200 }))
+			const passthroughFetch = vi.fn()
+			const w = createSandboxWorker({
+				getSandbox: getSandboxFn as never,
+				proxyToSandbox,
+				passthroughFetch,
+				now: () => FIXED_NOW,
+			})
+			const req = new Request('https://3001-abc-def.meldar.ai/', { method: 'GET' })
+			const res = await w.fetch(req, env)
+			expect(res.status).toBe(200)
+			expect(await res.text()).toBe('sandbox preview')
+			expect(proxyToSandbox).toHaveBeenCalledOnce()
+			expect(passthroughFetch).not.toHaveBeenCalled()
 		})
 	})
 
@@ -125,7 +192,7 @@ describe('sandbox worker', () => {
 		it('missing timestamp header returns 401', async () => {
 			const body = JSON.stringify({ projectId: 'proj_first' })
 			const sig = await hmacSha256Hex(HMAC_SECRET, `${FIXED_NOW}.${body}`)
-			const req = new Request('https://example.com/api/v1/status', {
+			const req = new Request('https://sandbox.meldar.ai/api/v1/status', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json', 'x-meldar-signature': sig },
 				body,
@@ -137,7 +204,7 @@ describe('sandbox worker', () => {
 
 		it('missing signature header returns 401', async () => {
 			const body = JSON.stringify({ projectId: 'proj_first' })
-			const req = new Request('https://example.com/api/v1/status', {
+			const req = new Request('https://sandbox.meldar.ai/api/v1/status', {
 				method: 'POST',
 				headers: {
 					'content-type': 'application/json',
@@ -192,7 +259,7 @@ describe('sandbox worker', () => {
 		})
 
 		it('non-numeric timestamp returns 401', async () => {
-			const req = new Request('https://example.com/api/v1/status', {
+			const req = new Request('https://sandbox.meldar.ai/api/v1/status', {
 				method: 'POST',
 				headers: {
 					'content-type': 'application/json',
@@ -208,7 +275,7 @@ describe('sandbox worker', () => {
 		it('timestamp with trailing garbage returns 401', async () => {
 			const body = JSON.stringify({ projectId: 'proj_first' })
 			const sig = await hmacSha256Hex(HMAC_SECRET, `${FIXED_NOW}garbage.${body}`)
-			const req = new Request('https://example.com/api/v1/status', {
+			const req = new Request('https://sandbox.meldar.ai/api/v1/status', {
 				method: 'POST',
 				headers: {
 					'content-type': 'application/json',
@@ -374,6 +441,18 @@ describe('sandbox worker', () => {
 			expect(fakeSandbox.startProcess).toHaveBeenCalled()
 		})
 
+		it('waits for port on the process returned by startProcess', async () => {
+			const req = await signedRequest('/api/v1/start', {
+				projectId: 'proj_first',
+				userId: 'user_1',
+				template: 't',
+				files: [],
+			})
+			await worker.fetch(req, env)
+			const proc = await fakeSandbox.startProcess.mock.results[0].value
+			expect(proc.waitForPort).toHaveBeenCalledWith(3001)
+		})
+
 		it('reuses existing port when sandbox is already running', async () => {
 			fakeSandbox.getExposedPorts.mockResolvedValueOnce([
 				{ url: 'https://3001-warm.workers.dev', port: 3001, status: 'active' },
@@ -386,6 +465,7 @@ describe('sandbox worker', () => {
 			})
 			const res = await worker.fetch(req, env)
 			expect(res.status).toBe(200)
+			expect(fakeSandbox.exposePort).not.toHaveBeenCalled()
 			expect(fakeSandbox.startProcess).not.toHaveBeenCalled()
 			expect(fakeSandbox.writeFile).toHaveBeenCalledOnce()
 			const body = (await res.json()) as { previewUrl: string }
@@ -509,7 +589,7 @@ describe('sandbox worker', () => {
 		})
 
 		it('GET on a contract endpoint returns 405', async () => {
-			const req = new Request('https://example.com/api/v1/status', { method: 'GET' })
+			const req = new Request('https://sandbox.meldar.ai/api/v1/status', { method: 'GET' })
 			const res = await worker.fetch(req, env)
 			expect(res.status).toBe(405)
 		})
@@ -518,7 +598,7 @@ describe('sandbox worker', () => {
 			const timestamp = FIXED_NOW.toString()
 			const rawBody = '{not-json'
 			const sig = await hmacSha256Hex(HMAC_SECRET, `${timestamp}.${rawBody}`)
-			const req = new Request('https://example.com/api/v1/status', {
+			const req = new Request('https://sandbox.meldar.ai/api/v1/status', {
 				method: 'POST',
 				headers: {
 					'content-type': 'application/json',

@@ -7,16 +7,19 @@ export interface SandboxWorkerEnv {
 	HMAC_SECRET: string
 }
 
+type SandboxProcess = {
+	waitForPort?: (port: number) => Promise<void>
+	kill?: () => Promise<void>
+}
+
 type SandboxLike = {
 	getExposedPorts(hostname: string): Promise<Array<{ url: string; port: number; status: string }>>
 	exposePort(port: number, options: { hostname: string }): Promise<{ url: string; port: number }>
 	startProcess(
 		command: string,
 		options: { processId: string; cwd?: string; env?: Record<string, string> },
-	): Promise<unknown>
-	getProcess(
-		id: string,
-	): Promise<{ waitForPort?: (port: number) => Promise<void>; kill?: () => Promise<void> } | null>
+	): Promise<SandboxProcess>
+	getProcess(id: string): Promise<SandboxProcess | null>
 	writeFile(path: string, content: string): Promise<unknown>
 	killProcess?(id: string, signal?: string): Promise<unknown>
 	destroy?(): Promise<void>
@@ -24,10 +27,12 @@ type SandboxLike = {
 
 type GetSandboxFn = (ns: DurableObjectNamespace<Sandbox>, id: string) => SandboxLike
 type ProxyToSandboxFn = (request: Request, env: SandboxWorkerEnv) => Promise<Response | null>
+type PassthroughFetchFn = (request: Request) => Promise<Response>
 
 export interface SandboxWorkerDeps {
 	getSandbox: GetSandboxFn
 	proxyToSandbox?: ProxyToSandboxFn
+	passthroughFetch?: PassthroughFetchFn
 	now?: () => number
 }
 
@@ -35,10 +40,14 @@ const NEXT_PORT = 3001
 const PROCESS_ID = 'next-dev-server'
 const HMAC_WINDOW_MS = 5 * 60 * 1000
 
+const API_HOSTNAME = 'sandbox.meldar.ai'
+const PREVIEW_BASE_HOSTNAME = 'meldar.ai'
+
 export function createSandboxWorker(deps: SandboxWorkerDeps) {
 	const now = deps.now ?? (() => Date.now())
+	const passthrough = deps.passthroughFetch ?? globalThis.fetch.bind(globalThis)
 
-	async function fetch(request: Request, env: SandboxWorkerEnv): Promise<Response> {
+	async function handleFetch(request: Request, env: SandboxWorkerEnv): Promise<Response> {
 		try {
 			if (deps.proxyToSandbox) {
 				const proxied = await deps.proxyToSandbox(request, env)
@@ -46,6 +55,10 @@ export function createSandboxWorker(deps: SandboxWorkerDeps) {
 			}
 
 			const url = new URL(request.url)
+
+			if (url.host !== API_HOSTNAME) {
+				return passthrough(request)
+			}
 
 			if (url.pathname === '/healthz') {
 				return jsonResponse({ status: 'ok' }, 200)
@@ -83,7 +96,7 @@ export function createSandboxWorker(deps: SandboxWorkerDeps) {
 				return jsonResponse({ error: 'BAD_REQUEST' }, 400)
 			}
 
-			const ctx: RouteContext = { hostname: url.host, env, deps }
+			const ctx: RouteContext = { hostname: PREVIEW_BASE_HOSTNAME, env, deps }
 			return await route(body, ctx)
 		} catch (err) {
 			console.error('[sandbox-worker] unhandled error', err)
@@ -91,7 +104,7 @@ export function createSandboxWorker(deps: SandboxWorkerDeps) {
 		}
 	}
 
-	return { fetch }
+	return { fetch: handleFetch }
 }
 
 interface RouteContext {
@@ -117,19 +130,8 @@ async function handlePrewarm(body: unknown, ctx: RouteContext): Promise<Response
 	const sandbox = ctx.deps.getSandbox(ctx.env.Sandbox, sandboxNameFor(projectId))
 
 	try {
-		const existingPorts = await sandbox.getExposedPorts(ctx.hostname)
-		const existing = existingPorts.find((p) => p.port === NEXT_PORT)
-		if (existing) {
-			return jsonResponse({ ok: true, previewUrl: existing.url, status: 'ready' }, 200)
-		}
-
-		await sandbox.exposePort(NEXT_PORT, { hostname: ctx.hostname })
-		await sandbox.startProcess('npm run dev', {
-			processId: PROCESS_ID,
-			cwd: '/app',
-			env: { PORT: String(NEXT_PORT), HOSTNAME: '0.0.0.0' },
-		})
-		return jsonResponse({ ok: true, status: 'starting' }, 200)
+		const port = await ensureDevServer(sandbox, ctx.hostname)
+		return jsonResponse({ ok: true, previewUrl: port.url, status: 'ready' }, 200)
 	} catch (err) {
 		return mapSandboxError(err, projectId)
 	}
@@ -154,34 +156,16 @@ async function handleStart(body: unknown, ctx: RouteContext): Promise<Response> 
 	const sandbox = ctx.deps.getSandbox(ctx.env.Sandbox, sandboxName)
 
 	try {
-		const existingPorts = await sandbox.getExposedPorts(ctx.hostname)
-		const existing = existingPorts.find((p) => p.port === NEXT_PORT)
-
 		for (const file of files) {
 			await sandbox.writeFile(`/app/${sanitizeFilePath(file.path)}`, file.content)
 		}
 
-		let previewUrl: string
-		if (existing) {
-			previewUrl = existing.url
-		} else {
-			const exposed = await sandbox.exposePort(NEXT_PORT, { hostname: ctx.hostname })
-			await sandbox.startProcess('npm run dev', {
-				processId: PROCESS_ID,
-				cwd: '/app',
-				env: { PORT: String(NEXT_PORT), HOSTNAME: '0.0.0.0' },
-			})
-			const proc = await sandbox.getProcess(PROCESS_ID)
-			if (proc?.waitForPort) {
-				await proc.waitForPort(NEXT_PORT)
-			}
-			previewUrl = exposed.url
-		}
+		const port = await ensureDevServer(sandbox, ctx.hostname)
 
 		return jsonResponse(
 			{
 				sandboxId: sandboxName,
-				previewUrl,
+				previewUrl: port.url,
 				status: 'ready',
 				revision: 0,
 			},
@@ -190,6 +174,28 @@ async function handleStart(body: unknown, ctx: RouteContext): Promise<Response> 
 	} catch (err) {
 		return mapSandboxError(err, projectId)
 	}
+}
+
+async function ensureDevServer(
+	sandbox: SandboxLike,
+	hostname: string,
+): Promise<{ url: string; port: number }> {
+	const existingPorts = await sandbox.getExposedPorts(hostname)
+	const existing = existingPorts.find((p) => p.port === NEXT_PORT)
+	if (existing) {
+		return existing
+	}
+
+	const port = await sandbox.exposePort(NEXT_PORT, { hostname })
+	const proc = await sandbox.startProcess('npm run dev', {
+		processId: PROCESS_ID,
+		cwd: '/app',
+		env: { PORT: String(NEXT_PORT), HOSTNAME: '0.0.0.0' },
+	})
+	if (proc?.waitForPort) {
+		await proc.waitForPort(NEXT_PORT)
+	}
+	return port
 }
 
 async function handleWrite(body: unknown, ctx: RouteContext): Promise<Response> {

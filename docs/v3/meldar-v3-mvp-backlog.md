@@ -201,9 +201,8 @@ Paid, which is blocked on Claude payments resolving).
   `pnpm@10.18.3` via `npm install -g` since base image lacks corepack)
 - Production `wrangler.jsonc`: `max_instances: 50`, no `assets` block,
   compat date `2026-04-01`, HMAC_SECRET secret binding
-- `DEPLOY.md` runbook, `SECRETS.md` reference, `PRODUCTION-READINESS.md`
-  punch-list, `scripts/verify-deployment.sh` (bash 3.2 compatible,
-  contract verifier)
+- `DEPLOY.md` runbook, `SECRETS.md` reference,
+  `scripts/verify-deployment.sh` (bash 3.2 compatible, contract verifier)
 - 44 tests passing covering HMAC failure modes (missing/stale/future/
   tampered/non-numeric/trailing-garbage), per-project isolation,
   contract endpoint shapes, error envelope correctness
@@ -910,7 +909,213 @@ user-facing language is "workspace"):
   chat-security-spec.md
 - [ ] Phase 3 — orchestrator cost log + spend dashboard surfaces in
   founder-only UI
-- [ ] Run `0010` + `0011` migrations against Neon before deploy
+- [x] Run `0010` + `0011` migrations against Neon — **DONE 2026-04-09
+  evening**, verified `ai_call_log` table + `token_txn_reason_valid`
+  constraint on production DB
+
+---
+
+## 2026-04-09 (late evening) — Empty-state fix + E2E infra + DNS migration + sandbox worker
+
+Single-session follow-up wave after Phase 0 + 0.8 + 1. Unblocks local
+dev + regression-guards the bug that started the session.
+
+### Bug fix: empty workspace state — **DONE**
+
+Regression from Phase 1 UI refactor: clicking "+ New project" created
+a project with zero kanban cards and the workspace rendered a blank
+3D scene. Root cause: `POST /api/workspace/projects` returns a project
+with only a README.md, no milestones. `GalaxySurface` consumed
+`cards.length === 0` and rendered nothing.
+
+- [x] `apps/web/src/widgets/workspace/WorkspaceEmptyState.tsx` — glass
+  card overlay wrapping the existing
+  `features/project-onboarding/ui/TemplatePicker` component.
+  `onTemplateApplied` → `router.refresh()` to re-fetch the workspace
+  page with populated cards.
+- [x] `WorkspaceShell.tsx` — `GalaxySurface` renders
+  `<WorkspaceEmptyState>` when `cards.length === 0`. Provider keyed on
+  `empty`/`loaded` so it cleanly remounts when cards transition.
+- [x] "Describe your app" chat path stubbed with a "coming next"
+  inline message. Full chat lands in Phase 2.
+- [x] Rule-of-hooks fix: all `useMemo`/`useCallback` moved above the
+  conditional early return.
+
+### Playwright E2E infrastructure — **DONE**
+
+First real end-to-end coverage. Nothing existed before tonight.
+
+- [x] `apps/web/playwright.config.ts` — single `expect.timeout: 20_000`
+  ceiling at config level (no per-assertion timeouts anywhere), dev
+  server on `:3101`, setup project pattern with shared storage state
+- [x] `apps/web/e2e/auth.setup.ts` — directly upserts test user in DB,
+  signs JWT with same algorithm as `@/server/identity/jwt`, saves
+  `e2e/.auth/user.json` storage state
+- [x] `apps/web/e2e/landing.spec.ts` — unauthenticated landing page
+  smoke
+- [x] `apps/web/e2e/workspace-empty-state.spec.ts` — 3 specs directly
+  POSTing to `/api/workspace/projects` and asserting the empty-state
+  overlay renders, template picker is visible, and applying a template
+  transitions to the populated galaxy view. Would have caught the
+  regression that started the session.
+- [x] `.gitignore` — playwright-report, test-results, `e2e/.auth/`
+- [x] `biome.json` — includes `apps/*/e2e/**`, excludes generated
+  dirs. Single-state ignore patterns (no trailing `/**`)
+- [x] `vitest.config.ts` — exclude pattern updated from `test/e2e/**`
+  to `e2e/**`
+- [x] `package.json` — `test:e2e`, `test:e2e:ui` scripts; `dotenv`
+  devDep for config env loading
+- [x] **Dead test tree removed**: entire `apps/web/test/` directory
+  (10 legacy E2E specs for deleted `/discover`, `/start`, `/xray`,
+  `/quiz`, `/results` routes + 2 obsolete integration/bench files).
+  Suite went from 725 passed + 3 skipped to 725 passed + 0 skipped —
+  confirming the 3 skipped were the dead integration tests.
+- [x] Full suite timing: 5 specs pass in ~12s after first cold start.
+  Subsequent runs reuse `next dev --port 3101` via
+  `reuseExistingServer: true`.
+
+### Spend-alert cron Hobby-plan fix — **DONE**
+
+`vercel.json` cron `*/5 * * * *` rejected at deploy because Hobby plan
+only allows daily crons.
+
+- [x] Schedule changed to `0 9 * * *` (daily at 09:00 UTC), same as
+  email-touchpoints. Panic threshold path still runs but only catches
+  bursts in the hour before cron fires. Ceilings themselves are
+  synchronous in `guardedAnthropicCall` — cron is purely
+  notification. Upgrade to Pro to restore per-minute frequency.
+- [x] Deploy unblocked on Hobby plan
+
+### DNS migration: meldar.ai → Cloudflare — **DONE**
+
+Moved from Google Cloud DNS (`ns-cloud-*.googledomains.com`) to
+Cloudflare authoritative NS (`jaxson.ns.cloudflare.com`,
+`veda.ns.cloudflare.com`). Full zone migration (not just subdomain
+delegation).
+
+- [x] All critical records preserved, verified via dig against CF NS:
+  - Apex A → Vercel (proxied through CF anycast)
+  - www → Vercel (proxied)
+  - MX → AWS SES `inbound-smtp.eu-west-1.amazonaws.com`
+  - Resend DKIM at `resend._domainkey` (byte-identical)
+  - Google site verification TXT
+- [x] `https://meldar.ai` returns HTTP 200 with `server: Vercel`
+  header post-migration — SSL mode is correct, no redirect loop
+- [x] Wildcard DNS `*.meldar.ai AAAA 100::` added (proxied) so
+  arbitrary subdomains resolve through CF and hit the worker route
+- [x] Apex + www proxied (orange cloud) — traffic routes
+  `CF → Vercel`
+
+### Sandbox worker: free-path deploy — **PARTIAL (blocked on startProcess hang)**
+
+Cloudflare payments fixed, Containers Beta subscribed, sandbox worker
+deployed with the **free** cert path instead of paying $10/mo for
+Advanced Certificate Manager.
+
+**Architecture decision:**
+- The `@cloudflare/sandbox` SDK requires wildcard subdomains for
+  preview URLs (`<port>-<sandbox>-<token>.<hostname>`)
+- Free Cloudflare Universal SSL covers `*.meldar.ai` (one level) but
+  NOT nested `*.sandbox.meldar.ai` (two levels)
+- **Free path chosen**: pass `hostname = meldar.ai` to the SDK so
+  preview URLs land under `*.meldar.ai` (covered by free cert), and
+  use a catch-all `*.meldar.ai/*` worker route with passthrough logic
+  for non-sandbox subdomains (www, etc.)
+
+**Trade-off accepted**: the sandbox worker is now on the critical
+path for `www.meldar.ai` and all future subdomains. If the worker
+crashes, the landing page goes down too. Acceptable pre-launch;
+revisit when real traffic + uptime matter.
+
+**Worker implementation:**
+- [x] `wrangler.jsonc` — single route `*.meldar.ai/*`, Durable Object
+  migration `v1`, container `max_instances: 50`, `instance_type:
+  lite`, `compatibility_date: 2026-04-01`
+- [x] `src/handler.ts` — routing by hostname:
+  `sandbox.meldar.ai` → contract endpoints;
+  `<port>-*.meldar.ai` preview URLs → `proxyToSandbox`;
+  everything else → `fetch(request)` passthrough
+- [x] `createSandboxWorker` accepts `passthroughFetch` dep for test
+  injection (default: `globalThis.fetch`)
+- [x] `handleStart`/`handlePrewarm` share an `ensureDevServer` helper
+  that matches the upstream `vite-sandbox` example exactly:
+  `getExposedPorts → find port → exposePort → startProcess →
+  waitForPort` on the process object **returned by** `startProcess`
+  (not a separate `getProcess` call, which was a red herring)
+- [x] HMAC verification, per-project DO IDs (`project-${projectId}`),
+  error mapping, `/healthz` probe — all preserved from prior wave
+- [x] `apps/sandbox-worker/src/__tests__/worker.test.ts` — 49 tests
+  including new passthrough specs (`www.meldar.ai` → passthrough,
+  `meldar.ai` apex → passthrough, `sandbox.meldar.ai` → API,
+  `<port>-*.meldar.ai` → `proxyToSandbox`)
+- [x] `@cloudflare/sandbox` upgraded `0.8.4` → `0.8.7` in
+  `apps/sandbox-worker/package.json` to match upstream example
+- [x] `Dockerfile` rewritten to match upstream: base image
+  `cloudflare/sandbox:0.8.7` (no digest pin, matches upstream), `npm
+  install` instead of `pnpm install --frozen-lockfile`
+- [x] `sandbox-app/pnpm-lock.yaml` removed — orphan lockfile not
+  tracked by the root pnpm workspace (confirmed: `sandbox-app` is at
+  path depth 3, pnpm-workspace.yaml globs `apps/*` + `packages/*` at
+  depth 1)
+- [x] `DEPLOY.md` — stale "READ FIRST" warning removed; runbook now
+  reflects current state
+- [x] `PRODUCTION-READINESS.md` — obsolete punch-list deleted
+  (all items addressed in prior wave)
+- [x] Worker deployed to `sandbox.meldar.ai` + wildcard. Version IDs
+  progressed through the session as we iterated on `handleStart`.
+- [x] `scripts/verify-deployment.sh` Steps 1 (prewarm) passes ✅
+
+**BLOCKED: `startProcess('npm run dev')` hangs inside the container.**
+- `getExposedPorts` ✅ (1900ms, container boot check)
+- `exposePort(3001)` ✅ (100ms, port registered with CF edge)
+- `startProcess('npm run dev', ...)` ❌ RPC hangs for 30-120s and gets
+  canceled when the outer curl request times out. No exceptions in
+  wrangler tail logs. No container stdout visible to the worker.
+- **Known-good reference**: the upstream `sandbox-sdk/examples/vite-sandbox`
+  uses the EXACT same `startProcess → waitForPort` pattern against the
+  same SDK version (0.8.7) and works. Our handler now mirrors it
+  line-for-line.
+- **Hypotheses not yet tested**:
+  1. Node.js version mismatch in `cloudflare/sandbox:0.8.7` base
+     image — Next.js 16 requires Node ≥ 20.18. If the base image ships
+     older Node, `next dev` crashes on startup, producing no output,
+     and the container's `/api/process/start` endpoint hangs waiting
+     for stdout that never comes. **Verify by running `docker run
+     --rm cloudflare/sandbox:0.8.7 node --version`.**
+  2. `next dev` in Next.js 16 has specific behavior the container
+     runtime mishandles (vite works fine in the reference example).
+  3. The container's `/api/process/start` endpoint has a known bug
+     with long-running processes — would be surprising given upstream
+     example exists.
+- **Next experiments** (when resumed):
+  1. Verify Node version in base image
+  2. Swap `npm run dev` for `sleep 10` as a diagnostic; observe
+     whether startProcess returns in ~10s (sync) vs ms (async)
+  3. If sync: use `sh -c "npm run dev &"` shell backgrounding
+  4. If still broken: open an issue on `cloudflare/sandbox-sdk`
+     repo with minimal repro
+- **Orchestrator graceful degradation**: `createSandboxProviderFromEnv`
+  in `packages/orchestrator/src/deps.ts:74-79` returns null when
+  `CF_SANDBOX_WORKER_URL` is unset, and downstream code skips the
+  preview iframe (shows placeholder). Builds still complete and
+  persist source files. **Recommendation**: leave the env vars unset
+  on Vercel until this is unblocked — ships everything else without
+  exposing the broken preview path.
+
+### New env vars (optional, all have safe defaults)
+
+See also the "Env vars + external services" section below. None
+required for tonight's push:
+
+- `GLOBAL_DAILY_CEILING_CENTS` — default `3000` (€30/day global)
+- `USER_HOURLY_CEILING_CENTS` — default `80` (€0.80/user/hour)
+- `USER_DAILY_CEILING_CENTS` — default `200` (€2/user/day)
+- `ANTHROPIC_PAUSED` — set `1` for emergency kill switch
+- `FOUNDER_ALERT_EMAIL` — default `gosha.skryuchenkov@gmail.com`
+- `CF_SANDBOX_WORKER_URL` — `https://sandbox.meldar.ai` (set when
+  unblocked)
+- `CF_SANDBOX_HMAC_SECRET` — 43-char base64url (set when unblocked;
+  already in `.env.local`)
 
 ---
 
@@ -1467,9 +1672,19 @@ have safe defaults, none are required for Phase 0 to function:**
 - [x] Split-screen: flow graph left, preview right (§7, superseded by §JARVIS)
 - [x] Token cost ceiling (EUR 2/day, Redis Lua)
 - [x] Editorial treatment on all workspace chrome (2026-04-09)
-- [ ] First user signs up → creates project → sees streaming build
-  (blocked on R2 setup + Cloudflare deploy for iframe preview)
-- [ ] §JARVIS 3D galaxy replaces split-screen (see sub-plan)
+- [x] §JARVIS 3D galaxy replaces split-screen (2026-04-09, see Phase 1
+  section)
+- [x] Empty workspace state fix (2026-04-09 late evening) — new
+  projects now show `WorkspaceEmptyState` template picker overlay
+  instead of blank 3D scene
+- [x] E2E regression guard (Playwright) — 3 specs covering the empty
+  state → template pick → populated galaxy flow
+- [ ] Live preview iframe — **blocked on sandbox worker
+  `startProcess` hang** (see 2026-04-09 late-evening section).
+  Orchestrator gracefully degrades to "no preview, build still
+  persists files" so this is not a hard blocker for the first user.
+- [ ] R2 bucket setup — content-addressed blob storage for build
+  artifacts
 
 ### Not started (ship after first users)
 - [ ] Billing re-integration / Stripe checkout (§24)
@@ -1486,9 +1701,13 @@ have safe defaults, none are required for Phase 0 to function:**
 The old v2 backlog is deprecated. ~~The old landing page copy is outdated.~~ **Landing page is DONE** (editorial architecture, 2026-04-09).
 
 **Remaining blockers before founding-member launch:**
-1. **Cloudflare Sandbox deploy** — live preview iframe (blocked on Containers Beta enrollment)
+1. **Sandbox worker: `startProcess` hangs** — worker deployed and all
+   contract endpoints 1-5 verified except the dev-server launch
+   itself. See 2026-04-09 late-evening section for current state +
+   next experiments. Orchestrator already degrades gracefully when
+   `CF_SANDBOX_WORKER_URL` is unset. Not a release blocker *if* we
+   ship without live preview iframe; IS a blocker for the hero UX.
 2. **R2 bucket setup** — content-addressed blob storage for builds
 3. **Pricing reconciliation** — landing page says EUR 9.99/mo, original spec EUR 19/mo. Decide.
 4. **§JARVIS Phase 2 (Chat MVP)** — real chat with prompt enhancement, wires into `runBuildForUser`
-5. **Run migrations 0010 + 0011 on Neon** — adds `'chat'` token reason + `ai_call_log` table
-6. **Env vars on Vercel** — see checklist above (Upstash, Neon, Anthropic, R2, JWT, etc.)
+5. **Env vars on Vercel** — see checklist above (Upstash, Neon, Anthropic, R2, JWT, etc.)

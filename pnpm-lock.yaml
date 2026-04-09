@@ -21,8 +21,8 @@ importers:
   apps/sandbox-worker:
     dependencies:
       '@cloudflare/sandbox':
-        specifier: ^0.8.4
-        version: 0.8.4
+        specifier: ^0.8.7
+        version: 0.8.7
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250506.0
@@ -172,6 +172,9 @@ importers:
       '@types/three':
         specifier: ^0.183.1
         version: 0.183.1
+      dotenv:
+        specifier: ^17.4.1
+        version: 17.4.1
       jsdom:
         specifier: ^29.0.1
         version: 29.0.1
@@ -517,8 +520,8 @@ packages:
     resolution: {integrity: sha512-SIOD2DxrRRwQ+jgzlXCqoEFiKOFqaPjhnNTGKXSRLvp1HiOvapLaFG2kEr9dYQTYe8rKrd9uvDUzmAITeNyaHQ==}
     engines: {node: '>=18.0.0'}
 
-  '@cloudflare/sandbox@0.8.4':
-    resolution: {integrity: sha512-VQW0p1o060H+au+ae2N2MfMN5ZLt1ySiM0BQMe4gxBjfbPtO7z5aD2PuX3rfJMh3D8y1D12QryWF2dtBiEcMiQ==}
+  '@cloudflare/sandbox@0.8.7':
+    resolution: {integrity: sha512-3TbzHKdJxSXCkf38ZjfrY4MGBauVWKD4UG2uvSjUgXO//FK6jLbnTAc8MYxSsrD0JDG3I+oY9+PPelsSqgS2wQ==}
     peerDependencies:
       '@openai/agents': ^0.3.3
       '@opencode-ai/sdk': ^1.1.40
@@ -4603,7 +4606,7 @@ snapshots:
 
   '@cloudflare/kv-asset-handler@0.4.2': {}
 
-  '@cloudflare/sandbox@0.8.4':
+  '@cloudflare/sandbox@0.8.7':
     dependencies:
       '@cloudflare/containers': 0.2.3
       aws4fetch: 1.0.20

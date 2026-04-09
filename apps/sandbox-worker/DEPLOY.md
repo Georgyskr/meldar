@@ -1,14 +1,13 @@
 # Sandbox Worker — Production Deployment Runbook
 
-> **READ FIRST:** `PRODUCTION-READINESS.md` (sibling file). This runbook assumes
-> the spike `src/worker.ts` has been rewritten to implement the 5 contract
-> endpoints (`/api/v1/{prewarm,start,write,status,stop}`) with HMAC verification
-> and per-project Durable Object IDs. **Do not run `wrangler deploy` against
-> the spike code as it stands today** — the orchestrator will 404 on every call.
-
 This runbook covers the deploy of the Cloudflare Worker that hosts Meldar v3's
 sandboxed Next.js dev servers, plus the corresponding Vercel env-var setup so
 the orchestrator running on Vercel can talk to it.
+
+The worker at `src/worker.ts` + `src/handler.ts` implements all 5 contract
+endpoints (`/api/v1/{prewarm,start,write,status,stop}`) with HMAC verification,
+per-project Durable Object IDs, structured errors, and a `/healthz` probe.
+44 unit tests cover the handler contract.
 
 You will go through these phases:
 
