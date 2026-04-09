@@ -1,8 +1,9 @@
 'use client'
 
-import { Box, Flex, HStack, styled } from '@styled-system/jsx'
+import { Box, Flex, HStack } from '@styled-system/jsx'
 import { useSetAtom } from 'jotai'
 import type { KanbanCard } from '@/entities/kanban-card'
+import { Text } from '@/shared/ui'
 import { editingCardIdAtom } from '../model/kanban-atoms'
 import { InlineExplainer } from './InlineExplainer'
 import { SubtaskCostBadge } from './SubtaskCostBadge'
@@ -47,16 +48,16 @@ export function SubtaskRow({ subtask }: SubtaskRowProps) {
 			}}
 		>
 			<Flex alignItems="center" gap={2}>
-				<styled.span
+				<Text
 					flex="1"
-					textStyle="body.sm"
+					textStyle="secondary.sm"
 					color="onSurface"
 					overflow="hidden"
 					textOverflow="ellipsis"
 					whiteSpace="nowrap"
 				>
 					{subtask.title}
-				</styled.span>
+				</Text>
 				<HStack gap={2} flexShrink={0}>
 					<SubtaskCostBadge min={subtask.tokenCostEstimateMin} max={subtask.tokenCostEstimateMax} />
 					<SubtaskStatePill state={subtask.state} />

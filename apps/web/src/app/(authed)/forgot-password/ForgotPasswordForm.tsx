@@ -2,6 +2,7 @@
 
 import { Flex, styled } from '@styled-system/jsx'
 import { useCallback, useRef, useState } from 'react'
+import { Text } from '@/shared/ui'
 
 type Status = 'idle' | 'submitting' | 'sent'
 
@@ -60,9 +61,9 @@ export function ForgotPasswordForm() {
 				borderColor="outlineVariant"
 				borderRadius="md"
 			>
-				<styled.p textStyle="body.base" color="onSurface" lineHeight="1.6">
+				<Text as="p" textStyle="secondary.md" color="onSurface">
 					If an account exists for that email, we sent a reset link. Check your inbox.
-				</styled.p>
+				</Text>
 			</styled.div>
 		)
 	}
@@ -76,7 +77,7 @@ export function ForgotPasswordForm() {
 					<styled.label
 						htmlFor="forgot-email"
 						display="block"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						fontWeight="500"
 						color="onSurface"
 						marginBlockEnd={2}
@@ -107,9 +108,9 @@ export function ForgotPasswordForm() {
 				</styled.div>
 
 				{error && (
-					<styled.span
+					<Text
 						role="alert"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						color="red.500"
 						paddingInline={3}
 						paddingBlock={2}
@@ -117,7 +118,7 @@ export function ForgotPasswordForm() {
 						borderRadius="md"
 					>
 						{error}
-					</styled.span>
+					</Text>
 				)}
 
 				<styled.button

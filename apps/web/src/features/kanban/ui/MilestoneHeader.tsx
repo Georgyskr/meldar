@@ -1,8 +1,9 @@
 'use client'
 
-import { Flex, HStack, styled } from '@styled-system/jsx'
+import { Flex, HStack } from '@styled-system/jsx'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { KanbanCard, MilestoneState } from '@/entities/kanban-card'
+import { Text } from '@/shared/ui'
 import { MilestoneStateBadge } from './MilestoneStateBadge'
 
 export type MilestoneHeaderProps = {
@@ -44,15 +45,14 @@ export function MilestoneHeader({
 				}
 			}}
 		>
-			<styled.span color="onSurfaceVariant" marginBlockStart="2px" flexShrink={0}>
+			<Text color="onSurfaceVariant" marginBlockStart="2px" flexShrink={0}>
 				<ChevronIcon size={16} />
-			</styled.span>
+			</Text>
 
 			<Flex direction="column" flex="1" gap={1} minWidth={0}>
 				<HStack gap={2} alignItems="center">
-					<styled.span
-						textStyle="body.md"
-						fontWeight="600"
+					<Text
+						textStyle="secondary.md"
 						color="onSurface"
 						overflow="hidden"
 						textOverflow="ellipsis"
@@ -60,20 +60,20 @@ export function MilestoneHeader({
 						flex="1"
 					>
 						{milestone.title}
-					</styled.span>
+					</Text>
 					<MilestoneStateBadge state={state} />
 				</HStack>
 
 				{milestone.description && (
-					<styled.p textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.4">
+					<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 						{milestone.description}
-					</styled.p>
+					</Text>
 				)}
 
 				{totalCount > 0 && (
-					<styled.span textStyle="body.xs" color="onSurfaceVariant">
+					<Text textStyle="secondary.xs" color="onSurfaceVariant">
 						{doneCount} of {totalCount} done
-					</styled.span>
+					</Text>
 				)}
 			</Flex>
 		</Flex>

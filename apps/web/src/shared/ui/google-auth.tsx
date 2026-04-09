@@ -1,4 +1,5 @@
 import { Box, Flex, styled } from '@styled-system/jsx'
+import { Text } from '@/shared/ui'
 
 export function GoogleButton() {
 	return (
@@ -39,9 +40,9 @@ export function OrDivider() {
 	return (
 		<Flex alignItems="center">
 			<Box flex="1" borderBlockEnd="1px solid" borderColor="outlineVariant" />
-			<styled.span paddingInline={3} color="onSurfaceVariant/60" fontSize="sm">
+			<Text textStyle="primary.xs" paddingInline={3} color="onSurfaceVariant/60">
 				or
-			</styled.span>
+			</Text>
 			<Box flex="1" borderBlockEnd="1px solid" borderColor="outlineVariant" />
 		</Flex>
 	)

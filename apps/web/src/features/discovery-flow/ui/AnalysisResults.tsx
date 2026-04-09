@@ -5,6 +5,7 @@ import { Check, RefreshCw, Share2 } from 'lucide-react'
 import { useState } from 'react'
 import { PurchaseButton } from '@/features/billing'
 import type { DiscoveryAnalysis } from '@/shared/types/discovery'
+import { Heading, Text } from '@/shared/ui'
 import { LockedRecommendationCard } from './LockedRecommendationCard'
 
 type LearningModule = DiscoveryAnalysis['learningModules'][number]
@@ -112,17 +113,17 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 		>
 			{/* Header */}
 			<VStack gap={2} textAlign="center">
-				<styled.h2 textStyle="heading.section" color="onSurface">
+				<Heading textStyle="primary.lg" color="onSurface">
 					We analyzed {analysis.dataProfile.totalSourcesAnalyzed} source
 					{analysis.dataProfile.totalSourcesAnalyzed !== 1 ? 's' : ''}. Here&apos;s what we found.
-				</styled.h2>
+				</Heading>
 			</VStack>
 
 			{/* App recommendations */}
 			<VStack gap={4} width="100%">
-				<styled.h3 textStyle="label.upper" color="onSurfaceVariant/60">
+				<Heading as="h3" textStyle="tertiary.lg" color="onSurfaceVariant/60">
 					Your app recommendations
-				</styled.h3>
+				</Heading>
 
 				{allApps.map((app, i) => {
 					const position = i === 0 ? 'first' : i === 1 ? 'second' : 'third'
@@ -140,9 +141,9 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 
 			{/* Learning path */}
 			<VStack gap={4} width="100%">
-				<styled.h3 textStyle="label.upper" color="onSurfaceVariant/60">
+				<Heading as="h3" textStyle="tertiary.lg" color="onSurfaceVariant/60">
 					Your learning path
-				</styled.h3>
+				</Heading>
 
 				<Grid columns={{ base: 1, sm: 2 }} gap={3} width="100%">
 					{modules.map((mod, i) => (
@@ -187,57 +188,41 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 									style={{ aspectRatio: '16/9' }}
 								>
 									<Flex position="absolute" inset={0} alignItems="center" justifyContent="center">
-										<styled.span
-											fontFamily="heading"
-											fontWeight="700"
-											fontSize="sm"
-											color="onSurfaceVariant/60"
-											letterSpacing="0.02em"
-										>
+										<Text textStyle="primary.xs" color="onSurfaceVariant/60">
 											Coming soon
-										</styled.span>
+										</Text>
 									</Flex>
 
 									{/* FREE badge */}
 									<Box position="absolute" top={2} left={2}>
-										<styled.span
-											fontSize="10px"
-											fontWeight="700"
-											fontFamily="heading"
+										<Text
+											textStyle="tertiary.md"
 											color="white"
 											bg="primary"
 											paddingInline={2}
 											paddingBlock={0.5}
 											borderRadius="sm"
-											textTransform="uppercase"
-											letterSpacing="0.05em"
 										>
 											Free preview
-										</styled.span>
+										</Text>
 									</Box>
 								</Box>
 
 								<VStack gap={1} padding={3} alignItems="flex-start">
-									<styled.span
-										fontFamily="heading"
-										fontWeight="700"
-										fontSize="sm"
-										color="onSurface"
-										lineHeight="1.3"
-									>
+									<Text textStyle="primary.xs" color="onSurface">
 										{mod.title}
-									</styled.span>
+									</Text>
 									{notifiedModules.has(mod.id) ? (
 										<Flex gap={1.5} alignItems="center">
 											<Check size={14} color="#623153" />
-											<styled.span textStyle="body.sm" color="primary" fontWeight="500">
+											<Text textStyle="secondary.sm" color="primary">
 												We&apos;ll let you know
-											</styled.span>
+											</Text>
 										</Flex>
 									) : (
-										<styled.span textStyle="body.sm" color="onSurfaceVariant/60">
+										<Text textStyle="secondary.sm" color="onSurfaceVariant/60">
 											{mod.description}
-										</styled.span>
+										</Text>
 									)}
 								</VStack>
 							</styled.button>
@@ -326,12 +311,12 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
 					>
 						<Flex justifyContent="space-between" alignItems="center">
-							<styled.span fontFamily="heading" fontWeight="800" fontSize="lg" color="white">
+							<Text textStyle="primary.sm" color="white">
 								Start free — 7-day trial
-							</styled.span>
-							<styled.span fontFamily="heading" fontWeight="600" fontSize="sm" color="white/80">
+							</Text>
+							<Text textStyle="primary.xs" color="white/80">
 								EUR 9.99/mo after trial
-							</styled.span>
+							</Text>
 						</Flex>
 					</Box>
 					<VStack gap={4} padding={5} alignItems="stretch">
@@ -343,12 +328,12 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 								'Personalized curriculum',
 							].map((item) => (
 								<Flex key={item} gap={2} alignItems="flex-start">
-									<styled.span color="primary" fontSize="sm" marginBlockStart="2px">
+									<Text textStyle="primary.xs" color="primary" marginBlockStart="2px">
 										&#10003;
-									</styled.span>
-									<styled.span textStyle="body.sm" color="onSurface">
+									</Text>
+									<Text textStyle="secondary.sm" color="onSurface">
 										{item}
-									</styled.span>
+									</Text>
 								</Flex>
 							))}
 						</VStack>
@@ -375,9 +360,9 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 							paddingBlock={4}
 							background="linear-gradient(135deg, #623153 0%, #874a72 100%)"
 						>
-							<styled.span fontFamily="heading" fontWeight="800" fontSize="lg" color="white">
+							<Text textStyle="primary.sm" color="white">
 								Unlock everything
-							</styled.span>
+							</Text>
 						</Box>
 						<VStack gap={4} padding={5} alignItems="stretch">
 							<VStack gap={2} alignItems="flex-start">
@@ -388,12 +373,12 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 									'Personalized build roadmap',
 								].map((item) => (
 									<Flex key={item} gap={2} alignItems="flex-start">
-										<styled.span color="primary" fontSize="sm" marginBlockStart="2px">
+										<Text textStyle="primary.xs" color="primary" marginBlockStart="2px">
 											&#10003;
-										</styled.span>
-										<styled.span textStyle="body.sm" color="onSurface">
+										</Text>
+										<Text textStyle="secondary.sm" color="onSurface">
 											{item}
-										</styled.span>
+										</Text>
 									</Flex>
 								))}
 							</VStack>
@@ -417,52 +402,38 @@ export function AnalysisResults({ analysis, sessionId, onStartOver }: AnalysisRe
 					>
 						{/* Badge */}
 						<Box position="absolute" top={3} right={3} zIndex={1}>
-							<styled.span
-								fontSize="10px"
-								fontWeight="700"
-								fontFamily="heading"
+							<Text
+								textStyle="tertiary.md"
 								color="white"
 								bg="secondary"
 								paddingInline={2.5}
 								paddingBlock={1}
 								borderRadius="md"
-								textTransform="uppercase"
-								letterSpacing="0.05em"
 							>
 								First 500 users
-							</styled.span>
+							</Text>
 						</Box>
 
 						<Box paddingInline={5} paddingBlock={4} bg="surfaceContainerHigh">
 							<VStack gap={0.5} alignItems="flex-start">
-								<styled.span fontFamily="heading" fontWeight="800" fontSize="lg" color="onSurface">
+								<Text textStyle="primary.sm" color="onSurface">
 									Build it for me
-								</styled.span>
+								</Text>
 								<Flex gap={2} alignItems="baseline">
-									<styled.span
-										fontFamily="heading"
-										fontWeight="800"
-										fontSize="xl"
-										color="onSurface"
-									>
+									<Text textStyle="primary.sm" color="onSurface">
 										EUR 79
-									</styled.span>
-									<styled.span
-										fontFamily="body"
-										fontSize="sm"
-										color="onSurfaceVariant/50"
-										textDecoration="line-through"
-									>
+									</Text>
+									<Text textStyle="secondary.sm" color="onSurfaceVariant/50">
 										EUR 149
-									</styled.span>
+									</Text>
 								</Flex>
 							</VStack>
 						</Box>
 						<VStack gap={4} padding={5} alignItems="stretch">
-							<styled.p textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.6">
+							<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 								Handcrafted GitHub repo + Claude Code setup + cover letter + agent config. You take
 								it, you own it, you run it.
-							</styled.p>
+							</Text>
 							<PurchaseButton
 								product="vipBuild"
 								xrayId={sessionId}

@@ -1,6 +1,7 @@
-import { Flex, styled } from '@styled-system/jsx'
+import { Flex } from '@styled-system/jsx'
 import type { ProjectStep } from '@/entities/project-step'
 import { TokenBalancePill } from '@/features/token-economy'
+import { Heading, Text } from '@/shared/ui'
 import { NewProjectButton } from './NewProjectButton'
 import { StepIndicator } from './StepIndicator'
 
@@ -19,28 +20,28 @@ export function WorkspaceTopBar({ projectName, step, tokenBalance }: WorkspaceTo
 			height="48px"
 			paddingInline={5}
 			bg="surface"
-			borderBlockEnd="1px solid"
-			borderColor="outlineVariant/30"
+			borderBlockEnd="2px solid"
+			borderColor="onSurface"
 			flexShrink={0}
 			gap={5}
 		>
 			<Flex alignItems="center" gap={3} minWidth={0}>
-				<styled.span textStyle="body.sm" fontWeight="700" color="onSurface" letterSpacing="-0.01em">
+				<Text textStyle="tertiary.sm" color="primary">
 					meldar
-				</styled.span>
-				<styled.span color="outlineVariant" aria-hidden>
+				</Text>
+				<Text color="onSurface/20" aria-hidden>
 					/
-				</styled.span>
-				<styled.h1
-					textStyle="body.sm"
-					fontWeight="600"
+				</Text>
+				<Heading
+					as="h1"
+					textStyle="primary.xs"
 					color="onSurface"
 					whiteSpace="nowrap"
 					overflow="hidden"
 					textOverflow="ellipsis"
 				>
 					{projectName}
-				</styled.h1>
+				</Heading>
 				<TokenBalancePill balance={tokenBalance} />
 			</Flex>
 			<Flex alignItems="center" gap={4}>

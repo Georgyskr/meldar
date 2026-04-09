@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
+import { usageToCents } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import {
@@ -11,9 +12,16 @@ import {
 	planOutputSchema,
 } from '@/features/project-onboarding/lib/schemas'
 import { verifyToken } from '@/server/identity/jwt'
+import { recordAiCall } from '@/server/lib/ai-call-log'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
 import { insertPlanCards } from '@/server/lib/insert-plan-cards'
 import { checkRateLimit, mustHaveRateLimit, projectsCreateLimit } from '@/server/lib/rate-limit'
+import {
+	checkAllSpendCeilings,
+	recordGlobalSpend,
+	recordUserDailySpend,
+	recordUserHourlySpend,
+} from '@/server/lib/spend-ceiling'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
@@ -28,11 +36,14 @@ const limiter = mustHaveRateLimit(projectsCreateLimit, 'generate-plan')
 type RouteContext = { params: Promise<{ projectId: string }> }
 
 async function callHaiku(
+	userId: string,
+	projectId: string,
 	client: Anthropic,
 	systemPrompt: string,
 	messages: Array<{ role: 'user' | 'assistant'; content: string }>,
 	signal?: AbortSignal,
-): Promise<string> {
+): Promise<{ text: string; cents: number }> {
+	const startedAt = Date.now()
 	const response = await client.messages.create(
 		{
 			model: MODELS.HAIKU,
@@ -43,11 +54,42 @@ async function callHaiku(
 		{ signal, timeout: 25_000 },
 	)
 
+	const inputTokens = response.usage?.input_tokens ?? 0
+	const outputTokens = response.usage?.output_tokens ?? 0
+	const cents = usageToCents(MODELS.HAIKU, { inputTokens, outputTokens })
+
 	const textBlock = response.content.find((block) => block.type === 'text')
 	if (!textBlock || textBlock.type !== 'text') {
+		recordAiCall({
+			userId,
+			projectId,
+			kind: 'generate_plan',
+			model: MODELS.HAIKU,
+			inputTokens,
+			outputTokens,
+			centsCharged: cents,
+			latencyMs: Date.now() - startedAt,
+			stopReason: response.stop_reason ?? null,
+			status: 'error',
+			errorCode: 'no_text_content',
+		})
 		throw new Error('Haiku returned no text content')
 	}
-	return textBlock.text
+
+	recordAiCall({
+		userId,
+		projectId,
+		kind: 'generate_plan',
+		model: MODELS.HAIKU,
+		inputTokens,
+		outputTokens,
+		centsCharged: cents,
+		latencyMs: Date.now() - startedAt,
+		stopReason: response.stop_reason ?? null,
+		status: 'ok',
+	})
+
+	return { text: textBlock.text, cents }
 }
 
 function parseAndValidatePlan(raw: string): PlanOutput | null {
@@ -78,11 +120,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const { success } = await checkRateLimit(limiter, session.userId)
+	const { success, serviceError } = await checkRateLimit(limiter, session.userId, true)
 	if (!success) {
 		return NextResponse.json(
-			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Wait a few minutes.' } },
-			{ status: 429 },
+			{
+				error: {
+					code: serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED',
+					message: serviceError
+						? 'Rate limiter is temporarily unavailable. Try again shortly.'
+						: 'Too many requests. Wait a few minutes.',
+				},
+			},
+			{ status: serviceError ? 503 : 429 },
 		)
 	}
 
@@ -118,9 +167,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
+	const spendCheck = await checkAllSpendCeilings(session.userId)
+	if (!spendCheck.allowed) {
+		const status =
+			spendCheck.reason === 'user_hourly' ? 429 : spendCheck.reason === 'user_daily' ? 402 : 503
+		return NextResponse.json(
+			{
+				error: { code: spendCheck.reason.toUpperCase(), message: spendCheck.userMessage },
+			},
+			{ status },
+		)
+	}
+
 	const client = getAnthropicClient()
 
-	const plan = await generatePlanWithRetry(client, parsed.data.messages, request.signal)
+	const plan = await generatePlanWithRetry(
+		session.userId,
+		projectId,
+		client,
+		parsed.data.messages,
+		request.signal,
+	)
 	if (!plan) {
 		return NextResponse.json(
 			{ error: { code: 'GENERATION_FAILED', message: 'Failed to generate a valid build plan' } },
@@ -141,19 +208,49 @@ export async function POST(request: NextRequest, context: RouteContext) {
 }
 
 async function generatePlanWithRetry(
+	userId: string,
+	projectId: string,
 	client: Anthropic,
 	messages: Array<{ role: 'user' | 'assistant'; content: string }>,
 	signal?: AbortSignal,
 ): Promise<PlanOutput | null> {
-	const raw = await callHaiku(client, PLAN_GENERATION_SYSTEM_PROMPT, messages, signal)
-	const plan = parseAndValidatePlan(raw)
+	const first = await callHaiku(
+		userId,
+		projectId,
+		client,
+		PLAN_GENERATION_SYSTEM_PROMPT,
+		messages,
+		signal,
+	)
+	Promise.all([
+		recordGlobalSpend(first.cents),
+		recordUserHourlySpend(userId, first.cents),
+		recordUserDailySpend(userId, first.cents),
+	]).catch((err) => {
+		console.error('[generate-plan] spend recording failed:', err)
+	})
+	const plan = parseAndValidatePlan(first.text)
 	if (plan) return plan
 
 	const retryMessages = [
 		...messages,
-		{ role: 'assistant' as const, content: raw },
+		{ role: 'assistant' as const, content: first.text },
 		{ role: 'user' as const, content: PLAN_RETRY_PROMPT },
 	]
-	const retryRaw = await callHaiku(client, PLAN_GENERATION_SYSTEM_PROMPT, retryMessages, signal)
-	return parseAndValidatePlan(retryRaw)
+	const retry = await callHaiku(
+		userId,
+		projectId,
+		client,
+		PLAN_GENERATION_SYSTEM_PROMPT,
+		retryMessages,
+		signal,
+	)
+	Promise.all([
+		recordGlobalSpend(retry.cents),
+		recordUserHourlySpend(userId, retry.cents),
+		recordUserDailySpend(userId, retry.cents),
+	]).catch((err) => {
+		console.error('[generate-plan] spend recording failed:', err)
+	})
+	return parseAndValidatePlan(retry.text)
 }

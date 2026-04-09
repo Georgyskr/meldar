@@ -1,8 +1,9 @@
 'use client'
 
-import { Box, Flex, styled } from '@styled-system/jsx'
+import { Box, Flex } from '@styled-system/jsx'
 import { Coins } from 'lucide-react'
 import { useState } from 'react'
+import { Text } from '@/shared/ui'
 
 export type TokenBalancePillProps = {
 	readonly balance: number
@@ -37,14 +38,9 @@ export function TokenBalancePill({ balance }: TokenBalancePillProps) {
 				aria-label={`${balance} tokens remaining`}
 			>
 				<Coins size={14} aria-hidden />
-				<styled.span
-					textStyle="body.xs"
-					fontWeight="600"
-					color={balanceColor(balance)}
-					whiteSpace="nowrap"
-				>
+				<Text textStyle="secondary.xs" color={balanceColor(balance)} whiteSpace="nowrap">
 					{balance} tokens
-				</styled.span>
+				</Text>
 			</Flex>
 
 			{showTooltip && (
@@ -64,11 +60,10 @@ export function TokenBalancePill({ balance }: TokenBalancePillProps) {
 					boxShadow="lg"
 					pointerEvents="none"
 				>
-					<styled.p textStyle="body.xs" lineHeight="1.5">
+					<Text as="p" textStyle="secondary.xs">
 						Tokens are used when Meldar builds features for you. You have{' '}
-						<styled.span fontWeight="700">{balance} tokens</styled.span>. You earn 15 free tokens
-						daily.
-					</styled.p>
+						<Text textStyle="primary.xs">{balance} tokens</Text>. You earn 15 free tokens daily.
+					</Text>
 				</Box>
 			)}
 		</Box>

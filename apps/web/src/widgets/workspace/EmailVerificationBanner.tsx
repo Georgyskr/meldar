@@ -2,6 +2,7 @@
 
 import { Flex, styled } from '@styled-system/jsx'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Text } from '@/shared/ui'
 
 type BannerStatus = 'visible' | 'resending' | 'sent' | 'dismissed'
 
@@ -47,33 +48,33 @@ export function EmailVerificationBanner({ email, verified }: { email: string; ve
 			alignItems="center"
 			justifyContent="space-between"
 			gap={4}
-			paddingInline={4}
+			paddingInline={5}
 			paddingBlock={3}
 			bg="amber.50"
 			border="1px solid"
 			borderColor="amber.200"
-			borderRadius="md"
 			marginBlockEnd={6}
 			flexWrap="wrap"
 		>
-			<styled.p textStyle="body.sm" color="amber.900" flex="1" minWidth="0">
+			<Text as="p" textStyle="secondary.sm" color="amber.900" flex="1" minWidth="0">
 				Verify your email to keep your account safe. We sent a link to{' '}
-				<styled.strong fontWeight="600">{email}</styled.strong>.
-			</styled.p>
+				<Text textStyle="primary.xs" as="strong">
+					{email}
+				</Text>
+				.
+			</Text>
 
 			<Flex alignItems="center" gap={3} flexShrink={0}>
 				{status === 'sent' ? (
-					<styled.span textStyle="body.sm" color="green.700" fontWeight="600">
+					<Text textStyle="secondary.sm" color="green.700">
 						Sent!
-					</styled.span>
+					</Text>
 				) : (
 					<styled.button
 						type="button"
 						onClick={() => handleResend()}
 						disabled={status === 'resending'}
-						textStyle="body.sm"
 						color="amber.900"
-						fontWeight="600"
 						textDecoration="underline"
 						bg="transparent"
 						border="none"
@@ -84,10 +85,11 @@ export function EmailVerificationBanner({ email, verified }: { email: string; ve
 							outline: '2px solid',
 							outlineColor: 'amber.500',
 							outlineOffset: '2px',
-							borderRadius: 'sm',
 						}}
 					>
-						{status === 'resending' ? 'Sending...' : 'Resend email'}
+						<Text textStyle="primary.xs" color="amber.900">
+							{status === 'resending' ? 'Sending...' : 'Resend email'}
+						</Text>
 					</styled.button>
 				)}
 
@@ -99,8 +101,6 @@ export function EmailVerificationBanner({ email, verified }: { email: string; ve
 					border="none"
 					cursor="pointer"
 					color="amber.400"
-					fontSize="lg"
-					lineHeight="1"
 					paddingInline={1}
 					paddingBlock={1}
 					_hover={{ color: 'amber.600' }}
@@ -108,7 +108,6 @@ export function EmailVerificationBanner({ email, verified }: { email: string; ve
 						outline: '2px solid',
 						outlineColor: 'amber.500',
 						outlineOffset: '2px',
-						borderRadius: 'sm',
 					}}
 				>
 					&times;

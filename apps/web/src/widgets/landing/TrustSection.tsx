@@ -1,139 +1,216 @@
 import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
 import { Check, Trash2, Unlock, X } from 'lucide-react'
+import { EditorialEyebrow, EditorialPlate, Heading, Text } from '@/shared/ui'
 
 export function TrustSection() {
 	return (
 		<styled.section
-			paddingBlock={20}
-			paddingInline={8}
-			bg="primary/3"
-			overflow="hidden"
+			paddingBlock={{ base: 20, md: 28 }}
+			paddingInline={{ base: 5, md: 12 }}
+			bg="surface"
 			position="relative"
+			overflow="hidden"
 		>
-			<Box
-				position="absolute"
-				right="-80px"
-				top="-80px"
-				width="384px"
-				height="384px"
-				background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-				borderRadius="full"
-				filter="blur(120px)"
-				opacity={0.08}
-			/>
+			<Box maxWidth="breakpoint-xl" marginInline="auto" position="relative">
+				<Box marginBlockEnd={{ base: 12, md: 16 }}>
+					<EditorialEyebrow number="007" label="Your stuff stays your stuff" />
+				</Box>
 
-			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12} position="relative" zIndex={1}>
-				<styled.h2 textStyle="heading.section" textAlign="center" color="onSurface">
-					Your stuff stays your stuff
-				</styled.h2>
+				<Grid
+					gridTemplateColumns={{ base: '1fr', md: '2fr 3fr' }}
+					gap={{ base: 12, md: 20 }}
+					alignItems="start"
+				>
+					<Box>
+						<Heading as="h2" textStyle="primary.xl" color="onSurface" marginBlockEnd={8}>
+							We are{' '}
+							<Text as="em" textStyle="italic.lg" color="primary">
+								not
+							</Text>{' '}
+							the product.{' '}
+							<Text as="em" textStyle="italic.lg" color="primary">
+								You
+							</Text>{' '}
+							are not the product.
+						</Heading>
+						<Box display={{ base: 'none', md: 'block' }}>
+							<EditorialPlate
+								src="/brand/editorial-plate-05-trust.jpg"
+								plateNumber="05"
+								caption="The shelter."
+								aspectRatio="4/5"
+							/>
+						</Box>
+					</Box>
 
-				<Grid columns={{ base: 1, md: 2 }} gap={{ base: 8, md: 12 }} width="100%">
-					<VStack alignItems="flex-start" gap={6}>
-						<VStack alignItems="flex-start" gap={3}>
-							<styled.h3 fontFamily="heading" fontSize="lg" fontWeight="700">
-								What we can see
-							</styled.h3>
-							<SeeItem positive>Which apps you switch between during the day</SeeItem>
-							<SeeItem positive>How often you repeat the same task</SeeItem>
-							<SeeItem positive>Patterns in how you spend your time</SeeItem>
-						</VStack>
-						<VStack alignItems="flex-start" gap={3}>
-							<styled.h3 fontFamily="heading" fontSize="lg" fontWeight="700">
-								What we can never see
-							</styled.h3>
-							<SeeItem positive={false}>What you type, read, or look at</SeeItem>
-							<SeeItem positive={false}>Your passwords, messages, or files</SeeItem>
-							<SeeItem positive={false}>Your screen. We don&apos;t record anything.</SeeItem>
-						</VStack>
-					</VStack>
+					<VStack alignItems="stretch" gap={0}>
+						{/* What we see */}
+						<SeeBlock
+							number="I"
+							title="What we can see"
+							tone="positive"
+							items={[
+								'Which apps you switch between during the day',
+								'How often you repeat the same task',
+								'Patterns in how you spend your time',
+							]}
+						/>
+						{/* What we never see */}
+						<SeeBlock
+							number="II"
+							title="What we never see"
+							tone="negative"
+							items={[
+								'What you type, read, or look at',
+								'Your passwords, messages, or files',
+								"Your screen. We don't record anything.",
+							]}
+						/>
 
-					<VStack alignItems="flex-start" gap={6}>
-						<TrustBlock
+						<TrustRow
+							number="III"
 							icon={Unlock}
 							title="Leave whenever you want"
 							body="Your apps are yours. Your work is yours. Take it all, delete your account, no questions asked. Nothing breaks when you go."
 						/>
-						<TrustBlock
+						<TrustRow
+							number="IV"
 							icon={Trash2}
 							title="Delete everything in one click"
 							body="Not just deactivate. Actually gone. We erase your data within 30 days. European law requires it, and we like it that way."
+							last
 						/>
 					</VStack>
 				</Grid>
 
-				<Flex
-					direction="column"
-					alignItems="center"
-					gap={3}
-					paddingBlockStart={12}
-					borderBlockStart="1px solid"
-					borderColor="outlineVariant/15"
-					width="100%"
+				{/* Signature block */}
+				<Box
+					marginBlockStart={{ base: 16, md: 20 }}
+					paddingBlock={8}
+					paddingInline={{ base: 6, md: 10 }}
+					borderTop="2px solid"
+					borderBottom="1px solid"
+					borderColor="onSurface"
+					bg="surface"
 				>
-					<styled.p textStyle="body.base" color="onSurface" fontWeight="600" textAlign="center">
-						Built by one person who uses the same tools you&apos;re about to learn.
-					</styled.p>
-					<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
-						We don&apos;t keep your exports. We don&apos;t reuse your data. We read it, show you the
-						results, and throw it away.
-					</styled.p>
-					<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
-						Your screenshot never leaves your phone. We read the text from it right in your browser.
-						The image stays with you.
-					</styled.p>
-				</Flex>
-			</VStack>
+					<Grid
+						gridTemplateColumns={{ base: '1fr', md: 'auto 1fr' }}
+						gap={{ base: 4, md: 10 }}
+						alignItems="center"
+					>
+						<Text textStyle="tertiary.md" color="primary">
+							The promise —
+						</Text>
+						<Text as="p" textStyle="italic.lg" color="onSurface">
+							Made by one person who uses the same tools you&apos;re about to learn. We read the
+							file, show you the results, throw it away. Your screenshot never leaves your phone.
+						</Text>
+					</Grid>
+				</Box>
+			</Box>
 		</styled.section>
 	)
 }
 
-function SeeItem({ positive, children }: { positive: boolean; children: React.ReactNode }) {
+function SeeBlock({
+	number,
+	title,
+	tone,
+	items,
+}: {
+	number: string
+	title: string
+	tone: 'positive' | 'negative'
+	items: string[]
+}) {
 	return (
-		<Flex gap={3} alignItems="flex-start">
-			{positive ? (
-				<Check
-					size={18}
-					color="#22C55E"
-					strokeWidth={2}
-					style={{ flexShrink: 0, marginTop: 3 }}
-					aria-hidden="true"
-				/>
-			) : (
-				<X
-					size={18}
-					color="#ba1a1a"
-					strokeWidth={2}
-					style={{ flexShrink: 0, marginTop: 3 }}
-					aria-hidden="true"
-				/>
-			)}
-			<styled.p textStyle="body.base" color="onSurfaceVariant">
-				{children}
-			</styled.p>
-		</Flex>
+		<Box
+			paddingBlock={{ base: 6, md: 8 }}
+			borderTop="2px solid"
+			borderColor="onSurface"
+			transition="all 0.35s ease"
+			_hover={{ bg: 'primary/3' }}
+		>
+			<Flex alignItems="baseline" gap={4} marginBlockEnd={5}>
+				<Text textStyle="display.sm" color="primary">
+					§{number}
+				</Text>
+				<Heading as="h3" textStyle="primary.md" color="onSurface">
+					{title}
+				</Heading>
+			</Flex>
+			<VStack alignItems="stretch" gap={3} paddingInlineStart={{ base: 0, md: 20 }}>
+				{items.map((item) => (
+					<Flex key={item} gap={3} alignItems="flex-start">
+						{tone === 'positive' ? (
+							<Check
+								size={18}
+								color="#22C55E"
+								strokeWidth={2}
+								style={{ flexShrink: 0, marginTop: 3 }}
+								aria-hidden="true"
+							/>
+						) : (
+							<X
+								size={18}
+								color="#ba1a1a"
+								strokeWidth={2}
+								style={{ flexShrink: 0, marginTop: 3 }}
+								aria-hidden="true"
+							/>
+						)}
+						<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
+							{item}
+						</Text>
+					</Flex>
+				))}
+			</VStack>
+		</Box>
 	)
 }
 
-function TrustBlock({
+function TrustRow({
+	number,
 	icon: Icon,
 	title,
 	body,
+	last = false,
 }: {
+	number: string
 	icon: typeof Unlock
 	title: string
 	body: string
+	last?: boolean
 }) {
 	return (
-		<VStack alignItems="flex-start" gap={2}>
-			<Flex alignItems="center" gap={2}>
-				<Icon size={20} color="#623153" strokeWidth={1.5} aria-hidden="true" />
-				<styled.h3 fontFamily="heading" fontSize="md" fontWeight="700">
-					{title}
-				</styled.h3>
+		<Box
+			paddingBlock={{ base: 6, md: 8 }}
+			borderTop="2px solid"
+			borderBottom={last ? '2px solid' : 'none'}
+			borderColor="onSurface"
+			transition="all 0.35s ease"
+			_hover={{ bg: 'primary/3' }}
+		>
+			<Flex alignItems="baseline" gap={4} marginBlockEnd={3}>
+				<Text textStyle="display.sm" color="primary">
+					§{number}
+				</Text>
+				<Flex alignItems="center" gap={3}>
+					<Icon size={22} color="#623153" strokeWidth={1.5} aria-hidden="true" />
+					<Heading as="h3" textStyle="primary.md" color="onSurface">
+						{title}
+					</Heading>
+				</Flex>
 			</Flex>
-			<styled.p textStyle="body.base" color="onSurfaceVariant">
+			<Text
+				as="p"
+				textStyle="secondary.md"
+				color="onSurfaceVariant"
+				paddingInlineStart={{ base: 0, md: 20 }}
+				maxWidth="640px"
+			>
 				{body}
-			</styled.p>
-		</VStack>
+			</Text>
+		</Box>
 	)
 }

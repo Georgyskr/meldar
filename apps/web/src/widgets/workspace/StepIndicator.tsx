@@ -1,5 +1,6 @@
-import { Box, Flex, styled } from '@styled-system/jsx'
+import { Box, Flex } from '@styled-system/jsx'
 import type { ProjectStep } from '@/entities/project-step'
+import { Text } from '@/shared/ui'
 import { computeStepWidthPct } from './lib/step-progress'
 
 export type StepIndicatorProps = {
@@ -14,8 +15,7 @@ export function StepIndicator({ step }: StepIndicatorProps) {
 			<Box
 				width="200px"
 				height="2px"
-				borderRadius="full"
-				background="outlineVariant/40"
+				background="onSurface/10"
 				position="relative"
 				overflow="hidden"
 				flexShrink={0}
@@ -26,17 +26,14 @@ export function StepIndicator({ step }: StepIndicatorProps) {
 					insetBlockStart={0}
 					insetBlockEnd={0}
 					width={widthPct}
-					background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
+					bg="primary"
+					transition="width 0.3s ease"
+					style={{ transformOrigin: 'left', animation: 'inkProgress 0.8s ease-out both' }}
 				/>
 			</Box>
-			<styled.span
-				textStyle="body.xs"
-				color="onSurfaceVariant"
-				fontWeight="500"
-				whiteSpace="nowrap"
-			>
+			<Text textStyle="tertiary.sm" color="onSurfaceVariant" whiteSpace="nowrap">
 				{step.label} · {step.current} of {step.total}
-			</styled.span>
+			</Text>
 		</Flex>
 	)
 }

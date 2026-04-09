@@ -4,6 +4,7 @@ import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { Mail } from 'lucide-react'
 import { trackEvent } from '@/features/analytics'
 import { useEmailSubscribe } from '@/shared/lib/use-email-subscribe'
+import { Text } from '@/shared/ui'
 
 export function ResultEmailCapture({ xrayId }: { xrayId: string }) {
 	const { email, setEmail, status, subscribe } = useEmailSubscribe()
@@ -39,16 +40,16 @@ export function ResultEmailCapture({ xrayId }: { xrayId: string }) {
 						justifyContent="center"
 						marginInline="auto"
 					>
-						<styled.span fontSize="lg" color="primary" fontWeight="700">
+						<Text textStyle="primary.sm" color="primary">
 							&#10003;
-						</styled.span>
+						</Text>
 					</Box>
-					<styled.p textStyle="body.sm" fontWeight="600" color="onSurface" fontFamily="heading">
+					<Text as="p" textStyle="secondary.sm" color="onSurface">
 						You&apos;re in.
-					</styled.p>
-					<styled.p textStyle="body.sm" color="onSurfaceVariant">
+					</Text>
+					<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 						We&apos;ll send you weekly tips to take back your time.
-					</styled.p>
+					</Text>
 				</VStack>
 			</Box>
 		)
@@ -81,12 +82,12 @@ export function ResultEmailCapture({ xrayId }: { xrayId: string }) {
 						<Mail size={16} color="#623153" strokeWidth={1.5} />
 					</Box>
 					<VStack gap={0} alignItems="flex-start">
-						<styled.p textStyle="body.sm" fontWeight="600" color="onSurface" fontFamily="heading">
+						<Text as="p" textStyle="secondary.sm" color="onSurface">
 							Save your X-Ray
-						</styled.p>
-						<styled.p textStyle="body.sm" color="onSurfaceVariant/70">
+						</Text>
+						<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant/70">
 							Get weekly tips to cut your screen time
-						</styled.p>
+						</Text>
 					</VStack>
 				</Flex>
 
@@ -136,9 +137,9 @@ export function ResultEmailCapture({ xrayId }: { xrayId: string }) {
 						</styled.button>
 					</Flex>
 					{status === 'error' && (
-						<styled.p textStyle="body.sm" color="red.500" marginBlockStart={2}>
+						<Text as="p" textStyle="secondary.sm" color="red.500" marginBlockStart={2}>
 							Something went wrong. Try again.
-						</styled.p>
+						</Text>
 					)}
 				</styled.form>
 			</VStack>

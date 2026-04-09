@@ -14,6 +14,7 @@ import { Brain, Check, ChevronDown, Lock, PenLine } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { painLibrary } from '@/entities/pain-points/model/data'
 import { preloadOcr } from '@/features/discovery-flow/lib/ocr-client'
+import { Heading, Text } from '@/shared/ui'
 
 export type ProfileData = {
 	occupation: string
@@ -221,16 +222,9 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 		<VStack gap={4} width="100%">
 			{/* Top bar: step counter + ADHD toggle */}
 			<Flex width="100%" justifyContent="space-between" alignItems="center">
-				<styled.span
-					fontSize="xs"
-					fontWeight="600"
-					color="onSurfaceVariant/40"
-					textTransform="uppercase"
-					letterSpacing="0.06em"
-					data-testid="step-counter"
-				>
+				<Text textStyle="tertiary.lg" color="onSurfaceVariant/40" data-testid="step-counter">
 					Step {Math.min(activeSlot + 1, visibleStepCount)} of {visibleStepCount}
-				</styled.span>
+				</Text>
 				<styled.button
 					onClick={() => setAdhdMode((v) => !v)}
 					display="flex"
@@ -281,9 +275,9 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 						style={{ animation: 'focusVideoGradient 6s ease infinite' }}
 					/>
 					<Flex position="absolute" inset={0} alignItems="center" justifyContent="center">
-						<styled.span fontSize="xs" color="white/25" fontWeight="500">
+						<Text textStyle="secondary.xs" color="white/25">
 							satisfying video goes here
-						</styled.span>
+						</Text>
 					</Flex>
 				</Box>
 			)}
@@ -320,9 +314,9 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 							paddingBlock={1}
 							marginBlockEnd={boardExpanded ? 2 : 0}
 						>
-							<styled.span fontSize="xs" color="white/40">
+							<Text textStyle="secondary.xs" color="white/40">
 								{lockedCount}/{SLOTS.length} locked
-							</styled.span>
+							</Text>
 							<ChevronDown
 								size={14}
 								color="rgba(255,255,255,0.3)"
@@ -354,30 +348,25 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 									transition="all 0.2s ease"
 									style={state.locked ? { animation: 'bouncySelect 0.25s ease' } : undefined}
 								>
-									<styled.span
-										fontSize="10px"
-										fontWeight="700"
+									<Text
+										textStyle="tertiary.md"
 										color={state.locked ? '#FFB876' : isActive ? 'white/40' : 'white/15'}
-										textTransform="uppercase"
-										letterSpacing="0.08em"
 										width="65px"
 										flexShrink={0}
 										data-testid={`slot-label-${slot.id}`}
 									>
 										{slot.label}
-									</styled.span>
-									<styled.span
+									</Text>
+									<Text
+										textStyle="primary.xs"
 										flex={1}
-										fontSize="xs"
-										fontWeight={state.locked ? '600' : '400'}
-										fontFamily="heading"
 										color={state.locked ? 'white/90' : 'white/15'}
 										overflow="hidden"
 										textOverflow="ellipsis"
 										whiteSpace="nowrap"
 									>
 										{state.locked ? state.value : isActive ? '\u25B6' : '\u2022\u2022\u2022'}
-									</styled.span>
+									</Text>
 									{state.locked && <Lock size={10} color="#FFB876" />}
 								</Flex>
 							)
@@ -407,25 +396,12 @@ export function QuickProfile({ onComplete }: QuickProfileProps) {
 							style={{ animation: 'meldarFadeSlideUp 0.25s ease-out both' }}
 						>
 							<VStack gap={1}>
-								<styled.span
-									fontSize="xs"
-									fontWeight="700"
-									color="primary"
-									textTransform="uppercase"
-									letterSpacing="0.08em"
-								>
+								<Text textStyle="tertiary.lg" color="primary">
 									{config.label}
-								</styled.span>
-								<styled.h2
-									fontFamily="heading"
-									fontSize={{ base: 'lg', md: 'xl' }}
-									fontWeight="800"
-									color="onSurface"
-									lineHeight="1.2"
-									data-testid="step-prompt"
-								>
+								</Text>
+								<Heading textStyle="primary.sm" color="onSurface" data-testid="step-prompt">
 									{config.prompt}
-								</styled.h2>
+								</Heading>
 							</VStack>
 
 							<Flex gap={2} flexWrap="wrap">

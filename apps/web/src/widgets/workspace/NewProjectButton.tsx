@@ -4,6 +4,7 @@ import { Box, styled } from '@styled-system/jsx'
 import { useRouter } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
 import { z } from 'zod'
+import { Text } from '@/shared/ui'
 
 const createProjectResponseSchema = z.object({
 	projectId: z.string().uuid(),
@@ -63,27 +64,25 @@ export function NewProjectButton() {
 				disabled={busy}
 				paddingInline={4}
 				paddingBlock={1.5}
-				fontSize="xs"
-				fontWeight="600"
-				fontFamily="heading"
-				background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-				color="white"
-				borderRadius="md"
+				bg="onSurface"
+				color="surface"
 				border="none"
 				cursor={busy ? 'wait' : 'pointer'}
 				opacity={busy ? 0.6 : 1}
-				transition="opacity 0.2s ease"
-				_hover={{ opacity: busy ? 0.6 : 0.9 }}
+				transition="all 0.2s ease"
+				_hover={{ bg: 'primary', opacity: busy ? 0.6 : 1 }}
 				_focusVisible={{
 					outline: '2px solid',
 					outlineColor: 'primary',
 					outlineOffset: '2px',
 				}}
 			>
-				{status === 'creating' ? 'Creating…' : '+ New project'}
+				<Text textStyle="button.sm" color="surface">
+					{status === 'creating' ? 'Creating…' : '+ New project'}
+				</Text>
 			</styled.button>
 			{error && (
-				<styled.span
+				<Text
 					role="alert"
 					position="absolute"
 					insetBlockStart="100%"
@@ -93,13 +92,13 @@ export function NewProjectButton() {
 					paddingBlock={2}
 					bg="surfaceContainerHigh"
 					color="red.500"
-					textStyle="body.xs"
-					borderRadius="md"
+					textStyle="secondary.xs"
 					whiteSpace="nowrap"
-					boxShadow="0 4px 12px rgba(0,0,0,0.08)"
+					border="1px solid"
+					borderColor="onSurface/10"
 				>
 					{error}
-				</styled.span>
+				</Text>
 			)}
 		</Box>
 	)

@@ -12,7 +12,7 @@ export function RoadmapButton() {
 			<styled.button
 				type="button"
 				onClick={() => setOpen(true)}
-				textStyle="body.xs"
+				textStyle="secondary.xs"
 				color="onSurface"
 				fontWeight="600"
 				bg="transparent"

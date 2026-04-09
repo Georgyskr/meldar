@@ -1,59 +1,14 @@
-import type { SQL } from 'drizzle-orm'
-import { PgDialect } from 'drizzle-orm/pg-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockGetDb, recorder, pushRows } = vi.hoisted(() => {
-	type Recorder = {
-		getDbCalls: number
-		fromTables: unknown[]
-		whereArgs: unknown[]
-		orderByArgs: unknown[][]
-		clear(): void
+const { mockGetDb, mockExecute, setExecuteResult } = vi.hoisted(() => {
+	let nextResult: { rows: unknown[] } = { rows: [] }
+	const setExecuteResult = (rows: unknown[]) => {
+		nextResult = { rows }
 	}
-	const recorder: Recorder = {
-		getDbCalls: 0,
-		fromTables: [],
-		whereArgs: [],
-		orderByArgs: [],
-		clear() {
-			this.getDbCalls = 0
-			this.fromTables = []
-			this.whereArgs = []
-			this.orderByArgs = []
-		},
-	}
-
-	const rowsQueue: unknown[][] = []
-	const pushRows = (rows: unknown[]) => rowsQueue.push(rows)
-
-	const makeChain = (): Record<string, unknown> => {
-		const chain: Record<string, unknown> = {
-			from: (table: unknown) => {
-				recorder.fromTables.push(table)
-				return chain
-			},
-			where: (arg: unknown) => {
-				recorder.whereArgs.push(arg)
-				return chain
-			},
-			orderBy: (...args: unknown[]) => {
-				recorder.orderByArgs.push(args)
-				return Promise.resolve(rowsQueue.shift() ?? [])
-			},
-		}
-		return chain
-	}
-
-	const fakeDb = {
-		select: () => makeChain(),
-	}
-
-	const mockGetDb = vi.fn(() => {
-		recorder.getDbCalls += 1
-		return fakeDb
-	})
-
-	return { mockGetDb, recorder, pushRows }
+	const mockExecute = vi.fn(async () => nextResult)
+	const fakeDb = { execute: mockExecute }
+	const mockGetDb = vi.fn(() => fakeDb)
+	return { mockGetDb, mockExecute, setExecuteResult }
 })
 
 vi.mock('@meldar/db/client', () => ({
@@ -62,77 +17,117 @@ vi.mock('@meldar/db/client', () => ({
 
 import { listUserProjects } from '../list-user-projects'
 
-const dialect = new PgDialect()
-
-function renderSql(value: unknown): string {
-	const { sql } = dialect.sqlToQuery(value as SQL)
-	return sql
-}
-
-function renderQuery(value: unknown): { sql: string; params: unknown[] } {
-	const { sql, params } = dialect.sqlToQuery(value as SQL)
-	return { sql, params }
-}
-
 describe('listUserProjects', () => {
 	beforeEach(() => {
-		recorder.clear()
 		mockGetDb.mockClear()
+		mockExecute.mockClear()
+		setExecuteResult([])
 	})
 
 	afterEach(() => {
 		vi.clearAllMocks()
 	})
 
-	it('calls getDb exactly once per invocation', async () => {
+	it('calls getDb and db.execute exactly once per invocation', async () => {
 		await listUserProjects('user_42')
-		expect(recorder.getDbCalls).toBe(1)
+		expect(mockGetDb).toHaveBeenCalledTimes(1)
+		expect(mockExecute).toHaveBeenCalledTimes(1)
 	})
 
-	it('issues a SELECT against the projects table', async () => {
+	it('passes the userId as a bound parameter in the SQL', async () => {
 		await listUserProjects('user_42')
-		expect(recorder.fromTables).toHaveLength(1)
-		const table = recorder.fromTables[0]
-		expect(table).toBeDefined()
-		expect(typeof table).toBe('object')
+		const sqlArg = (mockExecute.mock.calls[0] as unknown[])[0] as { queryChunks: unknown[] }
+		const stringified = JSON.stringify(sqlArg)
+		expect(stringified).toContain('user_42')
 	})
 
-	it('scopes the WHERE clause to the supplied userId and excludes soft-deleted rows', async () => {
+	it('generates SQL that filters by user_id and deleted_at', async () => {
 		await listUserProjects('user_42')
-		expect(recorder.whereArgs).toHaveLength(1)
-		const { sql: whereSql, params } = renderQuery(recorder.whereArgs[0])
-		expect(whereSql).toMatch(/"user_id"/)
-		expect(whereSql.toLowerCase()).toMatch(/"deleted_at"\s+is\s+null/)
-		expect(whereSql.toLowerCase()).toContain('and')
-		expect(params).toContain('user_42')
+		const sqlArg = (mockExecute.mock.calls[0] as unknown[])[0] as { queryChunks: unknown[] }
+		const sqlText = sqlArg.queryChunks
+			.filter((chunk) => typeof chunk === 'object' && chunk && 'value' in chunk)
+			.map((chunk) => (chunk as { value: string[] }).value.join(''))
+			.join('')
+		expect(sqlText.toLowerCase()).toContain('user_id')
+		expect(sqlText.toLowerCase()).toContain('deleted_at is null')
 	})
 
-	it('orders by last_build_at desc nulls last, then created_at desc', async () => {
+	it('generates SQL that orders by last_build_at desc nulls last', async () => {
 		await listUserProjects('user_42')
-		expect(recorder.orderByArgs).toHaveLength(1)
-		const args = recorder.orderByArgs[0]
-		expect(args.length).toBeGreaterThanOrEqual(2)
-		const firstArg = renderSql(args[0]).toLowerCase()
-		expect(firstArg).toContain('"last_build_at"')
-		expect(firstArg).toContain('desc')
-		expect(firstArg).toContain('nulls last')
-		const secondArg = renderSql(args[1]).toLowerCase()
-		expect(secondArg).toContain('"created_at"')
-		expect(secondArg).toContain('desc')
+		const sqlArg = (mockExecute.mock.calls[0] as unknown[])[0] as { queryChunks: unknown[] }
+		const sqlText = sqlArg.queryChunks
+			.filter((chunk) => typeof chunk === 'object' && chunk && 'value' in chunk)
+			.map((chunk) => (chunk as { value: string[] }).value.join(''))
+			.join('')
+			.toLowerCase()
+		expect(sqlText).toContain('last_build_at desc nulls last')
+		expect(sqlText).toContain('created_at desc')
 	})
 
-	it('returns the rows the database produced, untouched', async () => {
-		const rows = [
+	it('generates SQL that uses LATERAL joins (no row multiplication)', async () => {
+		await listUserProjects('user_42')
+		const sqlArg = (mockExecute.mock.calls[0] as unknown[])[0] as { queryChunks: unknown[] }
+		const sqlText = sqlArg.queryChunks
+			.filter((chunk) => typeof chunk === 'object' && chunk && 'value' in chunk)
+			.map((chunk) => (chunk as { value: string[] }).value.join(''))
+			.join('')
+			.toLowerCase()
+		expect(sqlText).toContain('left join lateral')
+		expect(sqlText).toContain('limit 1')
+	})
+
+	it('returns enriched rows with progress fields coerced to numbers', async () => {
+		setExecuteResult([
 			{
 				id: '550e8400-e29b-41d4-a716-446655440000',
 				name: 'Alpha',
-				lastBuildAt: new Date('2026-04-06T10:00:00Z'),
-				previewUrl: 'https://preview.example.com/alpha',
-				createdAt: new Date('2026-04-05T10:00:00Z'),
+				last_build_at: '2026-04-06T10:00:00Z',
+				preview_url: 'https://preview.example.com/alpha',
+				created_at: '2026-04-05T10:00:00Z',
+				total_subtasks: '5',
+				built_subtasks: '3',
+				failed_subtasks: '0',
+				next_card_title: 'Add chart',
+				total_milestones: '2',
+				completed_milestones: '1',
 			},
-		]
-		pushRows(rows)
+		])
 		const result = await listUserProjects('user_42')
-		expect(result).toEqual(rows)
+		expect(result).toHaveLength(1)
+		expect(result[0].totalSubtasks).toBe(5)
+		expect(result[0].builtSubtasks).toBe(3)
+		expect(result[0].failedSubtasks).toBe(0)
+		expect(result[0].nextCardTitle).toBe('Add chart')
+		expect(result[0].totalMilestones).toBe(2)
+		expect(result[0].completedMilestones).toBe(1)
+		expect(result[0].lastBuildAt).toBeInstanceOf(Date)
+		expect(result[0].createdAt).toBeInstanceOf(Date)
+	})
+
+	it('returns empty array when no projects exist', async () => {
+		setExecuteResult([])
+		const result = await listUserProjects('user_42')
+		expect(result).toEqual([])
+	})
+
+	it('coerces null/undefined nextCardTitle to null', async () => {
+		setExecuteResult([
+			{
+				id: 'bbb',
+				name: 'Beta',
+				last_build_at: null,
+				preview_url: null,
+				created_at: '2026-04-05T10:00:00Z',
+				total_subtasks: '3',
+				built_subtasks: '3',
+				failed_subtasks: '0',
+				next_card_title: null,
+				total_milestones: '1',
+				completed_milestones: '1',
+			},
+		])
+		const result = await listUserProjects('user_42')
+		expect(result[0].nextCardTitle).toBeNull()
+		expect(result[0].lastBuildAt).toBeNull()
 	})
 })

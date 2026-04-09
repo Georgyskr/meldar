@@ -1,5 +1,6 @@
-import { Box, Flex, styled, VStack } from '@styled-system/jsx'
+import { Box, Flex, VStack } from '@styled-system/jsx'
 import { Lock } from 'lucide-react'
+import { Text } from '@/shared/ui'
 
 type AppData = {
 	name: string
@@ -68,19 +69,19 @@ export function LockedRecommendationCard({
 						>
 							<Lock size={18} color="#623153" />
 						</Box>
-						<styled.span fontFamily="heading" fontWeight="700" fontSize="sm" color="primary">
+						<Text textStyle="primary.xs" color="primary">
 							Unlock to see your #{index === 0 ? 1 : 3} recommendation
-						</styled.span>
+						</Text>
 					</Box>
 
 					{/* Honeypot content — not the real recommendation */}
 					<VStack gap={2} padding={5} aria-hidden="true">
-						<styled.span fontFamily="heading" fontWeight="700" fontSize="md" color="onSurface">
+						<Text textStyle="primary.xs" color="onSurface">
 							Removing the CSS doesn&apos;t show this. Nice try.
-						</styled.span>
-						<styled.span textStyle="body.sm" color="onSurfaceVariant">
+						</Text>
+						<Text textStyle="secondary.sm" color="onSurfaceVariant">
 							The real recommendation is generated server-side and only revealed after payment.
-						</styled.span>
+						</Text>
 					</VStack>
 				</>
 			)}
@@ -89,13 +90,12 @@ export function LockedRecommendationCard({
 			{isVisible && (
 				<VStack gap={3} padding={5} alignItems="flex-start">
 					<Flex gap={2} alignItems="center">
-						<styled.span fontFamily="heading" fontWeight="800" fontSize="lg" color="onSurface">
+						<Text textStyle="primary.sm" color="onSurface">
 							{app.name}
-						</styled.span>
+						</Text>
 						{app.complexity && (
-							<styled.span
-								fontSize="xs"
-								fontWeight="600"
+							<Text
+								textStyle="primary.xs"
 								color="primary"
 								bg="primary/8"
 								paddingInline={2}
@@ -103,12 +103,12 @@ export function LockedRecommendationCard({
 								borderRadius="md"
 							>
 								{app.complexity}
-							</styled.span>
+							</Text>
 						)}
 					</Flex>
-					<styled.p textStyle="body.base" color="onSurfaceVariant">
+					<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
 						{app.description}
-					</styled.p>
+					</Text>
 					<Box
 						width="100%"
 						padding={4}
@@ -117,17 +117,17 @@ export function LockedRecommendationCard({
 						border="1px solid"
 						borderColor="primary/10"
 					>
-						<styled.p textStyle="body.sm" color="onSurface" lineHeight="1.6">
-							<styled.span fontWeight="600" color="primary">
+						<Text as="p" textStyle="secondary.sm" color="onSurface">
+							<Text textStyle="primary.xs" color="primary">
 								Why you:
-							</styled.span>{' '}
+							</Text>{' '}
 							{app.whyThisUser}
-						</styled.p>
+						</Text>
 					</Box>
 					{app.estimatedBuildTime && (
-						<styled.span textStyle="body.sm" color="onSurfaceVariant/60">
+						<Text textStyle="secondary.sm" color="onSurfaceVariant/60">
 							Estimated build time: {app.estimatedBuildTime}
-						</styled.span>
+						</Text>
 					)}
 				</VStack>
 			)}

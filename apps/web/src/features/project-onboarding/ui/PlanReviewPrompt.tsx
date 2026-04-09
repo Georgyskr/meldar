@@ -1,6 +1,7 @@
 'use client'
 
 import { Box, HStack, styled, VStack } from '@styled-system/jsx'
+import { Text } from '@/shared/ui'
 
 export type PlanReviewPromptProps = {
 	readonly milestoneCount: number
@@ -21,10 +22,10 @@ export function PlanReviewPrompt({ milestoneCount, onAccept, onEdit }: PlanRevie
 			borderColor="outlineVariant/30"
 		>
 			<VStack alignItems="stretch" gap={3}>
-				<styled.p textStyle="body.sm" color="onSurface" lineHeight="1.6">
+				<Text as="p" textStyle="secondary.sm" color="onSurface">
 					Meldar broke down your idea into {milestoneCount} milestones. Look them over — add,
 					remove, or edit anything.
-				</styled.p>
+				</Text>
 				<HStack gap={3}>
 					<styled.button
 						type="button"
@@ -35,7 +36,7 @@ export function PlanReviewPrompt({ milestoneCount, onAccept, onEdit }: PlanRevie
 						background="linear-gradient(135deg, #623153, #FFB876)"
 						color="white"
 						fontWeight="600"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						cursor="pointer"
 						transition="opacity 0.15s"
 						_hover={{ opacity: 0.9 }}
@@ -53,7 +54,7 @@ export function PlanReviewPrompt({ milestoneCount, onAccept, onEdit }: PlanRevie
 						borderColor="outlineVariant/50"
 						color="onSurface"
 						fontWeight="500"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						cursor="pointer"
 						transition="all 0.15s"
 						_hover={{

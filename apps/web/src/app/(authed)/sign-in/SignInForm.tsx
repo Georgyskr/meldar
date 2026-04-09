@@ -4,6 +4,7 @@ import { Box, Flex, styled } from '@styled-system/jsx'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
 import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
+import { Text } from '@/shared/ui'
 import { GoogleButton, OrDivider } from '@/shared/ui/google-auth'
 import { submitSignIn } from './sign-in-submit'
 
@@ -63,9 +64,9 @@ export function SignInForm() {
 			<GoogleButton />
 
 			{googleErrorMessage && (
-				<styled.span
+				<Text
 					role="alert"
-					textStyle="body.sm"
+					textStyle="secondary.sm"
 					color="red.500"
 					paddingInline={3}
 					paddingBlock={2}
@@ -73,7 +74,7 @@ export function SignInForm() {
 					borderRadius="md"
 				>
 					{googleErrorMessage}
-				</styled.span>
+				</Text>
 			)}
 
 			<OrDivider />
@@ -84,7 +85,7 @@ export function SignInForm() {
 						<styled.label
 							htmlFor="signin-email"
 							display="block"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							fontWeight="500"
 							color="onSurface"
 							marginBlockEnd={2}
@@ -118,7 +119,7 @@ export function SignInForm() {
 						<styled.label
 							htmlFor="signin-password"
 							display="block"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							fontWeight="500"
 							color="onSurface"
 							marginBlockEnd={2}
@@ -149,7 +150,7 @@ export function SignInForm() {
 						<Flex justifyContent="flex-end" marginBlockStart={1}>
 							<styled.a
 								href="/forgot-password"
-								textStyle="body.xs"
+								textStyle="secondary.xs"
 								color="onSurfaceVariant/70"
 								textDecoration="none"
 								_hover={{ color: 'primary', textDecoration: 'underline' }}
@@ -166,9 +167,9 @@ export function SignInForm() {
 					</Box>
 
 					{error && (
-						<styled.span
+						<Text
 							role="alert"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							color="red.500"
 							paddingInline={3}
 							paddingBlock={2}
@@ -176,7 +177,7 @@ export function SignInForm() {
 							borderRadius="md"
 						>
 							{error}
-						</styled.span>
+						</Text>
 					)}
 
 					<styled.button

@@ -1,7 +1,7 @@
 import { getDb } from '@meldar/db/client'
 import { subscribers } from '@meldar/db/schema'
-import { styled } from '@styled-system/jsx'
 import { count, eq } from 'drizzle-orm'
+import { Text } from '@/shared/ui'
 
 const FOUNDING_MEMBER_CAP = 15
 
@@ -16,15 +16,15 @@ export async function FoundingCounter() {
 
 	if (spotsLeft === 0) {
 		return (
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" fontWeight="150">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				Founding spots are full. Join the waitlist.
-			</styled.span>
+			</Text>
 		)
 	}
 
 	return (
-		<styled.span textStyle="body.sm" color="primary" fontWeight="600">
+		<Text textStyle="secondary.sm" color="primary">
 			{spotsLeft} of {FOUNDING_MEMBER_CAP} spots remaining
-		</styled.span>
+		</Text>
 	)
 }

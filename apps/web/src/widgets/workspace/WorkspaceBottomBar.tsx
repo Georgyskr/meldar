@@ -1,19 +1,12 @@
-import { Flex, styled } from '@styled-system/jsx'
-import type { KanbanCard } from '@/features/kanban'
-import { BuildButton } from '@/features/kanban'
-import { useWorkspaceBuild } from '@/features/workspace-build'
+import { Flex } from '@styled-system/jsx'
 import { RoadmapButton } from '@/features/workspace-roadmap'
-import { LastBuildRelativeTime } from './LastBuildRelativeTime'
-import { WhatJustHappenedSlot } from './WhatJustHappenedSlot'
+import { Text } from '@/shared/ui'
 
 export type WorkspaceBottomBarProps = {
 	readonly tier: string
-	readonly onBuild: (readySubtasks: readonly KanbanCard[]) => void
 }
 
-export function WorkspaceBottomBar({ tier, onBuild }: WorkspaceBottomBarProps) {
-	const { cards, lastBuildReceipt } = useWorkspaceBuild()
-
+export function WorkspaceBottomBar({ tier }: WorkspaceBottomBarProps) {
 	return (
 		<Flex
 			as="footer"
@@ -28,22 +21,13 @@ export function WorkspaceBottomBar({ tier, onBuild }: WorkspaceBottomBarProps) {
 			gap={4}
 		>
 			<Flex alignItems="center" gap={4} flex="1" minWidth={0}>
-				<styled.span
-					textStyle="body.xs"
-					color="onSurfaceVariant"
-					fontWeight="500"
-					textTransform="capitalize"
-					flexShrink={0}
-				>
+				<Text textStyle="secondary.xs" color="onSurfaceVariant" flexShrink={0}>
 					{tier}
-				</styled.span>
-				<LastBuildRelativeTime />
-				<WhatJustHappenedSlot receipt={lastBuildReceipt} />
+				</Text>
 			</Flex>
 
 			<Flex alignItems="center" gap={2} flexShrink={0}>
 				<RoadmapButton />
-				{cards.length > 0 && <BuildButton cards={cards} onBuild={onBuild} />}
 			</Flex>
 		</Flex>
 	)

@@ -1,5 +1,6 @@
-import { Box, Flex, styled, VStack } from '@styled-system/jsx'
+import { Box, Flex, VStack } from '@styled-system/jsx'
 import type { ReactNode } from 'react'
+import { Text } from '@/shared/ui'
 
 export type DiscoveryCardProps = {
 	/** Tool label shown in gradient header */
@@ -52,38 +53,23 @@ export function DiscoveryCard({
 					paddingBlock={3}
 					background={colors.bg}
 				>
-					<styled.span
-						fontFamily="heading"
-						fontWeight="700"
-						fontSize="sm"
-						color="white"
-						letterSpacing="0.05em"
-						textTransform="uppercase"
-					>
+					<Text textStyle="tertiary.xl" color="white">
 						{label}
-					</styled.span>
-					<styled.span fontSize="xs" color="white/70" fontFamily="body">
+					</Text>
+					<Text textStyle="secondary.xs" color="white/70">
 						meldar.ai
-					</styled.span>
+					</Text>
 				</Flex>
 
 				<VStack gap={0} padding={5}>
 					{/* Big stat */}
 					<VStack gap={0} paddingBlock={4} textAlign="center" width="100%">
-						<styled.span textStyle="body.sm" color="onSurfaceVariant">
+						<Text textStyle="secondary.sm" color="onSurfaceVariant">
 							{bigStatLabel}
-						</styled.span>
-						<styled.span
-							fontFamily="heading"
-							fontWeight="800"
-							fontSize="4xl"
-							color={colors.text}
-							letterSpacing="-0.03em"
-							lineHeight="1"
-							paddingBlockStart={1}
-						>
+						</Text>
+						<Text textStyle="primary.xl" color={colors.text} paddingBlockStart={1}>
 							{bigStat}
-						</styled.span>
+						</Text>
 					</VStack>
 
 					{/* Divider */}
@@ -99,21 +85,15 @@ export function DiscoveryCard({
 								width="100%"
 								paddingBlock={2}
 							>
-								<styled.span
-									textStyle="body.sm"
+								<Text
+									textStyle="secondary.sm"
 									color={row.highlight ? 'onSurface' : 'onSurfaceVariant'}
-									fontWeight={row.highlight ? '500' : '300'}
 								>
 									{row.label}
-								</styled.span>
-								<styled.span
-									textStyle="body.sm"
-									fontWeight="500"
-									fontFamily="heading"
-									color={row.highlight ? colors.text : 'onSurface'}
-								>
+								</Text>
+								<Text textStyle="secondary.sm" color={row.highlight ? colors.text : 'onSurface'}>
 									{row.value}
-								</styled.span>
+								</Text>
 							</Flex>
 						))}
 					</VStack>
@@ -123,9 +103,9 @@ export function DiscoveryCard({
 						<>
 							<Box width="100%" height="1px" bg="outlineVariant/20" />
 							<Box paddingBlock={4}>
-								<styled.p textStyle="body.sm" color="onSurface" fontStyle="italic" lineHeight="1.6">
+								<Text as="p" textStyle="secondary.sm" color="onSurface">
 									&ldquo;{insight}&rdquo;
-								</styled.p>
+								</Text>
 							</Box>
 						</>
 					)}

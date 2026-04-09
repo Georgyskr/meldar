@@ -23,7 +23,7 @@ export function AddMilestoneButton({ onAdd }: AddMilestoneButtonProps) {
 			borderColor="outlineVariant/40"
 			background="transparent"
 			color="onSurfaceVariant"
-			textStyle="body.sm"
+			textStyle="secondary.sm"
 			cursor="pointer"
 			transition="all 0.15s"
 			_hover={{

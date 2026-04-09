@@ -1,7 +1,8 @@
 'use client'
 
-import { Flex, styled } from '@styled-system/jsx'
+import { Box, Flex, styled } from '@styled-system/jsx'
 import { useEffect, useState } from 'react'
+import { Text } from '@/shared/ui'
 
 export function Header() {
 	const [scrolled, setScrolled] = useState(false)
@@ -21,10 +22,11 @@ export function Header() {
 			left={0}
 			right={0}
 			zIndex={50}
-			backdropFilter={scrolled ? 'blur(40px) saturate(1.2)' : 'blur(32px)'}
 			transition="all 0.3s ease"
-			bg={scrolled ? 'surface/85' : 'surface/30'}
-			boxShadow={scrolled ? '0 1px 0 rgba(0,0,0,0.06)' : 'none'}
+			bg={scrolled ? 'surface/92' : 'surface/40'}
+			backdropFilter={scrolled ? 'blur(16px) saturate(1.2)' : 'blur(8px)'}
+			borderBottom={scrolled ? '1px solid' : 'none'}
+			borderColor="onSurface/15"
 		>
 			<styled.a
 				href="#main-content"
@@ -33,11 +35,8 @@ export function Header() {
 				left="16px"
 				paddingInline={4}
 				paddingBlock={2}
-				bg="primary"
-				color="onPrimary"
-				fontWeight="600"
-				fontSize="sm"
-				borderRadius="md"
+				bg="onSurface"
+				color="surface"
 				zIndex={100}
 				textDecoration="none"
 				_focusVisible={{
@@ -47,52 +46,56 @@ export function Header() {
 					outlineOffset: '2px',
 				}}
 			>
-				Skip to content
+				<Text textStyle="button.md" color="surface">
+					Skip to content
+				</Text>
 			</styled.a>
 			<Flex
 				maxWidth="breakpoint-xl"
 				marginInline="auto"
-				paddingInline={8}
-				paddingBlock={4}
+				paddingInline={{ base: 5, md: 12 }}
+				paddingBlock={{ base: 3, md: 4 }}
 				alignItems="center"
 				justifyContent="space-between"
 			>
-				<Flex alignItems="center" gap={3}>
-					<styled.div
-						width="24px"
-						height="24px"
+				<Flex alignItems="baseline" gap={3}>
+					<Box
+						width="10px"
+						height="10px"
 						borderRadius="full"
-						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-						opacity={0.9}
+						bg="secondaryLight"
+						boxShadow="0 0 12px #FFB876"
+						style={{ animation: 'gentleBreathe 3s ease-in-out infinite' }}
 					/>
-					<styled.a
-						href="/"
-						fontFamily="heading"
-						fontSize="2xl"
-						fontWeight="700"
-						letterSpacing="-0.04em"
-						color="onSurface"
-						textDecoration="none"
-					>
-						Meldar
+					<styled.a href="/" textDecoration="none">
+						<Text textStyle="primary.sm" color="onSurface">
+							Meldar
+						</Text>
 					</styled.a>
+					<Text
+						textStyle="italic.sm"
+						color="onSurfaceVariant/60"
+						display={{ base: 'none', md: 'inline' }}
+					>
+						Vol. I
+					</Text>
 				</Flex>
 				<styled.a
-					href="/start"
+					href="/sign-up"
+					display="inline-flex"
+					alignItems="center"
 					paddingInline={5}
 					paddingBlock={2}
-					fontSize="sm"
-					fontWeight="600"
-					fontFamily="heading"
-					background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-					color="white"
-					borderRadius="md"
+					bg="onSurface"
+					color="surface"
 					textDecoration="none"
-					transition="opacity 0.2s ease"
-					_hover={{ opacity: 0.9 }}
-					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
+					transition="all 0.2s ease"
+					_hover={{ bg: 'primary' }}
+					_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '3px' }}
 				>
-					Start here
+					<Text textStyle="button.sm" color="surface">
+						Start free
+					</Text>
 				</styled.a>
 			</Flex>
 		</styled.header>

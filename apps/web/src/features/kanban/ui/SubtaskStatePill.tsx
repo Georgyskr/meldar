@@ -1,7 +1,7 @@
 'use client'
 
-import { styled } from '@styled-system/jsx'
 import type { KanbanCardState } from '@/entities/kanban-card'
+import { Text } from '@/shared/ui'
 import { userVisibleLabel } from '../model/card-state-machine'
 
 const STATE_COLORS: Record<KanbanCardState, { bg: string; color: string }> = {
@@ -21,9 +21,8 @@ export type SubtaskStatePillProps = {
 export function SubtaskStatePill({ state }: SubtaskStatePillProps) {
 	const colors = STATE_COLORS[state]
 	return (
-		<styled.span
-			textStyle="body.xs"
-			fontWeight="500"
+		<Text
+			textStyle="secondary.xs"
 			paddingInline={2}
 			paddingBlock="1px"
 			borderRadius="sm"
@@ -33,6 +32,6 @@ export function SubtaskStatePill({ state }: SubtaskStatePillProps) {
 			flexShrink={0}
 		>
 			{userVisibleLabel(state)}
-		</styled.span>
+		</Text>
 	)
 }

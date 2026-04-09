@@ -52,7 +52,7 @@ const faqSchema = {
 			name: 'What does Meldar cost?',
 			acceptedAnswer: {
 				'@type': 'Answer',
-				text: 'The Digital Footprint Scan is free. The Build tier is EUR 79 one-time — a founder builds you a working app in 72 hours. The Bundle is EUR 9.99/month for ongoing access to the skills library and bundled APIs.',
+				text: 'The Time X-Ray is free. The Concierge tier is EUR 79 one-time — the founder makes you a working app in 72 hours. The Starter plan is EUR 9.99/month for ongoing access to the skills library and bundled AI tools.',
 			},
 		},
 		{
@@ -68,7 +68,7 @@ const faqSchema = {
 			name: 'I tried AI tools before and gave up. Why is this different?',
 			acceptedAnswer: {
 				'@type': 'Answer',
-				text: 'Those tools gave you a blank screen. Meldar connects to how you already work, finds the time-wasters you did not notice, and builds the fix.',
+				text: 'Those tools gave you a blank screen. Meldar connects to how you already work, finds the time-wasters you did not notice, and makes the fix.',
 			},
 		},
 		{
@@ -76,7 +76,7 @@ const faqSchema = {
 			name: 'What if I want to stop using Meldar?',
 			acceptedAnswer: {
 				'@type': 'Answer',
-				text: 'Everything you built is yours. Your apps run on your computer. If you leave, they keep working.',
+				text: 'Everything you made is yours. Your apps run on your computer. If you leave, they keep working.',
 			},
 		},
 		{
@@ -97,7 +97,7 @@ const faqSchema = {
 		},
 		{
 			'@type': 'Question',
-			name: 'Who built this?',
+			name: 'Who made this?',
 			acceptedAnswer: {
 				'@type': 'Answer',
 				text: 'One person in Helsinki, using the same AI tools Meldar teaches you to use.',
@@ -108,7 +108,7 @@ const faqSchema = {
 			name: 'Is this another AI chatbot?',
 			acceptedAnswer: {
 				'@type': 'Answer',
-				text: 'No. Chatbots give advice. Meldar builds actual apps that run on your computer and do the work for you.',
+				text: 'No. Chatbots give advice. Meldar makes actual apps that run on your computer and do the work for you.',
 			},
 		},
 	],
@@ -158,24 +158,24 @@ export default function HomePage() {
 					offers: [
 						{
 							'@type': 'Offer',
-							name: 'Digital Footprint Scan',
+							name: 'Time X-Ray',
 							price: '0',
 							priceCurrency: 'EUR',
 							description: 'Free screen time analysis. Upload a screenshot, get your real numbers.',
 						},
 						{
 							'@type': 'Offer',
-							name: 'Build',
+							name: 'Concierge',
 							price: '79',
 							priceCurrency: 'EUR',
-							description: 'Founder builds you a working app in 72 hours. One-time payment.',
+							description: 'The founder makes you a working app in 72 hours. One-time payment.',
 						},
 						{
 							'@type': 'Offer',
-							name: 'Bundle',
+							name: 'Starter',
 							price: '9.99',
 							priceCurrency: 'EUR',
-							description: 'Monthly access to skills library and bundled third-party APIs.',
+							description: 'Monthly access to skills library and bundled AI tools.',
 							priceSpecification: {
 								'@type': 'UnitPriceSpecification',
 								price: '9.99',
@@ -198,7 +198,7 @@ export default function HomePage() {
 					'@type': 'HowTo',
 					name: 'How to find and fix your biggest time wasters with Meldar',
 					description:
-						'Upload your screen time data, get an AI analysis, and receive a custom-built app that solves your problem.',
+						'Upload your screen time data, get an AI analysis, and receive a custom-made app that solves your problem.',
 					totalTime: 'PT2M',
 					step: [
 						{
@@ -216,8 +216,8 @@ export default function HomePage() {
 						{
 							'@type': 'HowToStep',
 							position: 3,
-							name: 'Get a personal app built for you',
-							text: 'Based on your analysis, Meldar recommends what to build. Order a Build (EUR 79) and a founder builds you a working app in 72 hours.',
+							name: 'Get a personal app made for you',
+							text: 'Based on your analysis, Meldar recommends what to fix. Order the Concierge (EUR 79) and the founder makes you a working app in 72 hours.',
 						},
 					],
 				}}

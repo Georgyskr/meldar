@@ -2,9 +2,15 @@ import type Anthropic from '@anthropic-ai/sdk'
 import type { SandboxProvider } from '@meldar/sandbox'
 import type { BuildContext, ProjectStorage } from '@meldar/storage'
 import { sha256Hex } from '@meldar/storage'
-import { CeilingExceededError, MODELS, type TokenLedger, tokensToCents } from '@meldar/tokens'
+import {
+	CeilingExceededError,
+	MODELS,
+	type TokenLedger,
+	tokensToCents,
+	usageToCents,
+} from '@meldar/tokens'
 import { z } from 'zod'
-import { BUILD_SYSTEM_PROMPT, buildUserMessage } from './prompts'
+import { BUILD_SYSTEM_PROMPT, buildProjectFilesBlock, buildUserPromptBlock } from './prompts'
 import {
 	MAX_INPUT_TOKENS_PER_BUILD,
 	MAX_OUTPUT_TOKENS_PER_BUILD,
@@ -42,11 +48,42 @@ class OrchestratorBuildError extends Error {
 	}
 }
 
+export type GlobalSpendGuard = {
+	readonly check: () => Promise<
+		| { allowed: true; spentToday: number; ceiling: number }
+		| {
+				allowed: false
+				reason: 'paused' | 'ceiling_exceeded'
+				spentToday: number
+				ceiling: number
+		  }
+	>
+	readonly record: (cents: number) => Promise<void>
+}
+
+export type AiCallLogger = (args: {
+	userId: string
+	projectId: string
+	kind: 'build'
+	model: string
+	inputTokens: number
+	cachedReadTokens: number
+	cachedWriteTokens: number
+	outputTokens: number
+	centsCharged: number
+	latencyMs: number
+	stopReason: string | null
+	status: 'ok' | 'error' | 'truncated' | 'aborted' | 'refused'
+	errorCode?: string | null
+}) => void
+
 export type OrchestratorDeps = {
 	readonly storage: ProjectStorage
 	readonly sandbox: SandboxProvider | null
 	readonly ledger: TokenLedger
 	readonly anthropic: Anthropic
+	readonly globalSpendGuard?: GlobalSpendGuard
+	readonly aiCallLogger?: AiCallLogger
 }
 
 export async function* orchestrateBuild(
@@ -58,8 +95,22 @@ export async function* orchestrateBuild(
 	let buildContext: BuildContext | undefined
 
 	try {
-		// Pre-flight: reject obviously unaffordable builds before burning the
-		// Anthropic call. The post-call ledger debit is still the source of truth.
+		if (deps.globalSpendGuard) {
+			const guard = await deps.globalSpendGuard.check()
+			if (!guard.allowed) {
+				yield {
+					type: 'failed',
+					reason:
+						guard.reason === 'paused'
+							? 'Meldar is taking a breather. We will be back shortly.'
+							: `global daily spend ceiling reached (${guard.spentToday}c of ${guard.ceiling}c)`,
+					code: guard.reason === 'paused' ? 'provider_paused' : 'global_ceiling_exhausted',
+					kanbanCardId: request.kanbanCardId,
+				}
+				return
+			}
+		}
+
 		const snapshot = await deps.ledger.getSnapshot(request.userId)
 		const estimatedCents = tokensToCents(
 			model,
@@ -109,21 +160,42 @@ export async function* orchestrateBuild(
 			estimatedCents,
 		}
 
-		const userMessage = buildUserMessage({
-			projectFiles,
-			userPrompt: request.prompt,
-		})
+		const projectFilesBlock = buildProjectFilesBlock(projectFiles)
+		const userPromptBlock = buildUserPromptBlock(request.prompt)
 
+		const anthropicStartedAt = Date.now()
 		const response = await deps.anthropic.messages.create(
 			{
 				model,
 				max_tokens: MAX_OUTPUT_TOKENS_PER_BUILD,
-				system: BUILD_SYSTEM_PROMPT,
+				system: [
+					{
+						type: 'text',
+						text: BUILD_SYSTEM_PROMPT,
+						cache_control: { type: 'ephemeral' },
+					},
+				],
 				tools: [WRITE_FILE_TOOL],
-				messages: [{ role: 'user', content: userMessage }],
+				messages: [
+					{
+						role: 'user',
+						content: [
+							{
+								type: 'text',
+								text: projectFilesBlock,
+								cache_control: { type: 'ephemeral' },
+							},
+							{
+								type: 'text',
+								text: userPromptBlock,
+							},
+						],
+					},
+				],
 			},
 			request.signal ? { signal: request.signal } : undefined,
 		)
+		const anthropicLatencyMs = Date.now() - anthropicStartedAt
 
 		// A non-natural stop means the last tool_use input may be partial JSON —
 		// committing a truncated file body would silently destroy the previous version.
@@ -173,12 +245,19 @@ export async function* orchestrateBuild(
 			fileIndex += 1
 		}
 
-		const actualCents = tokensToCents(
-			model,
-			response.usage.input_tokens,
-			response.usage.output_tokens,
-		)
-		const totalTokens = response.usage.input_tokens + response.usage.output_tokens
+		const cacheReadTokens = response.usage.cache_read_input_tokens ?? 0
+		const cacheWriteTokens = response.usage.cache_creation_input_tokens ?? 0
+		const actualCents = usageToCents(model, {
+			inputTokens: response.usage.input_tokens,
+			outputTokens: response.usage.output_tokens,
+			cacheReadTokens,
+			cacheWriteTokens,
+		})
+		const totalTokens =
+			response.usage.input_tokens +
+			response.usage.output_tokens +
+			cacheReadTokens +
+			cacheWriteTokens
 
 		// Debit AFTER the build but BEFORE commit: file writes are already done,
 		// but HEAD doesn't flip until commit(), so a ceiling-exceeded debit leaves
@@ -200,6 +279,33 @@ export async function* orchestrateBuild(
 			throw err
 		}
 
+		if (deps.globalSpendGuard) {
+			await deps.globalSpendGuard.record(actualCents).catch((err) => {
+				console.error('[orchestrator] globalSpendGuard.record failed (non-fatal)', err)
+			})
+		}
+
+		if (deps.aiCallLogger) {
+			try {
+				deps.aiCallLogger({
+					userId: request.userId,
+					projectId: request.projectId,
+					kind: 'build',
+					model,
+					inputTokens: response.usage.input_tokens,
+					cachedReadTokens: cacheReadTokens,
+					cachedWriteTokens: cacheWriteTokens,
+					outputTokens: response.usage.output_tokens,
+					centsCharged: actualCents,
+					latencyMs: anthropicLatencyMs,
+					stopReason: response.stop_reason ?? null,
+					status: 'ok',
+				})
+			} catch (err) {
+				console.error('[orchestrator] aiCallLogger failed (non-fatal)', err)
+			}
+		}
+
 		const committed = await buildContext.commit({ tokenCost: totalTokens })
 
 		yield {
@@ -209,6 +315,8 @@ export async function* orchestrateBuild(
 			actualCents,
 			fileCount: fileIndex,
 			kanbanCardId: request.kanbanCardId,
+			cacheReadTokens,
+			cacheWriteTokens,
 		}
 
 		// sandbox_ready MUST be yielded after committed: storage HEAD has to flip

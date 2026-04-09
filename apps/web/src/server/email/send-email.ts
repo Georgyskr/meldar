@@ -149,3 +149,32 @@ export async function sendNudgeEmail(
 		})
 	}
 }
+
+export type FounderAlertLevel = 'warning' | 'panic'
+
+export async function sendFounderAlertEmail(args: {
+	level: FounderAlertLevel
+	subjectDetail: string
+	bodyHtml: string
+}): Promise<void> {
+	const to = process.env.FOUNDER_ALERT_EMAIL ?? 'gosha.skryuchenkov@gmail.com'
+	const subject =
+		args.level === 'panic'
+			? `[PANIC] Meldar spend alert — ${args.subjectDetail}`
+			: `[Meldar alert] ${args.subjectDetail}`
+
+	await resend.emails.send({
+		from: 'Meldar Alerts <hello@meldar.ai>',
+		to,
+		subject,
+		html: emailWrapper(`
+			<h1 style="font-size: 20px; color: ${args.level === 'panic' ? '#dc2626' : '#623153'};">
+				${args.level === 'panic' ? 'PANIC' : 'Alert'}
+			</h1>
+			${args.bodyHtml}
+			<p style="font-size: 12px; color: #81737a; margin-top: 24px;">
+				Sent from the Meldar spend guardrails cron. Set <code>ANTHROPIC_PAUSED=1</code> in Vercel to immediately stop all AI calls.
+			</p>
+		`),
+	})
+}

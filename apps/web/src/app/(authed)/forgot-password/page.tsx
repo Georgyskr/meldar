@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { verifyToken } from '@/server/identity/jwt'
+import { Heading, Text } from '@/shared/ui'
 import { ForgotPasswordForm } from './ForgotPasswordForm'
 
 export const metadata: Metadata = {
@@ -27,26 +28,21 @@ export default async function ForgotPasswordPage() {
 		>
 			<Box width="100%" maxWidth="420px">
 				<Flex direction="column" gap={2} marginBlockEnd={8}>
-					<styled.h1
-						fontFamily="heading"
-						fontSize="3xl"
-						fontWeight="700"
-						letterSpacing="-0.03em"
-						color="onSurface"
-					>
+					<Heading textStyle="primary.lg" as="h1" color="onSurface">
 						Forgot your password?
-					</styled.h1>
-					<styled.p textStyle="body.base" color="onSurfaceVariant">
+					</Heading>
+					<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
 						Enter your email and we'll send a reset link.
-					</styled.p>
+					</Text>
 				</Flex>
 
 				<Suspense fallback={null}>
 					<ForgotPasswordForm />
 				</Suspense>
 
-				<styled.p
-					textStyle="body.sm"
+				<Text
+					as="p"
+					textStyle="secondary.sm"
 					color="onSurfaceVariant"
 					marginBlockStart={6}
 					textAlign="center"
@@ -66,7 +62,7 @@ export default async function ForgotPasswordPage() {
 					>
 						Back to sign in
 					</styled.a>
-				</styled.p>
+				</Text>
 			</Box>
 		</styled.main>
 	)

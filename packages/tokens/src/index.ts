@@ -1,3 +1,4 @@
+export { trackVisitStreak, type VisitStreakResult } from './daily-bonus'
 export {
 	CeilingExceededError,
 	TokenLedgerBackendError,
@@ -20,7 +21,7 @@ export {
 	type UpstashTokenLedgerConfig,
 } from './ledger'
 export { MODELS, type ModelId } from './models'
-export { estimateMaxCents, tokensToCents } from './pricing'
+export { estimateMaxCents, type TokenUsage, tokensToCents, usageToCents } from './pricing'
 export {
 	DEFAULT_CEILING_CENTS_PER_DAY,
 	type DebitResult,

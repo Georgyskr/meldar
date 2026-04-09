@@ -5,6 +5,7 @@ import { useAtom } from 'jotai'
 import { ChevronDown, ChevronRight, Sparkles, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KanbanCard } from '@/entities/kanban-card'
+import { Heading, Text } from '@/shared/ui'
 import { type PromptAnatomy, parsePromptAnatomy } from '../lib/parse-prompt-anatomy'
 import { canTransition } from '../model/card-state-machine'
 import { editingCardIdAtom } from '../model/kanban-atoms'
@@ -192,9 +193,7 @@ export function CardEditorModal({
 					borderBlockEnd="1px solid"
 					borderColor="outlineVariant/20"
 				>
-					<styled.h2 textStyle="body.lg" fontWeight="700">
-						Edit subtask
-					</styled.h2>
+					<Heading textStyle="secondary.lg">Edit subtask</Heading>
 					<styled.button
 						type="button"
 						onClick={() => close()}
@@ -214,7 +213,7 @@ export function CardEditorModal({
 					<VStack alignItems="stretch" gap={1}>
 						<styled.label
 							htmlFor="card-editor-title"
-							textStyle="body.xs"
+							textStyle="secondary.xs"
 							fontWeight="600"
 							color="onSurfaceVariant"
 						>
@@ -232,7 +231,7 @@ export function CardEditorModal({
 							borderColor="outlineVariant/50"
 							background="surfaceContainerLowest"
 							color="onSurface"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							_focus={{
 								outline: 'none',
 								borderColor: 'primary',
@@ -244,7 +243,7 @@ export function CardEditorModal({
 					<VStack alignItems="stretch" gap={1}>
 						<styled.label
 							htmlFor="card-editor-desc"
-							textStyle="body.xs"
+							textStyle="secondary.xs"
 							fontWeight="600"
 							color="onSurfaceVariant"
 						>
@@ -262,7 +261,7 @@ export function CardEditorModal({
 							borderColor="outlineVariant/50"
 							background="surfaceContainerLowest"
 							color="onSurface"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							resize="vertical"
 							_focus={{
 								outline: 'none',
@@ -281,7 +280,7 @@ export function CardEditorModal({
 							alignItems="center"
 							gap={1}
 							background="transparent"
-							textStyle="body.xs"
+							textStyle="secondary.xs"
 							color={improving || !description.trim() ? 'onSurfaceVariant/50' : 'primary'}
 							cursor={improving || !description.trim() ? 'default' : 'pointer'}
 							paddingBlock={0}
@@ -291,15 +290,15 @@ export function CardEditorModal({
 							<Sparkles size={14} />
 							{improving ? 'Improving...' : 'Improve this'}
 						</styled.button>
-						<styled.span textStyle="body.xs" color="onSurfaceVariant/50">
+						<Text textStyle="secondary.xs" color="onSurfaceVariant/50">
 							1 token
-						</styled.span>
+						</Text>
 					</Flex>
 
 					{improveError && (
-						<styled.p textStyle="body.xs" color="red.600">
+						<Text as="p" textStyle="secondary.xs" color="red.600">
 							{improveError}
-						</styled.p>
+						</Text>
 					)}
 
 					{improveResult && (
@@ -317,9 +316,9 @@ export function CardEditorModal({
 					/>
 
 					<VStack alignItems="stretch" gap={1}>
-						<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
+						<Text textStyle="secondary.xs" color="onSurfaceVariant">
 							Acceptance criteria
-						</styled.span>
+						</Text>
 						{criteria.map((criterion, index) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: stable list with add/remove only
 							<Flex key={index} gap={2} alignItems="center">
@@ -335,7 +334,7 @@ export function CardEditorModal({
 									borderColor="outlineVariant/50"
 									background="surfaceContainerLowest"
 									color="onSurface"
-									textStyle="body.sm"
+									textStyle="secondary.sm"
 									_focus={{
 										outline: 'none',
 										borderColor: 'primary',
@@ -358,7 +357,7 @@ export function CardEditorModal({
 						<styled.button
 							type="button"
 							onClick={() => handleAddCriterion()}
-							textStyle="body.xs"
+							textStyle="secondary.xs"
 							color="primary"
 							cursor="pointer"
 							background="transparent"
@@ -373,7 +372,7 @@ export function CardEditorModal({
 					<VStack alignItems="stretch" gap={1}>
 						<styled.label
 							htmlFor="card-editor-task-type"
-							textStyle="body.xs"
+							textStyle="secondary.xs"
 							fontWeight="600"
 							color="onSurfaceVariant"
 						>
@@ -390,7 +389,7 @@ export function CardEditorModal({
 							borderColor="outlineVariant/50"
 							background="surfaceContainerLowest"
 							color="onSurface"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							cursor="pointer"
 							_focus={{
 								outline: 'none',
@@ -408,17 +407,12 @@ export function CardEditorModal({
 
 					{card?.explainerText && (
 						<VStack alignItems="stretch" gap={1}>
-							<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
+							<Text textStyle="secondary.xs" color="onSurfaceVariant">
 								What you will learn
-							</styled.span>
-							<styled.p
-								textStyle="body.sm"
-								color="onSurfaceVariant"
-								fontStyle="italic"
-								lineHeight="1.5"
-							>
+							</Text>
+							<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 								{card.explainerText}
-							</styled.p>
+							</Text>
 						</VStack>
 					)}
 				</VStack>
@@ -443,7 +437,7 @@ export function CardEditorModal({
 						borderRadius="md"
 						background="transparent"
 						color="red.600"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						cursor="pointer"
 						_hover={{ background: 'red.50' }}
 					>
@@ -461,7 +455,7 @@ export function CardEditorModal({
 								borderRadius="md"
 								background="primary/10"
 								color="primary"
-								textStyle="body.sm"
+								textStyle="secondary.sm"
 								fontWeight="600"
 								cursor="pointer"
 								transition="background 0.15s"
@@ -478,7 +472,7 @@ export function CardEditorModal({
 							borderRadius="md"
 							background="primary"
 							color="onPrimary"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							fontWeight="600"
 							cursor="pointer"
 							transition="opacity 0.15s"
@@ -519,7 +513,7 @@ function scoreColor(score: number) {
 	return 'amber.600'
 }
 
-function scoreWeight(score: number): '700' | '600' {
+function _scoreWeight(score: number): '700' | '600' {
 	return score >= 5 ? '700' : '600'
 }
 
@@ -541,31 +535,26 @@ function ImproveSuggestion({ result, onAccept, onDismiss }: ImproveSuggestionPro
 			<VStack alignItems="stretch" gap={2}>
 				<Flex gap={4}>
 					<VStack alignItems="stretch" gap={1} flex="1">
-						<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
+						<Text textStyle="secondary.xs" color="onSurfaceVariant">
 							Original
-						</styled.span>
-						<styled.p
-							textStyle="body.sm"
-							color="onSurfaceVariant"
-							lineHeight="1.5"
-							whiteSpace="pre-wrap"
-						>
+						</Text>
+						<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant" whiteSpace="pre-wrap">
 							{result.original}
-						</styled.p>
+						</Text>
 					</VStack>
 					<VStack alignItems="stretch" gap={1} flex="1">
-						<styled.span textStyle="body.xs" fontWeight="600" color="green.700">
+						<Text textStyle="secondary.xs" color="green.700">
 							Improved
-						</styled.span>
-						<styled.p textStyle="body.sm" color="onSurface" lineHeight="1.5" whiteSpace="pre-wrap">
+						</Text>
+						<Text as="p" textStyle="secondary.sm" color="onSurface" whiteSpace="pre-wrap">
 							{result.improved}
-						</styled.p>
+						</Text>
 					</VStack>
 				</Flex>
 
-				<styled.p textStyle="body.xs" color="onSurfaceVariant" fontStyle="italic">
+				<Text as="p" textStyle="secondary.xs" color="onSurfaceVariant">
 					{result.explanation}
-				</styled.p>
+				</Text>
 
 				<Flex gap={2}>
 					<styled.button
@@ -576,7 +565,7 @@ function ImproveSuggestion({ result, onAccept, onDismiss }: ImproveSuggestionPro
 						borderRadius="md"
 						background="primary"
 						color="onPrimary"
-						textStyle="body.xs"
+						textStyle="secondary.xs"
 						fontWeight="600"
 						cursor="pointer"
 						_hover={{ opacity: 0.9 }}
@@ -591,7 +580,7 @@ function ImproveSuggestion({ result, onAccept, onDismiss }: ImproveSuggestionPro
 						borderRadius="md"
 						background="transparent"
 						color="onSurfaceVariant"
-						textStyle="body.xs"
+						textStyle="secondary.xs"
 						fontWeight="600"
 						cursor="pointer"
 						_hover={{ color: 'onSurface' }}
@@ -622,7 +611,7 @@ function PromptAnatomySection({ anatomy, expanded, onToggle }: PromptAnatomySect
 				alignItems="center"
 				gap={1}
 				background="transparent"
-				textStyle="body.xs"
+				textStyle="secondary.xs"
 				fontWeight="600"
 				color="onSurfaceVariant"
 				cursor="pointer"
@@ -638,40 +627,39 @@ function PromptAnatomySection({ anatomy, expanded, onToggle }: PromptAnatomySect
 			{expanded && (
 				<Box background="surfaceContainerLow" borderRadius="md" paddingBlock={3} paddingInline={4}>
 					<VStack alignItems="stretch" gap={1}>
-						<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
+						<Text textStyle="secondary.xs" color="onSurfaceVariant">
 							Your prompt has:
-						</styled.span>
+						</Text>
 
 						{(['role', 'context', 'task', 'constraints', 'format'] as const).map((segment) => {
 							const matched = foundByType.get(segment)
 							return (
-								<Flex key={segment} gap={2} alignItems="baseline" textStyle="body.xs">
-									<styled.span flexShrink={0} color={matched ? 'green.600' : 'onSurfaceVariant'}>
+								<Flex key={segment} gap={2} alignItems="baseline" textStyle="secondary.xs">
+									<Text flexShrink={0} color={matched ? 'green.600' : 'onSurfaceVariant'}>
 										{matched ? '\u2713' : '\u2717'}
-									</styled.span>
-									<styled.span flexShrink={0} fontWeight="500" color="onSurface" minWidth="80px">
+									</Text>
+									<Text textStyle="secondary.md" flexShrink={0} color="onSurface" minWidth="80px">
 										{SEGMENT_LABELS[segment]}
-									</styled.span>
+									</Text>
 									{matched ? (
-										<styled.span color="primary">&ldquo;{truncate(matched, 40)}&rdquo;</styled.span>
+										<Text color="primary">&ldquo;{truncate(matched, 40)}&rdquo;</Text>
 									) : (
-										<styled.span color="onSurfaceVariant" fontStyle="italic">
+										<Text textStyle="italic.md" color="onSurfaceVariant">
 											&mdash; {SEGMENT_SUGGESTIONS[segment]}
-										</styled.span>
+										</Text>
 									)}
 								</Flex>
 							)
 						})}
 
-						<styled.span
+						<Text
 							role="status"
-							textStyle="body.xs"
-							fontWeight={scoreWeight(anatomy.score)}
+							textStyle="secondary.xs"
 							color={scoreColor(anatomy.score)}
 							marginBlockStart={1}
 						>
 							Prompt score: {anatomy.score}/5
-						</styled.span>
+						</Text>
 					</VStack>
 				</Box>
 			)}

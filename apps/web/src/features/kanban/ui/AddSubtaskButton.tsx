@@ -21,7 +21,7 @@ export function AddSubtaskButton({ onAdd }: AddSubtaskButtonProps) {
 			borderRadius="sm"
 			background="transparent"
 			color="onSurfaceVariant"
-			textStyle="body.xs"
+			textStyle="secondary.xs"
 			cursor="pointer"
 			transition="all 0.15s"
 			_hover={{

@@ -5,7 +5,15 @@ Your AI. Your app. Nobody else's. Meldar helps non-technical people discover wha
 **Name:** Meldar
 **Domain:** meldar.ai
 **Company:** ClickTheRoadFi Oy (Y-tunnus: 3362511-1), Helsinki, Finland
-**Stage:** Launched, collecting signups
+**Stage:** Pre-launch, building MVP. No real users yet.
+
+## Product Stage Rules
+
+- **No real users yet.** Nothing is in production. Feature flags, migration windows, backwards compatibility shims, and "safe rollout" plans are unnecessary overhead.
+- **Clean slate beats careful migration.** If rewriting a module is faster than refactoring it, rewrite it. If deleting code is cleaner than keeping a deprecated path, delete it.
+- **Hard cutovers are fine.** When replacing a component, feature, or route, swap it directly. Don't ship two versions in parallel "for safety."
+- **Never ask about feature flags, A/B rollouts, gradual migrations, or backwards compatibility** unless the user explicitly brings them up. Default to "rip and replace."
+- The corollary: when something is definitively wrong or obsolete, remove it. Don't leave dead code "just in case."
 
 ## Tech Stack
 
@@ -125,9 +133,39 @@ These rules are source of truth in `BUILD_SYSTEM_PROMPT`. When editing that prom
 
 ### Styling Preferences
 - **Prefer JSX primitives** — `Box`, `Flex`, `VStack`, `HStack`, `Grid`, `Stack` from `@styled-system/jsx`
-- **Use `styled.*` for semantic HTML** — `styled.header`, `styled.main`, `styled.section`, `styled.h1`, etc.
+- **Semantic HTML wrappers** — `styled.header`, `styled.main`, `styled.section`, `styled.article`, `styled.nav`, `styled.aside` for layout landmarks. **Never** for typography.
 - **No inline styles.** Always use Panda CSS utilities.
 - **Logical properties over shorthands** — `marginBlockEnd` not `mb`, `paddingInline` not `px`
+
+### Typography rules (STRICT)
+- **Never use `styled.span`, `styled.p`, `styled.h1`–`styled.h6`, `styled.em`, `styled.strong` for text.** Use `<Text>` or `<Heading>` from `@/shared/ui` instead.
+- **Never inline typography.** No `fontFamily="heading"`, `fontSize="xl"`, `fontWeight="700"`, `letterSpacing="-0.02em"`, `lineHeight="1.1"`, `textTransform`, `textDecoration`, or `fontStyle` directly on components.
+- **Always use `textStyle="category.size"`** — all typography must come from the `textStyles` config in `apps/web/panda.config.ts`. If the style you need doesn't exist, add it to the config, run `pnpm panda codegen`, then use it. Do not invent inline typography.
+- **Only exception:** truly one-off text that will never appear elsewhere may override `color` inline. But `color` inline is still a code smell — prefer token colors.
+- **`<Text as="span" | "p" | "em" | "strong">`** to change the rendered element. `<Heading as="h1" | "h2" | ... | "h6">` likewise. Default is `<span>` for Text and `<h2>` for Heading.
+- **Check before editing** — existing `textStyles` in `panda.config.ts` cover most needs. Read them first.
+
+**Available textStyle categories** (all sized responsively):
+- `heading.1` … `heading.6` — semantic title scale (hero → subsection)
+- `body.xl`, `.lg`, `.md`, `.sm`, `.xs` — paragraph / descriptive text
+- `italic.lg`, `.md`, `.sm` — Bricolage italic flourishes
+- `label.lg`, `.md`, `.sm` — uppercase letterspaced (eyebrows, tags, captions)
+- `display.xl`, `.lg`, `.md`, `.sm` — huge numeric stat displays
+- `button.lg`, `.md`, `.sm` — CTA text
+
+Legacy names (`heading.hero`, `heading.display`, `heading.section`, `heading.card`, `body.lead`, `body.base`, `label.upper`) still work for older code but prefer the numbered scale above in anything new.
+
+**Wrong:**
+```tsx
+<styled.h1 fontFamily="heading" fontSize="6xl" fontWeight="800" letterSpacing="-0.04em">
+<styled.span fontSize="xs" textTransform="uppercase" letterSpacing="0.2em">
+```
+
+**Right:**
+```tsx
+<Heading as="h1" textStyle="heading.1">
+<Text textStyle="label.md">
+```
 
 ### Brand / Design System (Stitch AI)
 - **Primary color**: #623153 (deep mauve)

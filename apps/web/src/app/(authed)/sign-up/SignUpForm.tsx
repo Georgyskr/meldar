@@ -4,6 +4,7 @@ import { Box, Flex, styled } from '@styled-system/jsx'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
 import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
+import { Text } from '@/shared/ui'
 import { GoogleButton, OrDivider } from '@/shared/ui/google-auth'
 import { submitSignUp } from './sign-up-submit'
 
@@ -58,7 +59,7 @@ export function SignUpForm() {
 						<styled.label
 							htmlFor="signup-email"
 							display="block"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							fontWeight="500"
 							color="onSurface"
 							marginBlockEnd={2}
@@ -93,7 +94,7 @@ export function SignUpForm() {
 						<styled.label
 							htmlFor="signup-password"
 							display="block"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							fontWeight="500"
 							color="onSurface"
 							marginBlockEnd={2}
@@ -122,15 +123,15 @@ export function SignUpForm() {
 							transition="border-color 0.2s ease"
 							_focus={{ borderColor: 'primary' }}
 						/>
-						<styled.span textStyle="body.xs" color="onSurfaceVariant/70" marginBlockStart={1}>
+						<Text textStyle="secondary.xs" color="onSurfaceVariant/70" marginBlockStart={1}>
 							At least 8 characters.
-						</styled.span>
+						</Text>
 					</Box>
 
 					{error && (
-						<styled.span
+						<Text
 							role="alert"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							color="red.500"
 							paddingInline={3}
 							paddingBlock={2}
@@ -138,7 +139,7 @@ export function SignUpForm() {
 							borderRadius="md"
 						>
 							{error}
-						</styled.span>
+						</Text>
 					)}
 
 					<styled.button

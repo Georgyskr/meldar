@@ -17,6 +17,7 @@ import {
 export type TokenTransactionReason =
 	| 'build'
 	| 'improve_prompt'
+	| 'chat'
 	| 'daily_bonus'
 	| 'signup_bonus'
 	| 'referral_bonus'
@@ -415,7 +416,62 @@ export const tokenTransactions = pgTable(
 		index('idx_token_transactions_user_created').on(table.userId, table.createdAt.desc()),
 		check(
 			'token_txn_reason_valid',
-			sql`${table.reason} IN ('build', 'improve_prompt', 'daily_bonus', 'signup_bonus', 'referral_bonus', 'monthly_allowance', 'refund')`,
+			sql`${table.reason} IN ('build', 'improve_prompt', 'chat', 'daily_bonus', 'signup_bonus', 'referral_bonus', 'monthly_allowance', 'refund')`,
+		),
+	],
+)
+
+// ── Table 12: AI Call Log ───────────────────────────────────────────────────
+// Append-only log of every Anthropic API call. Fire-and-forget write path.
+// Used for cost telemetry, anomaly detection, and the founder alert cron.
+
+export type AiCallKind =
+	| 'build'
+	| 'chat'
+	| 'improve_prompt'
+	| 'ask_question'
+	| 'generate_plan'
+	| 'discovery_ocr'
+	| 'discovery_extract_topics'
+	| 'discovery_extract_text'
+	| 'discovery_extract_screenshot'
+	| 'discovery_analyze'
+	| 'discovery_adaptive'
+	| 'discovery_insights'
+export type AiCallStatus = 'ok' | 'error' | 'truncated' | 'aborted' | 'refused'
+
+export const aiCallLog = pgTable(
+	'ai_call_log',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+		projectId: uuid('project_id'),
+		sessionId: text('session_id'),
+		kind: text('kind').notNull().$type<AiCallKind>(),
+		model: text('model').notNull(),
+		inputTokens: integer('input_tokens').notNull().default(0),
+		cachedReadTokens: integer('cached_read_tokens').notNull().default(0),
+		cachedWriteTokens: integer('cached_write_tokens').notNull().default(0),
+		outputTokens: integer('output_tokens').notNull().default(0),
+		centsCharged: integer('cents_charged').notNull().default(0),
+		latencyMs: integer('latency_ms').notNull().default(0),
+		stopReason: text('stop_reason'),
+		status: text('status').notNull().$type<AiCallStatus>(),
+		errorCode: text('error_code'),
+		cacheHitRatePct: integer('cache_hit_rate_pct'),
+	},
+	(table) => [
+		index('idx_ai_call_log_user_created').on(table.userId, table.createdAt.desc()),
+		index('idx_ai_call_log_kind_created').on(table.kind, table.createdAt.desc()),
+		index('idx_ai_call_log_status_created').on(table.status, table.createdAt.desc()),
+		check(
+			'ai_call_kind_valid',
+			sql`${table.kind} IN ('build', 'chat', 'improve_prompt', 'ask_question', 'generate_plan', 'discovery_ocr', 'discovery_extract_topics', 'discovery_extract_text', 'discovery_extract_screenshot', 'discovery_analyze', 'discovery_adaptive', 'discovery_insights')`,
+		),
+		check(
+			'ai_call_status_valid',
+			sql`${table.status} IN ('ok', 'error', 'truncated', 'aborted', 'refused')`,
 		),
 	],
 )

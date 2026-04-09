@@ -3,6 +3,7 @@
 import { Flex, styled } from '@styled-system/jsx'
 import { Ticket, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { Text } from '@/shared/ui'
 
 export type TokenNudgeBannerProps = {
 	readonly balance: number
@@ -33,10 +34,10 @@ export function TokenNudgeBanner({ balance, onSeePlans }: TokenNudgeBannerProps)
 		>
 			<Flex alignItems="center" gap={2} flex="1" minWidth={0}>
 				<Ticket size={16} color="#b45309" aria-hidden />
-				<styled.p textStyle="body.xs" color="amber.800" lineHeight="1.5">
-					You have <styled.span fontWeight="700">{balance} tokens</styled.span> left. Get more to
-					keep building.
-				</styled.p>
+				<Text as="p" textStyle="secondary.xs" color="amber.800">
+					You have <Text textStyle="primary.xs">{balance} tokens</Text> left. Get more to keep
+					building.
+				</Text>
 			</Flex>
 
 			<Flex alignItems="center" gap={2} flexShrink={0}>
@@ -48,7 +49,7 @@ export function TokenNudgeBanner({ balance, onSeePlans }: TokenNudgeBannerProps)
 					borderRadius="md"
 					background="amber.600"
 					color="white"
-					textStyle="body.xs"
+					textStyle="secondary.xs"
 					fontWeight="600"
 					cursor="pointer"
 					transition="background 0.15s"

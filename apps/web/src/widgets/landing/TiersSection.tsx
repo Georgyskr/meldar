@@ -1,11 +1,17 @@
-import { Grid, styled, VStack } from '@styled-system/jsx'
-import { Check } from 'lucide-react'
+import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
+import { ArrowRight, Check } from 'lucide-react'
+import Link from 'next/link'
+import { EditorialEyebrow, Heading, Text } from '@/shared/ui'
+
+const StyledLink = styled(Link)
 
 const tiers = [
 	{
-		label: 'Digital Footprint Scan',
-		headline: 'Free',
-		desc: 'See where your time actually goes. Upload a screenshot or answer a few questions. Get a report showing what to build first.',
+		number: 'I',
+		label: 'Time X-Ray',
+		price: 'Free',
+		priceSuffix: '',
+		desc: 'See where your time actually goes. Upload a screenshot or answer a few questions. Get a report showing what to fix first.',
 		features: [
 			'Screen Time screenshot analysis',
 			'1 personalized app recommendation',
@@ -16,159 +22,213 @@ const tiers = [
 		highlighted: false,
 	},
 	{
-		label: 'Build',
-		headline: 'EUR 79',
-		desc: 'We build your first app for you. Working code, fully set up, delivered in 72 hours. You own everything.',
+		number: 'II',
+		label: 'Starter',
+		price: 'EUR 9.99',
+		priceSuffix: '/month',
+		desc: "Meldar's growing library of tested automations plus every AI tool your app needs — image, video, voice, search — through one subscription.",
 		features: [
-			'Founder builds your app by hand',
-			'Working code delivered to your GitHub',
-			'You own it. You run it. No lock-in.',
-		],
-		cta: 'Get it built',
-		subtext: 'Costs less than the time you waste on this problem.',
-		highlighted: false,
-	},
-	{
-		label: 'Bundle',
-		headline: 'EUR 9.99/mo',
-		desc: "Access Meldar's growing library of tested automations plus every AI tool your app needs — image, video, voice, search — through one subscription.",
-		features: [
-			'Full skills library (new automations added weekly)',
-			'Bundled AI tools: image gen, video, voice, search',
-			'One subscription. One bill. Already set up.',
+			'Full skills library (new automations weekly)',
+			'Bundled AI tools: image, video, voice, search',
+			'One subscription, one bill, already set up',
 		],
 		cta: 'Start your bundle',
 		subtext: 'One bill instead of five.',
 		highlighted: true,
 	},
+	{
+		number: 'III',
+		label: 'Concierge',
+		price: 'EUR 79',
+		priceSuffix: '',
+		desc: 'We hand-make your first app for you. Working code, fully set up, delivered in 72 hours. You own everything.',
+		features: [
+			'Founder crafts your app by hand',
+			'Working code delivered to your GitHub',
+			'You own it. You run it. No lock-in.',
+		],
+		cta: 'Get it made',
+		subtext: 'Costs less than the time you waste on this problem.',
+		highlighted: false,
+	},
 ]
 
 export function TiersSection() {
 	return (
-		<styled.section paddingBlock={20} paddingInline={8} bg="surfaceContainerLow">
-			<VStack maxWidth="breakpoint-xl" marginInline="auto" gap={12}>
-				<VStack textAlign="center" gap={4}>
-					<styled.h2 textStyle="heading.section" color="onSurface">
-						Pick your level
-					</styled.h2>
-					<styled.p textStyle="body.lead" color="onSurfaceVariant" maxWidth="480px">
-						Start free. Go deeper when ready.
-					</styled.p>
-				</VStack>
+		<styled.section
+			paddingBlock={{ base: 20, md: 28 }}
+			paddingInline={{ base: 5, md: 12 }}
+			bg="surfaceContainerLow"
+			position="relative"
+			overflow="hidden"
+		>
+			<Box maxWidth="breakpoint-xl" marginInline="auto">
+				<Box marginBlockEnd={{ base: 12, md: 16 }}>
+					<EditorialEyebrow number="008" label="Pick your level" />
+				</Box>
 
-				<Grid maxWidth="breakpoint-xl" columns={{ base: 1, md: 3 }} gap={8}>
-					{tiers.map((tier) => (
-						<styled.div
-							key={tier.label}
-							bg="surfaceContainerLowest"
-							padding={10}
-							borderRadius="xl"
-							display="flex"
-							flexDir="column"
-							justifyContent="space-between"
-							border={tier.highlighted ? '2px solid' : '1px solid'}
-							borderColor={tier.highlighted ? 'primary/20' : 'outlineVariant/10'}
-							boxShadow={tier.highlighted ? '2xl' : 'none'}
-							position="relative"
-							transition="box-shadow 0.2s ease"
-							_hover={{ boxShadow: 'xl' }}
-						>
-							{tier.highlighted && (
-								<styled.div
-									position="absolute"
-									top={0}
-									right={10}
-									transform="translateY(-50%)"
-									background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-									paddingInline={4}
-									paddingBlock={1}
-									borderRadius="full"
-									fontSize="2xs"
-									color="white"
-									textTransform="uppercase"
-									letterSpacing="widest"
-									fontWeight="700"
-								>
-									Most popular
-								</styled.div>
-							)}
-
-							<VStack alignItems="flex-start" gap={0}>
-								<styled.span
-									textStyle="label.upper"
-									fontSize="2xs"
-									color={tier.highlighted ? 'primary' : 'onSurface/40'}
-								>
-									{tier.label}
-								</styled.span>
-								<styled.h3
-									fontFamily="heading"
-									fontSize="2xl"
-									fontWeight="700"
-									marginBlockStart={4}
-								>
-									{tier.headline}
-								</styled.h3>
-								<styled.p textStyle="body.sm" color="onSurfaceVariant" marginBlockStart={4}>
-									{tier.desc}
-								</styled.p>
-							</VStack>
-
-							<VStack alignItems="flex-start" gap={4} marginBlockStart={8}>
-								{tier.features.map((f) => (
-									<styled.div key={f} display="flex" alignItems="center" gap={2}>
-										<Check size={16} color="#623153" strokeWidth={2} aria-hidden="true" />
-										<styled.span textStyle="body.sm">{f}</styled.span>
-									</styled.div>
-								))}
-							</VStack>
-
-							<styled.a
-								href="/start"
-								display="block"
-								width="100%"
-								marginBlockStart={12}
-								paddingBlock={3}
-								textAlign="center"
-								background={
-									tier.highlighted
-										? 'linear-gradient(135deg, #623153 0%, #FFB876 100%)'
-										: 'transparent'
-								}
-								color={tier.highlighted ? 'white' : 'onSurface'}
-								border={tier.highlighted ? 'none' : '1px solid'}
-								borderColor="outlineVariant"
-								borderRadius="md"
-								fontWeight="500"
-								textDecoration="none"
-								transition="all 0.2s ease"
-								_hover={{
-									bg: tier.highlighted ? undefined : 'surfaceContainer',
-									opacity: tier.highlighted ? 0.9 : 1,
-								}}
-								_focusVisible={{
-									outline: '2px solid',
-									outlineColor: 'primary',
-									outlineOffset: '2px',
-								}}
-							>
-								{tier.cta}
-							</styled.a>
-							{tier.subtext && (
-								<styled.p
-									textStyle="body.sm"
-									color="onSurfaceVariant/50"
-									textAlign="center"
-									marginBlockStart={3}
-									fontStyle="italic"
-								>
-									{tier.subtext}
-								</styled.p>
-							)}
-						</styled.div>
-					))}
+				<Grid
+					gridTemplateColumns={{ base: '1fr', md: '2fr 3fr' }}
+					gap={{ base: 12, md: 20 }}
+					alignItems="start"
+					marginBlockEnd={{ base: 12, md: 16 }}
+				>
+					<Heading as="h2" textStyle="primary.xl" color="onSurface">
+						Start free.
+						<br />
+						<Text as="em" textStyle="italic.lg" color="primary">
+							Go deeper when ready.
+						</Text>
+					</Heading>
+					<Text as="p" textStyle="secondary.lg" color="onSurfaceVariant" maxWidth="520px">
+						Three tiers, three temperaments. Scan what wastes your time for free, then graduate when
+						you want more.
+					</Text>
 				</Grid>
-			</VStack>
+
+				<Box borderTop="2px solid" borderColor="onSurface">
+					<Grid gridTemplateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }}>
+						{tiers.map((tier, i) => (
+							<TierColumn key={tier.label} {...tier} last={i === tiers.length - 1} />
+						))}
+					</Grid>
+				</Box>
+			</Box>
 		</styled.section>
+	)
+}
+
+function TierColumn({
+	number,
+	label,
+	price,
+	priceSuffix,
+	desc,
+	features,
+	cta,
+	subtext,
+	highlighted,
+	last,
+}: {
+	number: string
+	label: string
+	price: string
+	priceSuffix: string
+	desc: string
+	features: string[]
+	cta: string
+	subtext: string
+	highlighted: boolean
+	last: boolean
+}) {
+	return (
+		<Flex
+			flexDir="column"
+			justifyContent="space-between"
+			paddingBlock={{ base: 8, md: 10 }}
+			paddingInline={{ base: 5, md: 7 }}
+			borderBottom={{ base: '1px solid', md: '2px solid' }}
+			borderInlineEnd={{ base: 'none', md: last ? 'none' : '1px solid' }}
+			borderColor={{ base: 'onSurface/20', md: 'onSurface' }}
+			bg={highlighted ? 'primary/4' : 'transparent'}
+			position="relative"
+			transition="all 0.3s ease"
+			_hover={{ bg: highlighted ? 'primary/6' : 'primary/3' }}
+		>
+			{highlighted && (
+				<Box
+					position="absolute"
+					top="-2px"
+					left={0}
+					right={0}
+					height="6px"
+					bg="primary"
+					style={{ transformOrigin: 'left', animation: 'ruleDraw 0.8s ease-out 0.2s both' }}
+				/>
+			)}
+
+			<Box>
+				<Flex justifyContent="space-between" alignItems="baseline" marginBlockEnd={8}>
+					<Text textStyle="tertiary.md" color="primary">
+						Tier §{number}
+					</Text>
+					{highlighted && (
+						<Text textStyle="tertiary.sm" color="primary">
+							· most popular
+						</Text>
+					)}
+				</Flex>
+
+				<Heading as="h3" textStyle="primary.md" color="onSurface" marginBlockEnd={3}>
+					{label}
+				</Heading>
+
+				<Flex alignItems="baseline" gap={1} marginBlockEnd={6}>
+					<Text textStyle="display.md" color="primary">
+						{price}
+					</Text>
+					{priceSuffix && (
+						<Text textStyle="italic.sm" color="onSurfaceVariant">
+							{priceSuffix}
+						</Text>
+					)}
+				</Flex>
+
+				<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant" marginBlockEnd={8}>
+					{desc}
+				</Text>
+
+				<VStack alignItems="flex-start" gap={3} marginBlockEnd={10}>
+					{features.map((f) => (
+						<Flex key={f} alignItems="flex-start" gap={3}>
+							<Box marginBlockStart={1}>
+								<Check size={14} color="#623153" strokeWidth={2} aria-hidden="true" />
+							</Box>
+							<Text textStyle="secondary.sm" color="onSurface">
+								{f}
+							</Text>
+						</Flex>
+					))}
+				</VStack>
+			</Box>
+
+			<VStack alignItems="stretch" gap={3}>
+				<StyledLink
+					href="/sign-up"
+					display="inline-flex"
+					alignItems="center"
+					justifyContent="center"
+					gap={2}
+					paddingBlock={4}
+					bg={highlighted ? 'onSurface' : 'transparent'}
+					color={highlighted ? 'surface' : 'onSurface'}
+					border={highlighted ? 'none' : '1.5px solid'}
+					borderColor="onSurface"
+					textDecoration="none"
+					transition="all 0.2s ease"
+					_hover={{
+						bg: highlighted ? 'primary' : 'onSurface',
+						color: 'surface',
+					}}
+					_focusVisible={{
+						outline: '2px solid',
+						outlineColor: 'primary',
+						outlineOffset: '3px',
+					}}
+				>
+					<Text
+						textStyle="button.sm"
+						color={highlighted ? 'surface' : 'onSurface'}
+						_hover={{ color: 'surface' }}
+					>
+						{cta}
+					</Text>
+					<ArrowRight size={14} />
+				</StyledLink>
+				<Text as="p" textStyle="italic.sm" color="onSurfaceVariant/60" textAlign="center">
+					— {subtext}
+				</Text>
+			</VStack>
+		</Flex>
 	)
 }

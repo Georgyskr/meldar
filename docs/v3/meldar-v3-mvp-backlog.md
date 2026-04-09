@@ -1,8 +1,8 @@
 # Meldar v3 MVP Backlog
 
-**Last updated:** 2026-04-08 (post 6-feature wave + 5-round review + payment architecture audit)
+**Last updated:** 2026-04-09 (post editorial architecture rewrite + §JARVIS 3D galaxy plan)
 **Replaces:** v2 angle-change MVP backlog
-**Based on:** 2026-04-07 cleanup wave + auth/sandbox (`fbab6cc`) + email flows (`f6e24d2`) + Build Plan engine (`39f6ba5`) + 6-feature wave (model routing, prompt anatomy, improve-prompt, templates, email touchpoints, token economy) + 5-round scrupulous review + payment architecture audit (2 iterations, 7 agents)
+**Based on:** Full 2026-04-07/08/09 sessions: auth/sandbox → email flows → Build Plan engine → 6-feature wave → payment architecture audit → UX overhaul → editorial architecture rewrite → 3D workspace prototype (§JARVIS)
 
 ---
 
@@ -161,22 +161,18 @@ schema is still intact — `email`, `password_hash`, `email_verified`,
 - `apps/web`: 539 tests passing (from 432 baseline), typecheck clean,
   biome clean
 
-**What's still missing (file as wave-E follow-ups):**
+**Previously missing (all now DONE as of 2026-04-08):**
 
-- **Email verification flow via Resend** — the `users` schema has
-  `email_verified` + `verify_token` columns but no route sends the
-  verification email or accepts the verify click. Currently new users
-  are auto-verified on registration. HIGH priority for the founding-
-  member launch.
-- **Password reset flow** — `reset_token` column exists but no routes
-  use it. Needed before any public launch.
-- **Minimal sign-up surface on the coming-soon page** — coming-soon
-  page still has its own email capture; it should either link out to
-  `/sign-up` or embed the form.
-- **Next.js middleware for `next-url` on hard navigations** — the
-  `?next=` preservation only fires on soft RSC nav. Hard URL-bar
-  navigations lose the deep-link. Needs a middleware that sets
-  `x-pathname` from `request.nextUrl.pathname`.
+- ~~**Email verification flow via Resend**~~ — **DONE.** Non-gating nag
+  banner, `emailVerified` in JWT claims.
+- ~~**Password reset flow**~~ — **DONE.** Forgot + reset UI wired.
+- ~~**Minimal sign-up surface on the coming-soon page**~~ — **DONE.** Landing
+  page (no longer coming-soon) has email capture in EarlyAdopter section
+  + all CTAs link to `/sign-up`.
+- ~~**Next.js middleware for `next-url`**~~ — still a gap on hard navigations
+  but low priority since most navigations are soft RSC.
+- **Google OAuth** — **DONE.** CSRF state, verified_email, authProvider
+  tracking, session invalidation.
 
 **§NEW-SANDBOX. Cloudflare Sandbox worker — CODE DONE, DEPLOY PENDING.**
 Code landed in the 2026-04-07 evening wave (commit `fbab6cc`). Deploy
@@ -444,18 +440,18 @@ packages/
 
 Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test build`.
 
-### Test baseline (verified 2026-04-08, post 5-round review + payment audit)
+### Test baseline (verified 2026-04-08, post UX overhaul + 2-round validation)
 
 | Package | Test files | Tests passing | Notes |
 |---|---|---|---|
-| `@meldar/web` | 56 | 699 | + 1 file / 3 tests skipped; was 638 post-tech-debt, 548 post-email, 432 pre-auth |
+| `@meldar/web` | 59 | 730 | + 1 file / 3 tests skipped; was 699 post-payment, 432 pre-auth |
 | `@meldar/sandbox-worker` | 1 | 44 | HMAC failure modes + contract endpoints + SDK error-message pinning |
 | `@meldar/storage` | 4 | 93 | InMemory + Postgres provider contract + R2 blob + kanban CRUD |
 | `@meldar/sandbox` | 2 | 80 | Safety helpers + Cloudflare provider HMAC |
 | `@meldar/tokens` | 3 | 48 | Pricing + ledger Lua + game economy (CTE atomic debit/credit) |
-| `@meldar/orchestrator` | 4 | 319 | Engine + SSE + model routing (21 tests) + template plans (252 tests) |
+| `@meldar/orchestrator` | 4 | 507 | Engine + SSE + model routing + template plans (9 templates, 252+ tests) |
 | `@meldar/test-utils` | 4 | 12 | Mock factory smoke tests |
-| **Total** | **74** | **1,295** | All green; 5-round scrupulous review passed |
+| **Total** | **77** | **1,514** | All green; 2-round validation passed post-UX-overhaul |
 
 ### What's wired end-to-end (build flow)
 
@@ -513,21 +509,427 @@ Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test b
 
 ---
 
+## §JARVIS — 3D Project Galaxy & Immersive Workspace (P0 sub-plan)
+
+**Added:** 2026-04-09 — based on design-lab prototype + 12-question product interview
+**Depends on:** §7 (WorkspaceShell), kanban CRUD, build pipeline, templates
+**New deps:** `@react-three/fiber`, `@react-three/drei`, `three` (already installed)
+
+### Vision
+
+Replace the flat kanban+chat+preview workspace with an immersive 3D
+experience. The user's project plan is a **constellation of glowing
+nodes** they can orbit, zoom, and interact with. The live app preview
+is ghosted behind (35% opacity) — always visible, never blocking.
+Chat is a slide-in panel. Skills are hidden intelligence that Meldar
+uses on behalf of the user, teaching by example.
+
+**Core metaphor:** "Melding" — the project emerges from particles
+coalescing into a constellation. The brand name IS the creation
+animation.
+
+### Decisions locked (from interview)
+
+| Decision | Answer |
+|---|---|
+| Interaction model | Progressive handoff: AI does everything, user can tweak individual task results or add skills when ready. Learn by watching then doing. |
+| Entry point | "Melding" animation — particles coalesce into constellation. Masks 15s API call. Two variants to prototype: particles coalescing vs. literal melding (two forms merge). |
+| Task zoom-in | Iterate between panel slide-in (A) and camera zoom+morph (B). Prototype both. |
+| Learning hooks | Hidden intelligence. Meldar executes skills (design-lab, UX review, etc.) and explains what it did. Routes curious users to skills.sh and marketing mail for deeper learning. |
+| Templates | Both paths: templates with thumbnails (default), freeform describe-your-own below. Both trigger the melding animation. |
+| Preview layer | Ghost background (35% opacity). Fades more when task selected. Current prototype approach confirmed. |
+| Skill library | Hidden. No visible "Skills" panel. Contextual surfacing only — Meldar suggests when relevant. External routing to skills.sh for research. |
+| Retention loop | Living project (Meldar suggests improvements after completion) + community showcase. Users keep improving, not just starting new projects. |
+| Mobile | Simplified 2D fallback. Desktop is the 3D galaxy. Mobile is clean card list. |
+| MVP scope | Full Jarvis for founding members. Galaxy + melding + chat + skill routing + learning hints + achievement toasts. |
+| Risk mitigation | Performance (varied hardware) and user confusion (non-technical). Address with: WebGL detection + 2D fallback, progressive disclosure, contextual help at every node. |
+
+### Phased delivery
+
+#### Phase J-1: 3D Foundation (P0, ~3 days)
+
+- [ ] **J-1.1** `ProjectGalaxy` component — production-ready React Three Fiber canvas
+  - Milestone clusters as ring+node groups
+  - Task nodes: done=green, ready=pulsing peach, active=mauve, locked=dim
+  - Connection lines (bezier curves between milestones)
+  - OrbitControls (drag orbit, scroll zoom, pinch on touch)
+  - Ambient particles (subtle mauve dust motes)
+  - Transparent canvas (`alpha: true`) for ghost preview behind
+  - Wire to real `KanbanCard[]` data (replace mock fixtures)
+- [ ] **J-1.2** WebGL detection + fallback
+  - `isWebGLAvailable()` check at mount time
+  - If false: render current 2D `FlowGraph` instead
+  - If mobile (`navigator.maxTouchPoints > 0` + `screen.width < 1024`): render 2D
+  - Reduce particle count on low-DPR screens (`dpr < 1.5` → 30 particles)
+- [ ] **J-1.3** Ghost preview layer
+  - Preview iframe at `z-index: 0`, opacity controlled by selection state
+  - Semi-transparent veil between preview and 3D canvas
+  - Opacity: 35% default, 15% when task selected, 50% when chat open
+- [ ] **J-1.4** Replace `LeftPane` + `PreviewPane` split with galaxy view
+  - `WorkspaceShell` renders `ProjectGalaxy` as the main view
+  - Remove the 42%/58% split. Galaxy is 100% of the workspace area.
+  - Keep `WorkspaceTopBar` and `WorkspaceBottomBar` as HUD chrome
+
+#### Phase J-2: Melding Animation (P0, ~2 days)
+
+- [ ] **J-2.1** Prototype two emergence variants:
+  - **Variant P (Particles):** Scattered particles drift, accelerate, collide, form nodes. Energy burst at each collision. Connections snap into place. Camera pulls back to reveal.
+  - **Variant M (Melding):** Two abstract forms approach from left/right. Overlap. Merge. The merged shape splits into constellation nodes. "Meldar is melding your project."
+- [ ] **J-2.2** Status text overlay during 15s API call
+  - Sequence: "Understanding your idea..." → "Mapping the milestones..." → "Preparing your workspace..." → [melding animation] → Galaxy visible
+  - Text uses editorial typography (`tertiary.sm`, peach on cream)
+- [ ] **J-2.3** Wire to template-apply + plan-generate API calls
+  - Template path: `applyTemplate()` → melding → galaxy
+  - Freeform path: `generatePlan()` (Haiku 5-question onboarding replaced by single-prompt plan generation) → melding → galaxy
+- [ ] **J-2.4** Template thumbnails
+  - Generate generic thumbnails for all templates (Leonardo API, abstract/editorial style)
+  - Replace with custom thumbnails for top 3 "working horse" templates over time
+  - Store in `public/brand/templates/` or R2
+
+#### Phase J-3: Task Interaction (P0, ~3 days)
+
+- [ ] **J-3.1** Click-to-select — panel slide-in (Version A)
+  - Click a node → camera eases toward it
+  - Detail panel slides in from left (320px, frosted glass)
+  - Shows: task title, what you'll learn, status, "Make this" button, mini chat
+  - Click background or press Escape → deselect, panel slides out
+- [ ] **J-3.2** Click-to-select — camera zoom+morph (Version B)
+  - Click a node → camera flies INTO the node
+  - Other nodes fade to 10% opacity
+  - Selected node expands: preview zooms to full + chat opens
+  - "Back to galaxy" button returns to orbit view
+- [ ] **J-3.3** A/B test both with founding members, pick the winner
+- [ ] **J-3.4** Build execution from galaxy
+  - "Make this" button triggers the existing build pipeline
+  - During build: node pulses with progress animation
+  - On complete: node transitions from peach to green with celebration particle burst
+  - SSE events from build pipeline animate the node in real-time
+
+#### Phase J-4: Chat Integration (P0, ~2 days)
+
+- [ ] **J-4.1** Chat panel in galaxy view
+  - Slide-in panel (right side, 360px) with the existing `BuildPanel` + prompt textarea
+  - Frosted glass over the galaxy
+  - Chat messages stream in real-time (existing SSE infrastructure)
+  - "What should Meldar make?" prompt → scoped to selected task or general
+- [ ] **J-4.2** Contextual chat scoping
+  - If a task is selected: chat is pre-scoped to that task's context
+  - If no task selected: chat is project-wide
+  - Chat can trigger builds, ask questions, request tweaks
+- [ ] **J-4.3** Post-build explanation
+  - After a task completes, Meldar explains what it did
+  - "I created a weight chart using Chart.js. It reads data from your form and displays a line graph."
+  - This IS the learning moment. Hidden skill usage is revealed here.
+
+#### Phase J-5: Skill Routing & Learning (P1, ~3 days)
+
+- [ ] **J-5.1** Skill router in orchestrator
+  - Orchestrator detects when a task benefits from a skill (design-lab, UX review, etc.)
+  - Executes the skill transparently, includes explanation in chat
+  - "I ran a UX review on your form and made 3 improvements: [list]"
+- [ ] **J-5.2** "Want to learn how?" prompts
+  - After skill execution, optional expandable: "Meldar used a UX review skill. Want to learn how to do this yourself?"
+  - Links to skills.sh for the curious
+  - Tracked in analytics: which skills generate the most curiosity
+- [ ] **J-5.3** Achievement toasts
+  - On task completion: "You just learned: Data Visualization" toast
+  - Skills accumulate on user profile
+  - Not gamified aggressively — editorial, warm, informative
+
+#### Phase J-6: Living Projects & Retention (P1, ~2 days)
+
+- [ ] **J-6.1** Post-completion suggestions
+  - When all nodes are green: Meldar suggests improvements
+  - "Your tracker works! Want to add a sharing feature? Or a weekly email summary?"
+  - Each suggestion spawns a new milestone cluster in the galaxy
+  - The galaxy GROWS — the project is never "done"
+- [ ] **J-6.2** Community showcase
+  - Gallery page: founding member projects with screenshots
+  - "See what others made this week"
+  - Social proof + inspiration for Day 2 return
+- [ ] **J-6.3** Weekly "What you could improve" email
+  - Resend-powered email with 1-2 improvement suggestions per active project
+  - Deep link back to workspace with the suggestion pre-loaded
+
+### Performance budget
+
+| Metric | Target | Fallback |
+|---|---|---|
+| Galaxy first paint | < 2s | 2D flow graph if > 3s |
+| Interaction latency (orbit/zoom) | < 16ms (60fps) | Reduce particles, disable fog |
+| Memory usage | < 100MB GPU | Limit to 50 nodes, disable particles |
+| WebGL detection | < 50ms | `isWebGLAvailable()` from drei |
+| Mobile detection | Immediate | `matchMedia('(pointer: coarse)')` |
+| Bundle size (Three.js) | < 200KB gzipped | Tree-shake via `@react-three/fiber` |
+
+### Risk register
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| Low-end devices can't run 3D | Medium | High | WebGL detection → 2D fallback. Always works. |
+| Users confused by 3D navigation | Medium | High | Auto-rotate when idle. "Click a node" hint. Progressive disclosure. Tutorial overlay on first visit. |
+| Three.js bundle bloats page load | Low | Medium | Dynamic import (`next/dynamic` with `ssr: false`). Only loads on workspace route. |
+| Melding animation feels gimmicky | Low | Medium | A/B test particles vs. melding literal. Kill if metrics don't improve retention. |
+| 3D conflicts with editorial design | Low | Low | Same color palette (mauve, peach, cream). Same typography via HTML overlays. The galaxy IS the Swiss grid, just spatial. |
+
+### Files to create/modify
+
+**New files:**
+- `features/project-galaxy/ProjectGalaxy.tsx` — main 3D component (from design-lab prototype)
+- `features/project-galaxy/MeldingAnimation.tsx` — creation animation
+- `features/project-galaxy/useWebGLFallback.ts` — detection + fallback hook
+- `features/project-galaxy/index.ts` — barrel export
+
+**Modified files:**
+- `widgets/workspace/WorkspaceShell.tsx` — replace split layout with galaxy
+- `widgets/workspace/LeftPane.tsx` — refactor into galaxy slide-in panels
+- `widgets/workspace/PreviewPane.tsx` — becomes ghost background layer
+- `widgets/workspace/FirstTimeWelcome.tsx` — template picker triggers melding
+- `features/workspace-build/BuildPanel.tsx` — becomes chat slide-in panel
+
+---
+
+## 2026-04-08/09 — Editorial Architecture rewrite + §JARVIS planning (what shipped)
+
+### Editorial Architecture design language — **DONE**
+
+Full visual rewrite of the landing page + workspace chrome. "Swiss editorial" design language: rigid grids, 1px/2px ink rules, numbered Nº markers, peach as pinpoint accent, no gradient washes.
+
+**Typography system rebuilt:**
+- `styled.p/h1-h6/span/em/strong` banned project-wide (enforced in CLAUDE.md)
+- `<Text>` and `<Heading>` primitives from `@/shared/ui/typography.tsx`
+- Semantic scale: `primary` (titles), `secondary` (body), `tertiary` (labels), `display`, `italic`, `button`
+- Legacy `heading.hero/display/section`, `body.lead/base`, `label.upper` tokens removed
+- 82 files migrated via automated codemod + manual cleanup
+
+**Landing page (11 sections rewritten):**
+- All sections numbered Nº 001–011 in render order, footer colophon Nº 012
+- `EditorialEyebrow` + `EditorialPlate` shared components
+- 8 Leonardo API illustrations (editorial photography style, 3 regenerated for less AI look)
+- Hero section: `100dvh`, no scroll needed to see full hero
+- All banned words purged: "build/built" → "make/made" everywhere
+- JSON-LD schemas updated: tier names (Time X-Ray / Starter / Concierge), descriptions, pricing
+
+**Workspace chrome rewritten:**
+- Dashboard: `ProjectCard` with Nº numbering, ink progress bars, editorial borders
+- `StreakBadge`: sharp borders, flame flicker animation
+- `ContinueBanner`, `FirstTimeWelcome`, `NewProjectButton`: editorial treatment
+- `WorkspaceTopBar`, `StepIndicator`, `EmailVerificationBanner`: ink rules, no gradients
+- `TemplatePreviewDrawer`: 2px drawer border, editorial section headers
+- All user-facing "build/built" text replaced with "make/made/activity"
+
+**New dependencies:**
+- `@react-three/fiber`, `@react-three/drei`, `three`, `@types/three` — for §JARVIS prototype
+
+### §JARVIS sub-plan added to backlog
+
+See §JARVIS section above for full 6-phase delivery plan.
+
+---
+
+## 2026-04-09 — Phase 0 (Money Guardrails) + Phase 0.8 (runBuildForUser) + Phase 1 (§JARVIS UI refactor)
+
+Three sequential phases landed in one wave after running architecture +
+security + AI-optimization reviews on the pre-build diff. Pre-launch
+hard cutover — no feature flags, no migration shims.
+
+### Phase 0 — Money guardrails (P0, **DONE**)
+
+Prevents a runaway agent or abusive user from draining the Anthropic
+budget. Everything funnels through one wrapper with triple ceilings +
+full audit log + email alerts.
+
+**Triple spend ceiling** (`apps/web/src/server/lib/spend-ceiling.ts`):
+- [x] Global daily ceiling: €30/day across all users (Redis
+  `meldar:global:spend:YYYY-MM-DD`)
+- [x] Per-user hourly ceiling: €0.80/hour (Redis
+  `meldar:user:spend:${userId}:YYYY-MM-DD-HH`)
+- [x] Per-user daily ceiling: €2/day (Redis
+  `meldar:user:spend-day:${userId}:YYYY-MM-DD`)
+- [x] `ANTHROPIC_PAUSED=1` kill switch env var (trips all ceilings open)
+- [x] `checkAllSpendCeilings` + `recordGlobalSpend` /
+  `recordUserHourlySpend` / `recordUserDailySpend` helpers
+- [x] Unconditional `redis.expire` after `incrby` (closes R3 TTL race)
+
+**Guarded Anthropic wrapper**
+(`apps/web/src/server/lib/guarded-anthropic.ts`):
+- [x] `guardedAnthropicCall()` / `guardedAnthropicCallOrThrow()` — every
+  Anthropic call in the codebase goes through this
+- [x] `GuardedCallBlockedError` with reason `paused | global_ceiling |
+  user_hourly | user_daily`
+- [x] Single choke point for ceilings + spend recording + audit log
+
+**AI call audit log** (`packages/db/migrations/0011_ai_call_log.sql`):
+- [x] `ai_call_log` table with 12 `AiCallKind` variants: `build | chat |
+  improve_prompt | ask_question | generate_plan | discovery_ocr |
+  discovery_extract_topics | discovery_extract_text |
+  discovery_extract_screenshot | discovery_analyze | discovery_adaptive
+  | discovery_insights`
+- [x] Status: `ok | error | truncated | aborted | refused`
+- [x] Indexes on `(user_id, created_at)`, `(kind, created_at)`,
+  `(status, created_at)`
+- [x] `recordAiCall()` fire-and-forget helper with try/catch
+  (`apps/web/src/server/lib/ai-call-log.ts`)
+
+**All call sites wired through the guard:**
+- [x] Build orchestrator (`packages/orchestrator/src/engine.ts`) with
+  `GlobalSpendGuard` + `AiCallLogger` dependency injection
+- [x] Improve-prompt, ask-question, generate-plan routes
+- [x] Discovery: `analyze.ts` (highest cost leak — Sonnet + 4000
+  max_tokens), `extract-screenshot.ts`, `extract-topics.ts` (2 calls),
+  `ocr.ts`, `adaptive.ts`, `extract-from-text.ts`
+- [x] All routes made fail-closed (`critical=true` on rate limit)
+
+**Prompt caching (50-80% cost reduction on repeat builds):**
+- [x] `buildUserMessage` split into stable `buildProjectFilesBlock`
+  (cacheable) + volatile `buildUserPromptBlock` tail
+- [x] `cache_control: { type: 'ephemeral' }` on system prompt + project
+  files block
+- [x] `usageToCents(model, usage)` in `packages/tokens/src/pricing.ts`
+  tracks cache reads (10%) + writes (125%) separately
+- [x] Tests verify cached build is significantly cheaper than cold
+
+**Founder alert email + cron:**
+- [x] `sendFounderAlertEmail({level, subjectDetail, bodyHtml})` in
+  `send-email.ts`, default recipient `gosha.skryuchenkov@gmail.com`
+- [x] `/api/cron/spend-alert` runs every 5 min
+  (`vercel.json` cron), warning at €20/day, panic at €50/hour
+- [x] Redis NX dedup locks: 1 warning/day, 1 panic/15min
+- [x] `FOUNDER_ALERT_EMAIL` env var override
+
+**New migrations:**
+- [x] `0010_add_chat_reason.sql` — adds `'chat'` to
+  `token_txn_reason_valid` check constraint
+- [x] `0011_ai_call_log.sql` — creates `ai_call_log` table
+
+### Phase 0.8 — runBuildForUser (single choke point, **DONE**)
+
+Consolidated build authorization + token debit + refund logic into one
+function. Closes C1 (cross-user card lookup), C3 (race in debit), C4
+(missing refund on orchestration failure), M4 (inconsistent error
+handling) from the chat security spec in one place. Chat (Phase 3) will
+call the same function.
+
+- [x] `apps/web/src/server/build/run-build.ts` —
+  `runBuildForUser({projectId, userId, prompt, kanbanCardId, signal,
+  source})`
+- [x] Joined card-project-user lookup (single query, no TOCTOU)
+- [x] Atomic `debitTokens` before `orchestrateBuild`
+- [x] `withTokenRefund` wrapper refunds on `!committed` outcome
+- [x] `sseStreamFromGenerator` helper moved here from route
+- [x] Build route reduced to thin wrapper: auth → rate limit → body
+  validation → delegate to `runBuildForUser`
+  (`apps/web/src/app/api/workspace/[projectId]/build/route.ts`)
+
+### Phase 1 — §JARVIS UI refactor (**DONE**)
+
+Workspace UI rewritten around hybrid 2D/3D architecture. Glass-card
+aesthetic (Apple Vision Pro-inspired) in the light theme — no
+cosmic/galaxy styling, just glass. 2D plan view and 3D spatial view
+coexist: 3D is the default when WebGL + desktop + no reduced motion; 2D
+is the fallback and the explicit toggle for users who prefer it.
+
+**`features/galaxy/` — new slice** (name kept for internal identifier,
+user-facing language is "workspace"):
+- [x] `model/types.ts` — `GalaxyTask`, `GalaxyMilestone`,
+  `GalaxyTaskStatus`
+- [x] `model/kanban-to-galaxy.ts` — pure converter from `KanbanCard[]`.
+  `failed | needs_rework` → `'failed'` (frontend review fix, was
+  incorrectly `'ready'`)
+- [x] `lib/use-webgl-fallback.ts` — detects WebGL support, mobile
+  (maxTouchPoints + coarse pointer + <1024px), reduced motion
+- [x] `ui/GalaxyCanvas.tsx` — R3F `<Canvas>`, hybrid nodes, `<color
+  attach="background" args={[C.surface]} />` (fixes WebGL black clear
+  on `alpha: false`)
+- [x] `ui/GalaxyFallback.tsx` — 2D plan view, dual-mode (controlled via
+  props or uncontrolled). NaN fix: `pct = total > 0 ? Math.round((done
+  / total) * 100) : 0`
+- [x] `ui/GalaxyView.tsx` — `dynamic(import, { ssr: false })` loader
+  for `GalaxyCanvas`, wraps in `GalaxyErrorBoundary` with
+  `GalaxyFallback` as error fallback
+- [x] `ui/GalaxyErrorBoundary.tsx` — class component with strict
+  `override` modifiers
+- [x] `ui/PreviewThumbnail.tsx` — floating glass thumbnail, `sandbox`
+  dropped `allow-same-origin`
+- [x] `index.ts` barrel
+
+**`features/workspace/` — renamed from `workspace-build`:**
+- [x] Reducer extended with UI actions: `selectTask`, `clearSelection`,
+  `openChat`, `closeChat`
+- [x] `WorkspaceMode` discriminated union: `plan | taskFocus | building
+  | review`
+- [x] `deriveWorkspaceMode(state)` pure function — mode is derived, not
+  stored (eliminates mode/cards desync)
+- [x] `BuildReceipt` gained `cardId` (fixes title collision in mode
+  derivation)
+- [x] `state.selectedTaskId` + `state.chatOpen` in reducer state
+- [x] Tests updated for new `BuildReceipt` shape
+
+**`widgets/workspace/` — simplified:**
+- [x] `WorkspaceShell.tsx` rewritten around `GalaxyView`.
+  `GalaxySurface` memoizes `kanbanToGalaxy(cards)` and derives
+  `fallbackMode` from reducer mode
+- [x] `triggerBuildForTask` with response status check + error logging
+- [x] `WorkspaceBottomBar.tsx` — `BuildButton`, `BuildComposer`,
+  `WhatJustHappenedSlot`, `LastBuildRelativeTime` all deleted
+- [x] `[projectId]/page.tsx` — dropped unused `currentFiles` +
+  `activeBuildId`
+
+**Deleted (hard cutover, no users yet):**
+- [x] `apps/web/src/app/design-lab/` (14 files + page + feedback
+  overlay)
+- [x] `apps/web/src/features/project-galaxy/` (old slice)
+- [x] `LeftPane.tsx`, `PreviewPane.tsx`, `WhatJustHappenedSlot.tsx`,
+  `LastBuildRelativeTime.tsx`
+- [x] `BuildPanel.tsx`, `BuildComposer.tsx`, `BuildLog.tsx`,
+  `build-log-format.ts`, `BuildLog.test.ts`
+
+**Panda textStyles added:** `label.lg`, `label.md`, `label.sm`,
+`tertiary.xs`
+
+**Specs saved:**
+- [x] `docs/v3/chat-security-spec.md` — 23-step chat pipeline, C1-C4,
+  H1-H5, M1-M5 findings (server-side card resolution, no Claude
+  tool-use for build triggering)
+- [x] `docs/v3/jarvis-workspace-spec.md` — full workspace layout spec,
+  5 modes, mode transitions, language changes (milestone → chapter,
+  subtask → step, token → energy)
+- [x] `CLAUDE.md` — new "Product Stage Rules" section: pre-launch, no
+  feature flags, hard cutovers, clean slate beats migration
+
+### Still pending from this wave
+
+- [ ] Phase 2 — Chat MVP (option C with prompt enhancement, real chat).
+  Wires into `runBuildForUser`. Tool-use disabled for build
+  triggering — builds are server-side card resolution only, per
+  chat-security-spec.md
+- [ ] Phase 3 — orchestrator cost log + spend dashboard surfaces in
+  founder-only UI
+- [ ] Run `0010` + `0011` migrations against Neon before deploy
+
+---
+
 ## P0 — Positioning & Narrative
 
-### 1. Update landing page to v3 positioning
-- New hero copy reflecting "live preview + learn by building" angle
-- Update tiers section: Free / Builder EUR 19/mo / Done-for-me EUR 79 escape
-- Kill old "Build tier as main product" framing
-- Update FAQ for new model
-- Update all JSON-LD schema with new pricing
+### 1. Update landing page to v3 positioning — **DONE** (2026-04-08/09 editorial rewrite)
 
-**Dependency:** Requires v3 landing copy rewrite (separate deliverable needed)
+~~New hero copy, tiers, FAQ, JSON-LD.~~
 
-### 2. Rename and rebrand learning moments
-- No more "lessons," "courses," "modules," "tutorials"
-- Replace with: "steps," "builds," "ships," "milestones"
-- Consistent across UI, emails, and marketing
+**What shipped:** Complete editorial architecture rewrite. 11 sections with Swiss
+design language, numbered markers, Leonardo illustrations. Tier names: Time X-Ray
+(free) / Starter (EUR 9.99/mo) / Concierge (EUR 79 one-time). All JSON-LD updated.
+FAQ rewritten (9 questions, banned words removed). Hero is 100dvh.
+
+**Pricing note:** Tier pricing (EUR 9.99/mo Starter vs. original EUR 19/mo Builder)
+is TO BE REVISED. Landing page currently shows EUR 9.99. Stripe integration not
+yet wired. Reconcile pricing before billing goes live.
+
+### 2. Rename and rebrand learning moments — **MOSTLY DONE**
+- ~~No more "lessons," "courses," "modules," "tutorials"~~
+- "build/built/builder" → "make/made/concierge" done across all landing + workspace surfaces
+- "Steps," "milestones" terminology in active use
+- Banned words enforced in CLAUDE.md: build, builder, tutorial, course, lesson, no-code
+- **Remaining:** email templates may still have stale copy (check Resend templates)
 
 ### 3. Craft the first milestone vocabulary
 - "Ship #1," "Prompt Fluent," "Full Stack," "AI Certified Builder"
@@ -535,40 +937,47 @@ Run from the repo root: `pnpm format-and-lint`, `pnpm turbo run typecheck test b
 
 ---
 
-## P0 — Gateway (Discovery Flow)
+## P0 — Gateway (Discovery Flow) — **NEEDS REFRAMING**
 
-### 4. Free tier: Digital Footprint Scan + recommendation — **DONE** for the scan, **NOT DONE** for the v3 roadmap-preview CTA
-- **Exists already** in the codebase (agentgate)
-- Wire it to produce one clear recommendation → specific use case → roadmap preview
-- CTA from recommendation: "See the full roadmap" → login wall → upgrade flow
+> **Status (2026-04-09):** The v2 discovery flow (`/quiz`, `/start`, `/xray`,
+> `features/discovery-flow`, `features/founding-program`) was **ripped** in the
+> 2026-04-07 cleanup wave. All routes, APIs, and feature modules are deleted.
+> The landing page is now a full editorial experience with email capture via
+> `FoundingEmailCapture` in the EarlyAdopter section. The entry funnel is:
+> landing page → `/sign-up` → workspace → pick template or describe idea.
+>
+> §4-6 below are **OBSOLETE as written**. The gateway is now the landing page
+> itself + the FirstTimeWelcome in the workspace. §JARVIS's "melding animation"
+> replaces the old roadmap preview concept.
 
-**What's actually shipped:** `/quiz`, `/start`, `/start/[id]`, `/xray`, `/xray/[id]` pages plus `apps/web/src/app/api/discovery/{session,upload,analyze,adaptive}` routes. Quiz → Screen Time screenshot upload → Haiku OCR → recommendations → shareable Time X-Ray card. Founding-member email capture wired (`apps/web/src/features/founding-program/`). **What's missing:** the v3-specific "see the full roadmap → login → upgrade" CTA from the recommendation page into the workspace; the discovery output doesn't yet hand off into a workspace project.
+### 4. Free tier entry — **REFRAMED**
+- ~~Digital Footprint Scan + recommendation~~ (code ripped)
+- **New entry:** Landing page (editorial, 11 sections) → email capture or direct sign-up
+- Time X-Ray concept lives on as the free tier NAME but the scan flow is gone
+- **If we want a discovery flow again:** rebuild from scratch, not from v2 code
 
-### 5. Onboarding style selector
-- One-question upfront: "How do you like to learn?"
-- Options: "Recipe style (I like following and tweaking)" / "[Zoomer style — TBD]"
-- Stored in user profile, affects UI copy tone across platform
+### 5. Onboarding style selector — **SUPERSEDED by §JARVIS**
+- ~~One-question upfront: "How do you like to learn?"~~
+- §JARVIS replaces this with **adaptive progressive handoff**: the UI detects
+  user behavior and adjusts. No explicit style selector needed.
 
-### 6. Visible roadmap preview (free)
-- Show the full 8-step roadmap with milestone markers
-- First 2 steps clickable (free preview)
-- Steps 3-8 grayed with "Unlock to continue building" CTA
-- This is the upgrade trigger
+### 6. Visible roadmap preview — **SUPERSEDED by §JARVIS**
+- ~~Roadmap with locked steps and upgrade CTA~~
+- §JARVIS's 3D galaxy IS the roadmap. The "melding animation" reveals it.
+  Locked nodes are dim in the constellation. Upgrade triggers TBD.
 
 ---
 
 ## P0 — Guided Workspace (the heart of the MVP)
 
-### 7. Split-screen workspace shell
-- Left panel: chat / prompt interface + kanban + controls
-- Right panel: live preview iframe (Vercel embed)
-- Top: project name, current step, progress indicator
-- Bottom: token balance, roadmap button
+### 7. Split-screen workspace shell — **DONE, SUPERSEDED by §JARVIS**
+~~Left/right split with chat+kanban left, preview right.~~
 
-**Requirements:**
-- Responsive (tablet OK, mobile P2)
-- Always-visible live preview (no hiding, no tabs)
-- Smooth updates when preview refreshes
+**What shipped:** `WorkspaceShell` with `LeftPane` (flow graph + kanban + build
+panel) and `PreviewPane` (iframe). Top/bottom bars. Editorial treatment applied
+(2026-04-09). **This layout is being replaced by §JARVIS** — the 3D galaxy with
+ghost preview background replaces the flat split-screen. The current shell will
+serve as the 2D fallback for mobile and WebGL-unsupported devices.
 
 ### 8. Step state machine — **DONE** (commit `39f6ba5`)
 ~~Each of the 8 roadmap steps has states:~~
@@ -756,7 +1165,9 @@ validation on all route params. 943 tests across monorepo.
 
 ## P0 — Monetization & Billing
 
-### 24. Stripe checkout for Builder tier (EUR 19/mo) — **DONE** for the plumbing, **NOT DONE** for trial + entitlement gating
+### 24. Stripe checkout for subscription tier — **DONE** for the plumbing, **NOT DONE** for trial + entitlement gating
+> **Pricing TBD:** Landing page shows Starter at EUR 9.99/mo. Original spec was
+> Builder at EUR 19/mo. Reconcile before billing goes live.
 - Existing Stripe integration in codebase — extend
 - Subscription, not one-time
 - Trial: consider 3-day free trial with token allowance
@@ -978,6 +1389,24 @@ set in both `.env.local` (local dev) and Vercel (production). Check
 - [ ] **Resend** — already set up (domain verified, API key in
   `.env.local` + Vercel). ✅
 
+**Added by Phase 0 money guardrails (2026-04-09) — all optional, all
+have safe defaults, none are required for Phase 0 to function:**
+
+- [ ] `GLOBAL_DAILY_CEILING_CENTS` — default `3000` (€30/day across all
+  users). Trip → all Anthropic calls return `GuardedCallBlockedError`
+  with `reason: 'global_ceiling'`.
+- [ ] `USER_HOURLY_CEILING_CENTS` — default `80` (€0.80/user/hour).
+  Trip → `reason: 'user_hourly'`.
+- [ ] `USER_DAILY_CEILING_CENTS` — default `200` (€2/user/day). Trip →
+  `reason: 'user_daily'`.
+- [ ] `ANTHROPIC_PAUSED` — set to `1` as emergency kill switch (all
+  ceilings return blocked, reason: `'paused'`). Unset or `0` = normal.
+- [ ] `FOUNDER_ALERT_EMAIL` — default `gosha.skryuchenkov@gmail.com`.
+  Used by `/api/cron/spend-alert` (every 5 min, already in
+  `vercel.json`). Warning at €20/day total, panic at €50/hour.
+- [x] `CRON_SECRET` — already set (used by existing cron jobs). The
+  spend-alert cron reuses this secret. ✅
+
 ### Build Plan engine
 - [x] Step state machine with milestone→subtask hierarchy
 - [x] Kanban task execution engine — card-driven builds via SSE
@@ -992,7 +1421,7 @@ set in both `.env.local` (local dev) and Vercel (production). Check
 - [x] Model routing — Haiku/Sonnet static lookup, server-side only (§16)
 - [x] Prompt anatomy side panel — client-side parser, score 0-5 (§12)
 - [x] Improve-my-prompt — Haiku rewrite, 1 token, balance check before / debit after (§13)
-- [x] Template plans — 5 templates (Weight/Expense/Portfolio/Task/Booking) (§19)
+- [x] Template plans — 9 templates with learning highlights, difficulty, time, tags (§19)
 - [x] Email touchpoints — welcome, first-build, Day 1/7 nudges via Vercel Cron (§35)
 - [x] Token game economy — CTE atomic debit/credit, daily bonus, balance pill (§17)
 
@@ -1007,11 +1436,35 @@ set in both `.env.local` (local dev) and Vercel (production). Check
 - [ ] System-wide daily spend cap (Sprint 2)
 - [ ] Stripe token-meter integration (requires Private Preview)
 
+### UX overhaul (2026-04-08) + Editorial Architecture (2026-04-08/09)
+- [x] React Flow node graph with dagre auto-layout (replaces flat kanban list)
+- [x] Flow/List view toggle (default: flow)
+- [x] FirstTimeWelcome with goal selector + enriched template cards
+- [x] Template preview drawer (plan + cost preview before committing)
+- [x] Three-phase paywall (token tooltip → nudge banner → pricing drawer)
+- [x] First-build celebration overlay with a11y (dialog, focus trap, escape)
+- [x] Auto-mark first subtask as ready (server-side in apply-template)
+- [x] 9 templates enriched with learning highlights, difficulty, time, cost
+- [x] React Flow lazy-loaded (~100KB saved for list-view users)
+- [x] Google OAuth (CSRF state, verified_email, authProvider tracking, session invalidation)
+- [x] Editorial architecture: full landing page rewrite (11 sections, Swiss design)
+- [x] Typography system: `<Text>`/`<Heading>` primitives, 82 files migrated
+- [x] 8 Leonardo editorial illustrations (3 regenerated for less-AI look)
+- [x] Workspace chrome editorial treatment (dashboard, all workspace components)
+- [x] Day 2 return: StreakBadge, ContinueBanner, ProjectCard with progress bars
+- [x] Banned words enforced: "build"→"make" across all surfaces + CLAUDE.md
+- [ ] Template preview screenshots/mockups → **addressed by §JARVIS J-2.4**
+- [ ] Node graph → **superseded by §JARVIS 3D galaxy** (React Flow becomes 2D fallback)
+- [ ] Milestone completion celebration + "share with boss" flow
+- [ ] §JARVIS implementation (6 phases, see sub-plan above)
+
 ### Workspace
-- [x] Split-screen: build plan left, preview right
+- [x] Split-screen: flow graph left, preview right (§7, superseded by §JARVIS)
 - [x] Token cost ceiling (EUR 2/day, Redis Lua)
+- [x] Editorial treatment on all workspace chrome (2026-04-09)
 - [ ] First user signs up → creates project → sees streaming build
-  (blocked on Cloudflare deploy for iframe preview)
+  (blocked on R2 setup + Cloudflare deploy for iframe preview)
+- [ ] §JARVIS 3D galaxy replaces split-screen (see sub-plan)
 
 ### Not started (ship after first users)
 - [ ] Billing re-integration / Stripe checkout (§24)
@@ -1025,6 +1478,12 @@ set in both `.env.local` (local dev) and Vercel (production). Check
 
 ## What's NOT Done Until It's Done
 
-The old v2 backlog is deprecated. The old landing page copy is outdated. The old "Build tier as service" model is replaced.
+The old v2 backlog is deprecated. ~~The old landing page copy is outdated.~~ **Landing page is DONE** (editorial architecture, 2026-04-09).
 
-**Before starting implementation:** the landing page needs a v3 rewrite. The copy in `docs/deliverables/landing-copy-v2.md` reflects v2, not v3. That's the first blocker to clear.
+**Remaining blockers before founding-member launch:**
+1. **Cloudflare Sandbox deploy** — live preview iframe (blocked on Containers Beta enrollment)
+2. **R2 bucket setup** — content-addressed blob storage for builds
+3. **Pricing reconciliation** — landing page says EUR 9.99/mo, original spec EUR 19/mo. Decide.
+4. **§JARVIS Phase 2 (Chat MVP)** — real chat with prompt enhancement, wires into `runBuildForUser`
+5. **Run migrations 0010 + 0011 on Neon** — adds `'chat'` token reason + `ai_call_log` table
+6. **Env vars on Vercel** — see checklist above (Upstash, Neon, Anthropic, R2, JWT, etc.)

@@ -4,6 +4,7 @@ import { styled } from '@styled-system/jsx'
 import { useState } from 'react'
 import { trackEvent } from '@/features/analytics'
 import type { ProductSlug } from '@/shared/config/stripe'
+import { Text } from '@/shared/ui'
 
 type PurchaseButtonProps = {
 	product: ProductSlug
@@ -79,9 +80,15 @@ export function PurchaseButton({
 				{loading ? 'Redirecting...' : label}
 			</styled.button>
 			{error && (
-				<styled.p textStyle="body.sm" color="red.500" textAlign="center" marginBlockStart={2}>
+				<Text
+					as="p"
+					textStyle="secondary.sm"
+					color="red.500"
+					textAlign="center"
+					marginBlockStart={2}
+				>
 					{error}
-				</styled.p>
+				</Text>
 			)}
 		</>
 	)

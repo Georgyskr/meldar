@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { verifyToken } from '@/server/identity/jwt'
+import { Heading, Text } from '@/shared/ui'
 import { ResetPasswordForm } from './ResetPasswordForm'
 
 export const metadata: Metadata = {
@@ -34,18 +35,12 @@ export default async function ResetPasswordPage({
 		>
 			<Box width="100%" maxWidth="420px">
 				<Flex direction="column" gap={2} marginBlockEnd={8}>
-					<styled.h1
-						fontFamily="heading"
-						fontSize="3xl"
-						fontWeight="700"
-						letterSpacing="-0.03em"
-						color="onSurface"
-					>
+					<Heading textStyle="primary.lg" as="h1" color="onSurface">
 						Reset your password
-					</styled.h1>
-					<styled.p textStyle="body.base" color="onSurfaceVariant">
+					</Heading>
+					<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
 						Choose a new password for your account.
-					</styled.p>
+					</Text>
 				</Flex>
 
 				{params.token ? (
@@ -60,7 +55,7 @@ export default async function ResetPasswordPage({
 						bg="surfaceContainerHigh"
 						borderRadius="md"
 					>
-						<styled.p textStyle="body.base" color="red.500">
+						<Text as="p" textStyle="secondary.md" color="red.500">
 							This reset link is invalid.{' '}
 							<styled.a
 								href="/forgot-password"
@@ -77,12 +72,13 @@ export default async function ResetPasswordPage({
 							>
 								Request a new one
 							</styled.a>
-						</styled.p>
+						</Text>
 					</styled.div>
 				)}
 
-				<styled.p
-					textStyle="body.sm"
+				<Text
+					as="p"
+					textStyle="secondary.sm"
 					color="onSurfaceVariant"
 					marginBlockStart={6}
 					textAlign="center"
@@ -102,7 +98,7 @@ export default async function ResetPasswordPage({
 					>
 						Back to sign in
 					</styled.a>
-				</styled.p>
+				</Text>
 			</Box>
 		</styled.main>
 	)

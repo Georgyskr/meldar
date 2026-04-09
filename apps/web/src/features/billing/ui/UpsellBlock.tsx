@@ -1,5 +1,6 @@
-import { Box, styled, VStack } from '@styled-system/jsx'
+import { Box, VStack } from '@styled-system/jsx'
 import type { UpsellHook } from '@/entities/xray-result/model/types'
+import { Text } from '@/shared/ui'
 import { PurchaseButton } from './PurchaseButton'
 
 /**
@@ -52,13 +53,13 @@ export function UpsellBlock({ upsells, xrayId }: { upsells: UpsellHook[]; xrayId
 			bg="surfaceContainerLowest"
 		>
 			<VStack gap={3} alignItems="stretch">
-				<styled.p textStyle="body.sm" color="onSurface" fontWeight="500">
+				<Text as="p" textStyle="secondary.sm" color="onSurface">
 					{top.message}
-				</styled.p>
+				</Text>
 				<PurchaseButton product={config.product} xrayId={xrayId} label={config.label} />
-				<styled.p textStyle="body.sm" color="onSurfaceVariant/60" textAlign="center">
+				<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant/60" textAlign="center">
 					Full refund if we can&apos;t deliver. No questions asked.
-				</styled.p>
+				</Text>
 			</VStack>
 		</Box>
 	)

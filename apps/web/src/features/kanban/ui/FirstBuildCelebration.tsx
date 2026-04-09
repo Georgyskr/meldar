@@ -4,7 +4,8 @@ import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { PartyPopper } from 'lucide-react'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { KanbanCard } from '@/entities/kanban-card'
-import type { BuildReceipt } from '@/features/workspace-build'
+import type { BuildReceipt } from '@/features/workspace'
+import { Heading, Text } from '@/shared/ui'
 
 export type FirstBuildCelebrationProps = {
 	readonly projectId: string
@@ -142,35 +143,22 @@ export function FirstBuildCelebration({ projectId, receipt, cards }: FirstBuildC
 						<PartyPopper size={28} color="#623153" />
 					</Box>
 
-					<styled.h2
-						id={titleId}
-						fontFamily="heading"
-						fontSize="xl"
-						fontWeight="700"
-						color="onSurface"
-						textAlign="center"
-					>
+					<Heading textStyle="primary.sm" id={titleId} color="onSurface" textAlign="center">
 						Your first feature just shipped!
-					</styled.h2>
+					</Heading>
 
 					<VStack alignItems="center" gap={2}>
-						<styled.p textStyle="body.sm" color="onSurfaceVariant" textAlign="center">
+						<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant" textAlign="center">
 							You built:{' '}
-							<styled.span fontWeight="600" color="onSurface">
+							<Text textStyle="primary.xs" color="onSurface">
 								{receipt.subtaskTitle}
-							</styled.span>
-						</styled.p>
+							</Text>
+						</Text>
 
 						{learnedText && (
-							<styled.p
-								textStyle="body.sm"
-								color="onSurfaceVariant"
-								textAlign="center"
-								fontStyle="italic"
-								lineHeight="1.6"
-							>
+							<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant" textAlign="center">
 								You learned: {learnedText}
-							</styled.p>
+							</Text>
 						)}
 					</VStack>
 
@@ -185,7 +173,7 @@ export function FirstBuildCelebration({ projectId, receipt, cards }: FirstBuildC
 							border="none"
 							background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
 							color="white"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							fontWeight="600"
 							cursor="pointer"
 							transition="opacity 0.15s"

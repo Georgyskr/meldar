@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { DiscoveryCard } from '@/entities/discovery-card'
 import { RevealStagger, XRayCardReveal } from '@/entities/xray-result/ui/XRayCardReveal'
 import { trackEvent } from '@/features/analytics'
+import { Heading, Text } from '@/shared/ui'
 
 type Question = {
 	id: string
@@ -188,9 +189,9 @@ export function OverthinkQuiz() {
 
 				<RevealStagger delay={500}>
 					<VStack gap={3} width="100%" maxWidth="440px" marginInline="auto" textAlign="center">
-						<styled.p textStyle="body.sm" color="onSurfaceVariant">
+						<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 							Want to see where ALL your time goes?
-						</styled.p>
+						</Text>
 						<styled.a
 							href="/xray"
 							display="inline-flex"
@@ -236,18 +237,12 @@ export function OverthinkQuiz() {
 
 			{/* Question */}
 			<VStack gap={2} textAlign="center">
-				<styled.span textStyle="body.sm" color="onSurfaceVariant">
+				<Text textStyle="secondary.sm" color="onSurfaceVariant">
 					{current + 1} of {QUESTIONS.length}
-				</styled.span>
-				<styled.h2
-					fontFamily="heading"
-					fontSize="xl"
-					fontWeight="700"
-					color="onSurface"
-					lineHeight="1.3"
-				>
+				</Text>
+				<Heading textStyle="primary.sm" color="onSurface">
 					{question.text}
-				</styled.h2>
+				</Heading>
 			</VStack>
 
 			{/* Options */}

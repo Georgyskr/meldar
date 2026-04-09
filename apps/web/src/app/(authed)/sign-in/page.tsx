@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { verifyToken } from '@/server/identity/jwt'
 import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
+import { Heading, Text } from '@/shared/ui'
 import { SignInForm } from './SignInForm'
 
 export const metadata: Metadata = {
@@ -33,26 +34,21 @@ export default async function SignInPage({
 		>
 			<Box width="100%" maxWidth="420px">
 				<Flex direction="column" gap={2} marginBlockEnd={8}>
-					<styled.h1
-						fontFamily="heading"
-						fontSize="3xl"
-						fontWeight="700"
-						letterSpacing="-0.03em"
-						color="onSurface"
-					>
+					<Heading textStyle="primary.lg" as="h1" color="onSurface">
 						Welcome back
-					</styled.h1>
-					<styled.p textStyle="body.base" color="onSurfaceVariant">
+					</Heading>
+					<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
 						Sign in to your workspace.
-					</styled.p>
+					</Text>
 				</Flex>
 
 				<Suspense fallback={null}>
 					<SignInForm />
 				</Suspense>
 
-				<styled.p
-					textStyle="body.sm"
+				<Text
+					as="p"
+					textStyle="secondary.sm"
 					color="onSurfaceVariant"
 					marginBlockStart={6}
 					textAlign="center"
@@ -73,7 +69,7 @@ export default async function SignInPage({
 					>
 						Create an account
 					</styled.a>
-				</styled.p>
+				</Text>
 			</Box>
 		</styled.main>
 	)

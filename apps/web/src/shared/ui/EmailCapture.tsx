@@ -2,6 +2,7 @@
 
 import { Flex, styled } from '@styled-system/jsx'
 import { useEmailSubscribe } from '@/shared/lib/use-email-subscribe'
+import { Text } from '@/shared/ui'
 
 export function EmailCapture({ id, dark }: { id?: string; dark?: boolean }) {
 	const { email, setEmail, status, subscribe } = useEmailSubscribe()
@@ -14,16 +15,12 @@ export function EmailCapture({ id, dark }: { id?: string; dark?: boolean }) {
 	if (status === 'success') {
 		return (
 			<Flex alignItems="center" gap={3} paddingBlock={4} id={id}>
-				<styled.span fontSize="xl" color={dark ? 'inversePrimary' : 'primary'}>
+				<Text textStyle="primary.sm" color={dark ? 'inversePrimary' : 'primary'}>
 					&#10003;
-				</styled.span>
-				<styled.p
-					textStyle="body.base"
-					fontWeight="500"
-					color={dark ? 'inverseOnSurface' : 'onSurface'}
-				>
+				</Text>
+				<Text as="p" textStyle="secondary.md" color={dark ? 'inverseOnSurface' : 'onSurface'}>
 					You&apos;re in. Check your email for your free time audit.
-				</styled.p>
+				</Text>
 			</Flex>
 		)
 	}
@@ -76,17 +73,18 @@ export function EmailCapture({ id, dark }: { id?: string; dark?: boolean }) {
 				</styled.button>
 			</Flex>
 			{status === 'error' && (
-				<styled.span textStyle="body.sm" color="red.500" marginBlockStart={2}>
+				<Text textStyle="secondary.sm" color="red.500" marginBlockStart={2}>
 					Something went wrong. Try again.
-				</styled.span>
+				</Text>
 			)}
-			<styled.p
-				textStyle="body.sm"
+			<Text
+				as="p"
+				textStyle="secondary.sm"
 				color={dark ? 'inverseOnSurface/50' : 'onSurface/50'}
 				marginBlockStart={2}
 			>
 				Free forever. No credit card. Unsubscribe anytime.
-			</styled.p>
+			</Text>
 		</styled.form>
 	)
 }

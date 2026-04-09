@@ -1,3 +1,4 @@
+import { usageToCents } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { buildAskQuestionSystemPrompt } from '@/features/project-onboarding/lib/prompts'
@@ -6,8 +7,15 @@ import {
 	askQuestionResponseSchema,
 } from '@/features/project-onboarding/lib/schemas'
 import { verifyToken } from '@/server/identity/jwt'
+import { recordAiCall } from '@/server/lib/ai-call-log'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
 import { adaptiveLimit, checkRateLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
+import {
+	checkAllSpendCeilings,
+	recordGlobalSpend,
+	recordUserDailySpend,
+	recordUserHourlySpend,
+} from '@/server/lib/spend-ceiling'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
@@ -45,8 +53,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const { success } = await checkRateLimit(limiter, session.userId)
+	const { success, serviceError } = await checkRateLimit(limiter, session.userId, true)
 	if (!success) {
+		if (serviceError) {
+			return NextResponse.json({ question: FALLBACK_QUESTIONS[0] }, { status: 503 })
+		}
 		return NextResponse.json(
 			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
 			{ status: 429 },
@@ -88,6 +99,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
 	const { messages, questionIndex } = parsed.data
 	const systemPrompt = buildAskQuestionSystemPrompt(questionIndex)
 
+	const spendCheck = await checkAllSpendCeilings(session.userId)
+	if (!spendCheck.allowed) {
+		return NextResponse.json({ question: FALLBACK_QUESTIONS[questionIndex - 1] })
+	}
+
+	const startedAt = Date.now()
+
 	try {
 		const client = getAnthropicClient()
 		const response = await client.messages.create(
@@ -99,6 +117,29 @@ export async function POST(request: NextRequest, context: RouteContext) {
 			},
 			{ signal: request.signal, timeout: 30_000 },
 		)
+
+		const inputTokens = response.usage?.input_tokens ?? 0
+		const outputTokens = response.usage?.output_tokens ?? 0
+		const actualCents = usageToCents(MODELS.HAIKU, { inputTokens, outputTokens })
+		Promise.all([
+			recordGlobalSpend(actualCents),
+			recordUserHourlySpend(session.userId, actualCents),
+			recordUserDailySpend(session.userId, actualCents),
+		]).catch((err) => {
+			console.error('[ask-question] spend recording failed:', err)
+		})
+		recordAiCall({
+			userId: session.userId,
+			projectId,
+			kind: 'ask_question',
+			model: MODELS.HAIKU,
+			inputTokens,
+			outputTokens,
+			centsCharged: actualCents,
+			latencyMs: Date.now() - startedAt,
+			stopReason: response.stop_reason ?? null,
+			status: 'ok',
+		})
 
 		const textBlock = response.content.find((block) => block.type === 'text')
 		if (!textBlock || textBlock.type !== 'text') {

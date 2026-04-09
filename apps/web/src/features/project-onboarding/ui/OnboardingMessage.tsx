@@ -1,6 +1,7 @@
 'use client'
 
-import { Box, styled } from '@styled-system/jsx'
+import { Box } from '@styled-system/jsx'
+import { Text } from '@/shared/ui'
 
 export type OnboardingMessageProps = {
 	readonly role: 'user' | 'assistant'
@@ -26,9 +27,9 @@ export function OnboardingMessage({ role, content }: OnboardingMessageProps) {
 				borderBottomRightRadius={isUser ? 'sm' : 'xl'}
 				borderBottomLeftRadius={isUser ? 'xl' : 'sm'}
 			>
-				<styled.p textStyle="body.sm" color="onSurface" lineHeight="1.6" whiteSpace="pre-wrap">
+				<Text as="p" textStyle="secondary.sm" color="onSurface" whiteSpace="pre-wrap">
 					{content}
-				</styled.p>
+				</Text>
 			</Box>
 		</Box>
 	)

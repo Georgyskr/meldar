@@ -2,6 +2,7 @@
 
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { useEffect, useId, useRef } from 'react'
+import { Heading, Text } from '@/shared/ui'
 
 export type RoadmapDrawerProps = {
 	readonly open: boolean
@@ -106,9 +107,9 @@ export function RoadmapDrawer({ open, onClose }: RoadmapDrawerProps) {
 				overflowY="auto"
 			>
 				<Flex justifyContent="space-between" alignItems="center" marginBlockEnd={5}>
-					<styled.h2 id={titleId} textStyle="heading.md" color="onSurface" fontWeight="700">
+					<Heading id={titleId} textStyle="primary.xs" color="onSurface">
 						Your roadmap
-					</styled.h2>
+					</Heading>
 					<styled.button
 						ref={closeButtonRef}
 						type="button"
@@ -124,10 +125,10 @@ export function RoadmapDrawer({ open, onClose }: RoadmapDrawerProps) {
 						×
 					</styled.button>
 				</Flex>
-				<styled.p textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.6" marginBlockEnd={5}>
+				<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant" marginBlockEnd={5}>
 					Eight steps from "I have an idea" to "Ship #1." You unlock each as you finish the previous
 					one.
-				</styled.p>
+				</Text>
 				<VStack alignItems="stretch" gap={2}>
 					{STEPS.map((step) => (
 						<Flex
@@ -139,25 +140,16 @@ export function RoadmapDrawer({ open, onClose }: RoadmapDrawerProps) {
 							bg={step.state === 'available' ? 'surfaceContainerHigh' : 'surfaceContainer'}
 							opacity={step.state === 'locked' ? 0.55 : 1}
 						>
-							<styled.span
-								textStyle="body.xs"
-								color="onSurfaceVariant"
-								fontWeight="700"
-								minWidth="24px"
-							>
+							<Text textStyle="secondary.xs" color="onSurfaceVariant" minWidth="24px">
 								{step.index}
-							</styled.span>
-							<styled.span textStyle="body.sm" color="onSurface" fontWeight="500">
+							</Text>
+							<Text textStyle="secondary.sm" color="onSurface">
 								{step.label}
-							</styled.span>
+							</Text>
 							{step.state === 'locked' && (
-								<styled.span
-									textStyle="body.xs"
-									color="onSurfaceVariant/70"
-									marginInlineStart="auto"
-								>
+								<Text textStyle="secondary.xs" color="onSurfaceVariant/70" marginInlineStart="auto">
 									Locked
-								</styled.span>
+								</Text>
 							)}
 						</Flex>
 					))}

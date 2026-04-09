@@ -1,196 +1,255 @@
-import { Box, Flex, styled, VStack } from '@styled-system/jsx'
+import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
 import { ArrowRight } from 'lucide-react'
+import Link from 'next/link'
+import { EditorialEyebrow, EditorialPlate, Heading, Text } from '@/shared/ui'
+
+const StyledLink = styled(Link)
 
 export function HeroSection() {
 	return (
-		<styled.section position="relative" overflow="hidden">
-			{/* Background: topography image with overlay */}
+		<styled.section
+			position="relative"
+			overflow="hidden"
+			bg="surface"
+			minHeight="100dvh"
+			display="flex"
+			flexDirection="column"
+			justifyContent="center"
+		>
 			<Box
-				position="absolute"
-				inset={0}
-				backgroundImage="url(/images/hero-bg.jpg)"
-				backgroundSize="cover"
-				backgroundPosition="center"
-				opacity={0.35}
-				style={{ filter: 'saturate(1.5)' }}
-			/>
-			<Box
-				position="absolute"
-				inset={0}
-				background="linear-gradient(180deg, rgba(250,249,246,0.6) 0%, rgba(250,249,246,0.75) 50%, #faf9f6 100%)"
-			/>
-
-			<VStack
-				position="relative"
-				zIndex={1}
 				maxWidth="breakpoint-xl"
 				marginInline="auto"
-				width="100%"
 				paddingInline={{ base: 5, md: 12 }}
-				paddingBlockStart={{ base: 28, md: 36 }}
-				paddingBlockEnd={{ base: 16, md: 20 }}
-				gap={{ base: 10, md: 14 }}
-				alignItems="flex-start"
+				paddingBlockStart={{ base: 20, md: 20 }}
+				width="100%"
 			>
-				{/* Main copy */}
-				<Box maxWidth="680px">
-					<styled.h1
-						fontFamily="heading"
-						fontSize={{ base: '3xl', md: '5xl' }}
-						fontWeight="800"
-						lineHeight="1.1"
-						letterSpacing="-0.03em"
+				<Box
+					height="2px"
+					bg="onSurface"
+					transformOrigin="left center"
+					style={{ animation: 'ruleDraw 0.8s ease-out 0.1s both' }}
+				/>
+				<Flex
+					justifyContent="space-between"
+					alignItems="baseline"
+					paddingBlock={3}
+					borderBottom="1px solid"
+					borderColor="onSurface"
+				>
+					<Text
+						textStyle="tertiary.md"
 						color="onSurface"
-						marginBlockEnd={5}
-						style={{ animation: 'meldarFadeSlideUp 0.6s ease-out both' }}
+						style={{ animation: 'meldarFadeSlideUp 0.6s ease-out 0.3s both' }}
 					>
-						AI is eating the world.
-						<styled.br />
-						Your data fed it.
-						<styled.br />
-						<styled.span
-							background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-							backgroundClip="text"
-							color="transparent"
+						Vol. I · The AI issue · Free forever
+					</Text>
+					<Text
+						textStyle="tertiary.md"
+						color="onSurface/60"
+						display={{ base: 'none', md: 'inline' }}
+						style={{ animation: 'meldarFadeSlideUp 0.6s ease-out 0.4s both' }}
+					>
+						2,847 readers this week
+					</Text>
+				</Flex>
+			</Box>
+
+			<Grid
+				position="relative"
+				maxWidth="breakpoint-xl"
+				marginInline="auto"
+				paddingInline={{ base: 5, md: 12 }}
+				paddingBlockStart={{ base: 8, md: 10 }}
+				paddingBlockEnd={{ base: 8, md: 10 }}
+				gridTemplateColumns={{ base: '1fr', md: '3fr 2fr' }}
+				gap={{ base: 12, md: 16 }}
+				alignItems="start"
+			>
+				<VStack alignItems="flex-start" gap={{ base: 8, md: 10 }}>
+					<Box style={{ animation: 'meldarFadeSlideUp 0.7s ease-out 0.5s both' }}>
+						<EditorialEyebrow number="001" label="Learn AI by Doing" />
+					</Box>
+
+					<Box>
+						<Heading
+							as="h1"
+							textStyle="primary.xxl"
+							color="onSurface"
+							marginBlockEnd={6}
+							style={{ animation: 'meldarFadeSlideUp 0.8s ease-out 0.6s both' }}
 						>
-							Time to get something back.
-						</styled.span>
-					</styled.h1>
-					<styled.p
-						fontFamily="body"
-						fontWeight="300"
-						fontSize={{ base: 'md', md: 'xl' }}
-						color="onSurfaceVariant"
+							The world runs
+							<Text as="span" display={{ base: 'none', md: 'inline' }}>
+								{' '}
+							</Text>
+							<Text as="span" display={{ base: 'inline', md: 'none' }}>
+								<br />
+							</Text>
+							on AI now.
+							<br />
+							<Text as="span" color="primary">
+								Your first app
+							</Text>
+							<br />
+							<Text
+								as="span"
+								color="onSurface"
+								display="inline-block"
+								position="relative"
+								style={{
+									backgroundImage: 'linear-gradient(to right, #FFB876 0, #FFB876 100%)',
+									backgroundSize: '100% 14px',
+									backgroundPosition: '0 92%',
+									backgroundRepeat: 'no-repeat',
+									animation: 'peachUnderlineDraw 0.8s ease-out 1.1s both',
+								}}
+							>
+								starts here.
+							</Text>
+						</Heading>
+						<Text
+							as="p"
+							textStyle="secondary.lg"
+							color="onSurfaceVariant"
+							maxWidth="520px"
+							style={{ animation: 'meldarFadeSlideUp 0.7s ease-out 0.9s both' }}
+						>
+							You don&apos;t need to become technical. Meldar teaches you AI{' '}
+							<Text as="em" textStyle="italic.md" color="onSurface">
+								by doing
+							</Text>{' '}
+							— pick a project, watch it come to life, learn what happened along the way.
+						</Text>
+					</Box>
+
+					<Grid
+						gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }}
+						gap={{ base: 4, md: 6 }}
+						width="100%"
 						maxWidth="560px"
-						lineHeight="1.6"
-						style={{ animation: 'meldarFadeSlideUp 0.6s ease-out 0.15s both' }}
+						style={{ animation: 'meldarFadeSlideUp 0.7s ease-out 1.05s both' }}
 					>
-						Google made ~$238 from your data last year. You got nothing. We take that same data,
-						show you what it means, and help you build with AI before everyone else does.
-					</styled.p>
+						<Chapter
+							number="01"
+							label="Pick it"
+							desc="Choose a project or describe what you need."
+						/>
+						<Chapter
+							number="02"
+							label="Watch it"
+							desc="AI makes it while you see what's happening."
+						/>
+						<Chapter number="03" label="Own it" desc="Deploy it. It's yours. No lock-in." />
+					</Grid>
+
+					<Flex
+						gap={6}
+						flexDir={{ base: 'column', sm: 'row' }}
+						alignItems={{ base: 'stretch', sm: 'center' }}
+						style={{ animation: 'meldarFadeSlideUp 0.7s ease-out 1.2s both' }}
+					>
+						<StyledLink
+							href="/sign-up"
+							display="inline-flex"
+							alignItems="center"
+							justifyContent="center"
+							gap={3}
+							paddingInline={8}
+							paddingBlock={4}
+							bg="onSurface"
+							color="surface"
+							textDecoration="none"
+							borderRadius="2px"
+							textStyle="button.lg"
+							transition="all 0.2s ease"
+							_hover={{
+								bg: 'primary',
+								transform: 'translateY(-1px)',
+							}}
+							_focusVisible={{
+								outline: '2px solid',
+								outlineColor: 'primary',
+								outlineOffset: '3px',
+							}}
+						>
+							<Text as="span" textStyle="button.lg" color="surface">
+								Start free
+							</Text>
+							<ArrowRight size={18} />
+						</StyledLink>
+						<styled.a
+							href="#how-it-works"
+							display="inline-flex"
+							alignItems="center"
+							textDecoration="none"
+							paddingBlockEnd={1}
+							borderBottom="1.5px solid"
+							borderColor="onSurface"
+							transition="all 0.2s ease"
+							_hover={{ borderColor: 'primary' }}
+							_focusVisible={{
+								outline: '2px solid',
+								outlineColor: 'primary',
+								outlineOffset: '3px',
+							}}
+						>
+							<Text textStyle="button.sm" color="onSurface">
+								How is this different from a course?
+							</Text>
+						</styled.a>
+					</Flex>
+
+					<Box
+						paddingBlockStart={4}
+						borderTop="1px solid"
+						borderColor="outlineVariant/40"
+						width="100%"
+						maxWidth="520px"
+						style={{ animation: 'meldarFadeSlideUp 0.7s ease-out 1.35s both' }}
+					>
+						<Text as="p" textStyle="italic.md" color="onSurfaceVariant/80">
+							— AI is easy. You just haven&apos;t tried it the right way, until now.
+						</Text>
+					</Box>
+				</VStack>
+
+				<Box
+					style={{ animation: 'plateFadeIn 1.2s ease-out 0.7s both' }}
+					display={{ base: 'none', md: 'block' }}
+					position="sticky"
+					top={8}
+				>
+					<EditorialPlate
+						src="/brand/editorial-plate-01.jpg"
+						plateNumber="01"
+						caption="The invitation."
+						aspectRatio="3/4"
+						priority
+					/>
 				</Box>
-
-				{/* 3 steps */}
-				<Flex
-					gap={{ base: 4, md: 8 }}
-					flexDir={{ base: 'column', md: 'row' }}
-					width="100%"
-					maxWidth="680px"
-					style={{ animation: 'meldarFadeSlideUp 0.6s ease-out 0.3s both' }}
-				>
-					<StepChip
-						number="1"
-						label="See it"
-						desc="Upload a screenshot. See where your time goes."
-					/>
-					<StepChip
-						number="2"
-						label="Get it"
-						desc="Your report shows what to fix and what to build."
-					/>
-					<StepChip number="3" label="Build it" desc="We teach you how. Or we build it for you." />
-				</Flex>
-
-				{/* CTA */}
-				<Flex
-					gap={4}
-					flexDir={{ base: 'column', sm: 'row' }}
-					alignItems={{ base: 'stretch', sm: 'center' }}
-					style={{ animation: 'meldarFadeSlideUp 0.6s ease-out 0.45s both' }}
-				>
-					<styled.a
-						href="/start"
-						display="inline-flex"
-						alignItems="center"
-						justifyContent="center"
-						gap={2}
-						paddingInline={7}
-						paddingBlock={4}
-						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-						color="white"
-						fontFamily="heading"
-						fontWeight="700"
-						fontSize="md"
-						borderRadius="md"
-						textDecoration="none"
-						transition="all 0.2s ease"
-						boxShadow="0 4px 16px rgba(98, 49, 83, 0.25)"
-						_hover={{
-							boxShadow: '0 6px 24px rgba(98, 49, 83, 0.35)',
-							transform: 'translateY(-1px)',
-						}}
-						_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
-					>
-						Show me my data
-						<ArrowRight size={18} />
-					</styled.a>
-					<styled.a
-						href="/start"
-						display="inline-flex"
-						alignItems="center"
-						justifyContent="center"
-						paddingInline={7}
-						paddingBlock={4}
-						bg="transparent"
-						color="onSurface"
-						fontFamily="heading"
-						fontWeight="600"
-						fontSize="md"
-						borderRadius="md"
-						border="1.5px solid"
-						borderColor="outlineVariant/30"
-						textDecoration="none"
-						transition="all 0.2s ease"
-						_hover={{ borderColor: 'primary/40', bg: 'primary/3' }}
-						_focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '2px' }}
-					>
-						I already know what bugs me
-					</styled.a>
-				</Flex>
-
-				{/* Trust line */}
-				<styled.p
-					fontSize="2xs"
-					color="onSurfaceVariant/40"
-					textTransform="uppercase"
-					letterSpacing="0.2em"
-					fontWeight="500"
-					style={{ animation: 'meldarFadeSlideUp 0.6s ease-out 0.6s both' }}
-				>
-					Find out what you should've built six months ago.
-				</styled.p>
-			</VStack>
+			</Grid>
 		</styled.section>
 	)
 }
 
-function StepChip({ number, label, desc }: { number: string; label: string; desc: string }) {
+function Chapter({ number, label, desc }: { number: string; label: string; desc: string }) {
 	return (
-		<Flex gap={3} alignItems="flex-start" flex={1}>
-			<styled.span
-				fontFamily="heading"
-				fontWeight="800"
-				fontSize="2xl"
-				lineHeight="1"
-				color="primary/35"
-				flexShrink={0}
-			>
-				{number}
-			</styled.span>
-			<Box>
-				<styled.span
-					fontFamily="heading"
-					fontWeight="700"
-					fontSize="sm"
-					color="onSurface"
-					display="block"
-				>
-					{label}
-				</styled.span>
-				<styled.span fontSize="xs" color="onSurfaceVariant/60" lineHeight="1.5">
-					{desc}
-				</styled.span>
-			</Box>
-		</Flex>
+		<Box
+			paddingBlockStart={3}
+			borderTop="2px solid"
+			borderColor="onSurface"
+			transition="all 0.25s ease"
+			_hover={{ borderColor: 'primary' }}
+		>
+			<Text textStyle="tertiary.md" color="primary" display="block" marginBlockEnd={2}>
+				Nº {number}
+			</Text>
+			<Heading as="h3" textStyle="primary.sm" color="onSurface" display="block" marginBlockEnd={1}>
+				{label}
+			</Heading>
+			<Text as="p" textStyle="secondary.xs" color="onSurfaceVariant/70">
+				{desc}
+			</Text>
+		</Box>
 	)
 }

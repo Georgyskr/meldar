@@ -4,6 +4,7 @@ import { Flex, HStack, styled } from '@styled-system/jsx'
 import type { NodeProps } from '@xyflow/react'
 import { Handle, Position } from '@xyflow/react'
 import type { MilestoneState } from '@/entities/kanban-card'
+import { Text } from '@/shared/ui'
 import type { MilestoneNodeType } from '../lib/cards-to-flow'
 
 const BORDER_COLORS: Record<MilestoneState, string> = {
@@ -45,9 +46,8 @@ export function MilestoneNode({ data }: NodeProps<MilestoneNodeType>) {
 				cursor="pointer"
 			>
 				<HStack gap={2} alignItems="center">
-					<styled.span
-						fontSize="13px"
-						fontWeight="700"
+					<Text
+						textStyle="primary.xs"
 						color="#1e293b"
 						overflow="hidden"
 						textOverflow="ellipsis"
@@ -55,10 +55,9 @@ export function MilestoneNode({ data }: NodeProps<MilestoneNodeType>) {
 						flex="1"
 					>
 						{card.title}
-					</styled.span>
-					<styled.span
-						fontSize="10px"
-						fontWeight="600"
+					</Text>
+					<Text
+						textStyle="primary.xs"
 						paddingInline="6px"
 						paddingBlock="2px"
 						borderRadius="full"
@@ -68,20 +67,20 @@ export function MilestoneNode({ data }: NodeProps<MilestoneNodeType>) {
 						flexShrink={0}
 					>
 						{badge.label}
-					</styled.span>
+					</Text>
 				</HStack>
 
 				{card.description && (
-					<styled.p
-						fontSize="11px"
+					<Text
+						textStyle="secondary.xs"
+						as="p"
 						color="#64748b"
-						lineHeight="1.4"
 						overflow="hidden"
 						textOverflow="ellipsis"
 						lineClamp={2}
 					>
 						{card.description}
-					</styled.p>
+					</Text>
 				)}
 
 				{subtaskCount > 0 && (
@@ -101,9 +100,9 @@ export function MilestoneNode({ data }: NodeProps<MilestoneNodeType>) {
 								style={{ width: `${(doneCount / subtaskCount) * 100}%` }}
 							/>
 						</styled.div>
-						<styled.span fontSize="10px" color="#94a3b8" whiteSpace="nowrap" flexShrink={0}>
+						<Text textStyle="secondary.xs" color="#94a3b8" whiteSpace="nowrap" flexShrink={0}>
 							{doneCount}/{subtaskCount}
-						</styled.span>
+						</Text>
 					</HStack>
 				)}
 			</Flex>

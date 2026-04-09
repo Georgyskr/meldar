@@ -1,17 +1,25 @@
 import { getDb } from '@meldar/db/client'
-import { getTokenBalance } from '@meldar/tokens'
+import { getTokenBalance, trackVisitStreak } from '@meldar/tokens'
 import { Box, Flex, Grid, styled } from '@styled-system/jsx'
+import { ArrowRight } from 'lucide-react'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { SignOutButton } from '@/features/auth'
+import { StreakBadge } from '@/features/token-economy'
 import { verifyToken } from '@/server/identity/jwt'
 import {
 	listUserProjects,
 	type WorkspaceProjectListItem,
 } from '@/server/projects/list-user-projects'
 import { formatRelative } from '@/shared/lib/format-relative'
-import { EmailVerificationBanner, FirstTimeWelcome, NewProjectButton } from '@/widgets/workspace'
+import { Heading, Text } from '@/shared/ui'
+import {
+	ContinueBanner,
+	EmailVerificationBanner,
+	FirstTimeWelcome,
+	NewProjectButton,
+} from '@/widgets/workspace'
 
 export const metadata: Metadata = {
 	title: 'Workspace — Meldar',
@@ -31,9 +39,11 @@ export default async function WorkspaceDashboardPage() {
 	let projectsList: WorkspaceProjectListItem[] = []
 	let loadFailed = false
 	let tokenBalance = 0
+	let streak = 0
+	let isNewDay = false
 
 	const db = getDb()
-	const [projectsResult, balanceResult] = await Promise.all([
+	const [projectsResult, balanceResult, streakResult] = await Promise.all([
 		listUserProjects(session.userId).catch((err) => {
 			console.error('[workspace/page] listUserProjects failed', err)
 			return null
@@ -42,9 +52,15 @@ export default async function WorkspaceDashboardPage() {
 			console.error('[workspace/page] getTokenBalance failed', err)
 			return 0
 		}),
+		trackVisitStreak(session.userId).catch((err) => {
+			console.error('[workspace/page] trackVisitStreak failed', err)
+			return { streak: 0, isNewDay: false }
+		}),
 	])
 
 	tokenBalance = balanceResult
+	streak = streakResult.streak
+	isNewDay = streakResult.isNewDay
 
 	if (projectsResult === null) {
 		loadFailed = true
@@ -52,49 +68,68 @@ export default async function WorkspaceDashboardPage() {
 		projectsList = projectsResult
 	}
 
+	const activeProject = projectsList.find(
+		(p) => p.builtSubtasks > 0 && p.builtSubtasks < p.totalSubtasks,
+	)
+
 	return (
 		<styled.main minHeight="100vh" bg="surface" paddingBlock={{ base: 12, md: 16 }}>
 			<Box maxWidth="breakpoint-lg" marginInline="auto" paddingInline={{ base: 6, md: 10 }}>
 				<EmailVerificationBanner email={session.email} verified={session.emailVerified} />
-				<Flex
-					direction={{ base: 'column', sm: 'row' }}
-					alignItems={{ base: 'flex-start', sm: 'center' }}
-					justifyContent="space-between"
-					gap={4}
-					marginBlockEnd={12}
+
+				<Box
+					borderBottom="2px solid"
+					borderColor="onSurface"
+					paddingBlockEnd={6}
+					marginBlockEnd={8}
 				>
-					<Box>
-						<styled.h1
-							fontFamily="heading"
-							fontSize={{ base: '3xl', md: '4xl' }}
-							fontWeight="700"
-							letterSpacing="-0.03em"
-							color="onSurface"
-						>
-							Your projects
-						</styled.h1>
-						<styled.p textStyle="body.sm" color="onSurfaceVariant" marginBlockStart={2}>
-							{session.email}
-						</styled.p>
-					</Box>
-					<SignOutButton />
-				</Flex>
+					<Flex
+						direction={{ base: 'column', sm: 'row' }}
+						alignItems={{ base: 'flex-start', sm: 'center' }}
+						justifyContent="space-between"
+						gap={4}
+					>
+						<Flex alignItems="center" gap={4}>
+							<Box>
+								<Heading textStyle="primary.xl" as="h1" color="onSurface">
+									Your projects
+								</Heading>
+								<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant" marginBlockStart={2}>
+									{session.email}
+								</Text>
+							</Box>
+							<StreakBadge streak={streak} isNewDay={isNewDay} />
+						</Flex>
+						<SignOutButton />
+					</Flex>
+				</Box>
 
 				{loadFailed ? (
-					<styled.div
+					<Box
 						role="alert"
-						paddingInline={4}
-						paddingBlock={3}
-						bg="surfaceContainerHigh"
-						color="red.500"
-						borderRadius="md"
+						paddingInline={6}
+						paddingBlock={4}
+						border="1px solid"
+						borderColor="red.300"
+						bg="red.50"
 					>
-						We couldn&apos;t load your projects. Refresh and try again.
-					</styled.div>
+						<Text textStyle="secondary.sm" color="red.700">
+							We couldn&apos;t load your projects. Refresh and try again.
+						</Text>
+					</Box>
 				) : projectsList.length === 0 ? (
 					<FirstTimeWelcome email={session.email} tokenBalance={tokenBalance} />
 				) : (
-					<ProjectsGrid projects={projectsList} />
+					<>
+						{activeProject && (
+							<ContinueBanner
+								projectId={activeProject.id}
+								projectName={activeProject.name}
+								nextCardTitle={activeProject.nextCardTitle}
+							/>
+						)}
+						<ProjectsGrid projects={projectsList} />
+					</>
 				)}
 			</Box>
 		</styled.main>
@@ -109,67 +144,152 @@ function ProjectsGrid({ projects }: { projects: WorkspaceProjectListItem[] }) {
 			</Flex>
 			<Grid
 				gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }}
-				gap={5}
+				gap={0}
 			>
-				{projects.map((project) => (
-					<ProjectCard key={project.id} project={project} />
+				{projects.map((project, i) => (
+					<ProjectCard key={project.id} project={project} number={String(i + 1).padStart(2, '0')} />
 				))}
 			</Grid>
 		</Box>
 	)
 }
 
+type ProjectStatus = 'planning' | 'ready' | 'in_progress' | 'needs_attention' | 'shipped'
+
+function deriveProjectStatus(p: WorkspaceProjectListItem): ProjectStatus {
+	if (p.totalSubtasks === 0 && p.totalMilestones === 0) return 'planning'
+	if (p.totalSubtasks > 0 && p.builtSubtasks === 0) return 'ready'
+	if (p.failedSubtasks > 0) return 'needs_attention'
+	if (p.builtSubtasks === p.totalSubtasks && p.totalSubtasks > 0) return 'shipped'
+	return 'in_progress'
+}
+
+const STATUS_CONFIG: Record<ProjectStatus, { label: string; color: string }> = {
+	planning: { label: 'Planning', color: 'onSurfaceVariant' },
+	ready: { label: 'Ready', color: 'primary' },
+	in_progress: { label: 'In progress', color: 'primary' },
+	needs_attention: { label: 'Attention', color: 'amber.700' },
+	shipped: { label: 'Shipped', color: 'green.700' },
+}
+
 const StyledLink = styled(Link)
 
-function ProjectCard({ project }: { project: WorkspaceProjectListItem }) {
-	const subtitle = project.lastBuildAt
-		? `Last build ${formatRelative(project.lastBuildAt.getTime())}`
-		: 'No builds yet'
+function ProjectCard({ project, number }: { project: WorkspaceProjectListItem; number: string }) {
+	const status = deriveProjectStatus(project)
+	const config = STATUS_CONFIG[status]
+	const progressPct =
+		project.totalSubtasks > 0
+			? Math.round((project.builtSubtasks / project.totalSubtasks) * 100)
+			: 0
+
+	const subtitle =
+		project.totalMilestones > 0
+			? `Milestone ${Math.min(project.completedMilestones + 1, project.totalMilestones)} of ${project.totalMilestones}`
+			: project.lastBuildAt
+				? `Last activity ${formatRelative(project.lastBuildAt.getTime())}`
+				: 'No activity yet'
+
+	const ctaLabel = status === 'planning' ? 'Set up' : status === 'shipped' ? 'Open' : 'Continue'
 
 	return (
 		<styled.article
-			bg="surfaceContainerLowest"
+			bg="surface"
 			border="1px solid"
-			borderColor="outlineVariant"
-			borderRadius="lg"
+			borderColor="onSurface/15"
 			transition="all 0.2s ease"
-			_hover={{
-				borderColor: 'primary',
-				transform: 'translateY(-2px)',
-				boxShadow: '0 8px 24px rgba(98,49,83,0.08)',
-			}}
-			_focusWithin={{
-				borderColor: 'primary',
-			}}
+			_hover={{ bg: 'primary/3', borderColor: 'onSurface/40' }}
+			_focusWithin={{ borderColor: 'primary' }}
 		>
 			<StyledLink
 				href={`/workspace/${project.id}`}
 				display="block"
-				padding={5}
+				paddingBlock={{ base: 5, md: 6 }}
+				paddingInline={{ base: 5, md: 6 }}
 				color="onSurface"
 				textDecoration="none"
 				_focusVisible={{
 					outline: '2px solid',
 					outlineColor: 'primary',
-					outlineOffset: '2px',
-					borderRadius: 'lg',
+					outlineOffset: '-2px',
 				}}
 			>
-				<styled.h3
-					fontFamily="heading"
-					fontSize="lg"
-					fontWeight="600"
+				<Flex justifyContent="space-between" alignItems="baseline" marginBlockEnd={4}>
+					<Text textStyle="tertiary.sm" color="primary">
+						Nº {number}
+					</Text>
+					<Text textStyle="tertiary.sm" color={config.color}>
+						{config.label}
+					</Text>
+				</Flex>
+
+				<Heading
+					textStyle="primary.sm"
+					as="h3"
 					color="onSurface"
-					marginBlockEnd={2}
 					textOverflow="ellipsis"
 					overflow="hidden"
 					whiteSpace="nowrap"
 				>
 					{project.name}
-				</styled.h3>
-				<styled.p textStyle="body.xs" color="onSurfaceVariant/70">
+				</Heading>
+
+				<Text as="p" textStyle="secondary.xs" color="onSurfaceVariant/70" marginBlockStart={1}>
 					{subtitle}
-				</styled.p>
+				</Text>
+
+				{project.totalSubtasks > 0 && (
+					<Box marginBlockStart={4}>
+						<Box
+							role="progressbar"
+							aria-valuenow={progressPct}
+							aria-valuemin={0}
+							aria-valuemax={100}
+							aria-label={`Project progress: ${progressPct}%`}
+							height="2px"
+							bg="onSurface/10"
+							overflow="hidden"
+						>
+							<Box
+								height="100%"
+								width={`${progressPct}%`}
+								bg={status === 'shipped' ? 'green.600' : 'primary'}
+								transition="width 0.3s ease"
+								style={{ transformOrigin: 'left', animation: 'inkProgress 0.8s ease-out both' }}
+							/>
+						</Box>
+						<Text as="p" textStyle="tertiary.sm" color="onSurfaceVariant/50" marginBlockStart={2}>
+							{project.builtSubtasks} of {project.totalSubtasks} steps
+						</Text>
+					</Box>
+				)}
+
+				{project.nextCardTitle && status !== 'shipped' && (
+					<Text
+						textStyle="italic.sm"
+						as="p"
+						color="onSurfaceVariant/60"
+						marginBlockStart={3}
+						textOverflow="ellipsis"
+						overflow="hidden"
+						whiteSpace="nowrap"
+					>
+						— Next: {project.nextCardTitle}
+					</Text>
+				)}
+
+				<Flex
+					alignItems="center"
+					gap={2}
+					marginBlockStart={4}
+					paddingBlockStart={4}
+					borderTop="1px solid"
+					borderColor="onSurface/10"
+				>
+					<Text textStyle="primary.xs" color="primary">
+						{ctaLabel}
+					</Text>
+					<ArrowRight size={14} color="#623153" />
+				</Flex>
 			</StyledLink>
 		</styled.article>
 	)

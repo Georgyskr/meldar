@@ -4,7 +4,13 @@ export {
 	type ComponentTypeId,
 } from './component-vocabulary'
 export { _resetOrchestratorDepsCache, buildOrchestratorDeps } from './deps'
-export { type OrchestratorDeps, orchestrateBuild, previewUrlSchema } from './engine'
+export {
+	type AiCallLogger,
+	type GlobalSpendGuard,
+	type OrchestratorDeps,
+	orchestrateBuild,
+	previewUrlSchema,
+} from './engine'
 export { routeModel } from './model-routing'
 export {
 	BUILD_SYSTEM_PROMPT,

@@ -1,6 +1,10 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
-import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
+import { MODELS } from '@/server/lib/anthropic'
+import {
+	GuardedCallBlockedError,
+	guardedAnthropicCallOrThrow,
+} from '@/server/lib/guarded-anthropic'
 
 type ExtractionResult = { data: unknown } | { error: string }
 
@@ -254,34 +258,44 @@ export async function extractFromScreenshot(
 		return { error: `Unknown source type: ${sourceType}` }
 	}
 
-	const response = await getAnthropicClient().messages.create({
-		model: MODELS.HAIKU,
-		max_tokens: 1024,
-		system: config.system,
-		messages: [
-			{
-				role: 'user',
-				content: [
+	let response: Anthropic.Messages.Message
+	try {
+		response = await guardedAnthropicCallOrThrow({
+			kind: 'discovery_extract_screenshot',
+			model: MODELS.HAIKU,
+			params: {
+				model: MODELS.HAIKU,
+				max_tokens: 1024,
+				system: config.system,
+				messages: [
 					{
-						type: 'image',
-						source: { type: 'base64', media_type: mediaType, data: base64 },
-					},
-					{
-						type: 'text',
-						text: `Extract all data from this ${sourceType} screenshot. Use the ${config.toolName} tool.`,
+						role: 'user',
+						content: [
+							{
+								type: 'image',
+								source: { type: 'base64', media_type: mediaType, data: base64 },
+							},
+							{
+								type: 'text',
+								text: `Extract all data from this ${sourceType} screenshot. Use the ${config.toolName} tool.`,
+							},
+						],
 					},
 				],
+				tools: [
+					{
+						name: config.toolName,
+						description: `Extract structured ${sourceType} data from a screenshot`,
+						input_schema: config.toolSchema,
+					},
+				],
+				tool_choice: { type: 'tool', name: config.toolName },
 			},
-		],
-		tools: [
-			{
-				name: config.toolName,
-				description: `Extract structured ${sourceType} data from a screenshot`,
-				input_schema: config.toolSchema,
-			},
-		],
-		tool_choice: { type: 'tool', name: config.toolName },
-	})
+		})
+	} catch (err) {
+		if (err instanceof GuardedCallBlockedError) return { error: err.message }
+		throw err
+	}
 
 	const toolUse = response.content.find((c) => c.type === 'tool_use')
 	if (!toolUse || toolUse.type !== 'tool_use') {

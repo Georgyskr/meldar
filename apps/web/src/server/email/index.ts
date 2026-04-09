@@ -1,6 +1,7 @@
 export {
 	getBaseUrl,
 	sendFirstBuildEmail,
+	sendFounderAlertEmail,
 	sendNudgeEmail,
 	sendPasswordResetEmail,
 	sendVerificationEmail,

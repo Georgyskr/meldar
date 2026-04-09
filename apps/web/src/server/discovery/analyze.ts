@@ -1,7 +1,8 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import type { ScreenTimeExtraction } from '@/entities/xray-result/model/types'
-import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
+import { MODELS } from '@/server/lib/anthropic'
+import { guardedAnthropicCallOrThrow } from '@/server/lib/guarded-anthropic'
 import type { AiChatPattern, DiscoveryAnalysis, GooglePattern } from './parsers/types'
 
 export type SubscriptionsData = {
@@ -398,13 +399,17 @@ function buildDataContext(input: AnalysisInput): string {
 export async function runCrossAnalysis(input: AnalysisInput): Promise<DiscoveryAnalysis> {
 	const dataContext = buildDataContext(input)
 
-	const response = await getAnthropicClient().messages.create({
+	const response = await guardedAnthropicCallOrThrow({
+		kind: 'discovery_analyze',
 		model: MODELS.SONNET,
-		max_tokens: 4000,
-		system: ANALYSIS_SYSTEM_PROMPT,
-		messages: [{ role: 'user', content: dataContext }],
-		tools: [ANALYSIS_TOOL],
-		tool_choice: { type: 'tool', name: 'generate_analysis' },
+		params: {
+			model: MODELS.SONNET,
+			max_tokens: 4000,
+			system: ANALYSIS_SYSTEM_PROMPT,
+			messages: [{ role: 'user', content: dataContext }],
+			tools: [ANALYSIS_TOOL],
+			tool_choice: { type: 'tool', name: 'generate_analysis' },
+		},
 	})
 
 	const toolUse = response.content.find((c) => c.type === 'tool_use')

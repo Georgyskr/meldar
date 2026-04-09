@@ -3,6 +3,7 @@
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { Check, X } from 'lucide-react'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { Heading, Text } from '@/shared/ui'
 
 export type PricingDrawerProps = {
 	readonly open: boolean
@@ -158,15 +159,9 @@ export function PricingDrawer({ open, onClose }: PricingDrawerProps) {
 					borderColor="outlineVariant/20"
 					flexShrink={0}
 				>
-					<styled.h2
-						id={titleId}
-						fontFamily="heading"
-						textStyle="heading.md"
-						color="onSurface"
-						fontWeight="700"
-					>
+					<Heading id={titleId} textStyle="primary.xs" color="onSurface">
 						Meldar Plans
-					</styled.h2>
+					</Heading>
 					<styled.button
 						ref={closeButtonRef}
 						type="button"
@@ -196,29 +191,23 @@ export function PricingDrawer({ open, onClose }: PricingDrawerProps) {
 						>
 							<Flex justifyContent="space-between" alignItems="center" marginBlockEnd={3}>
 								<Flex alignItems="baseline" gap={1.5}>
-									<styled.span
-										textStyle="body.lg"
-										fontWeight="700"
-										fontFamily="heading"
-										color="onSurface"
-									>
+									<Text textStyle="secondary.lg" color="onSurface">
 										{tier.name}
-									</styled.span>
+									</Text>
 									{tier.price && (
 										<Flex alignItems="baseline" gap={0.5}>
-											<styled.span textStyle="body.lg" fontWeight="700" color="onSurface">
+											<Text textStyle="secondary.lg" color="onSurface">
 												{tier.price}
-											</styled.span>
-											<styled.span textStyle="body.xs" color="onSurfaceVariant">
+											</Text>
+											<Text textStyle="secondary.xs" color="onSurfaceVariant">
 												{tier.period}
-											</styled.span>
+											</Text>
 										</Flex>
 									)}
 								</Flex>
 								{tier.badge && (
-									<styled.span
-										textStyle="body.xs"
-										fontWeight="600"
+									<Text
+										textStyle="secondary.xs"
 										color="primary"
 										paddingInline={2}
 										paddingBlock={0.5}
@@ -226,7 +215,7 @@ export function PricingDrawer({ open, onClose }: PricingDrawerProps) {
 										bg="primary/10"
 									>
 										{tier.badge}
-									</styled.span>
+									</Text>
 								)}
 								{tier.cta && (
 									<styled.button
@@ -238,7 +227,7 @@ export function PricingDrawer({ open, onClose }: PricingDrawerProps) {
 										border="none"
 										background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
 										color="white"
-										textStyle="body.xs"
+										textStyle="secondary.xs"
 										fontWeight="600"
 										cursor="pointer"
 										transition="opacity 0.15s"
@@ -257,9 +246,9 @@ export function PricingDrawer({ open, onClose }: PricingDrawerProps) {
 								{tier.features.map((feature) => (
 									<Flex key={feature} alignItems="center" gap={2}>
 										<Check size={14} color="#623153" aria-hidden />
-										<styled.span textStyle="body.sm" color="onSurfaceVariant">
+										<Text textStyle="secondary.sm" color="onSurfaceVariant">
 											{feature}
-										</styled.span>
+										</Text>
 									</Flex>
 								))}
 							</VStack>
@@ -267,7 +256,7 @@ export function PricingDrawer({ open, onClose }: PricingDrawerProps) {
 					))}
 
 					<Box paddingBlock={4} paddingInline={5} borderRadius="lg" bg="surfaceContainerLow">
-						<styled.p textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.6">
+						<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 							Need more?{' '}
 							<styled.a
 								href="mailto:hello@meldar.ai"
@@ -277,7 +266,7 @@ export function PricingDrawer({ open, onClose }: PricingDrawerProps) {
 							>
 								Contact us
 							</styled.a>
-						</styled.p>
+						</Text>
 					</Box>
 				</VStack>
 
@@ -295,9 +284,9 @@ export function PricingDrawer({ open, onClose }: PricingDrawerProps) {
 						zIndex={60}
 						maxWidth="320px"
 					>
-						<styled.p textStyle="body.sm" lineHeight="1.5">
+						<Text as="p" textStyle="secondary.sm">
 							{toast}
-						</styled.p>
+						</Text>
 					</Box>
 				)}
 			</Box>

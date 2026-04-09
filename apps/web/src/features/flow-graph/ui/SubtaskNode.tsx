@@ -1,10 +1,11 @@
 'use client'
 
-import { Flex, HStack, styled } from '@styled-system/jsx'
+import { Flex, HStack } from '@styled-system/jsx'
 import type { NodeProps } from '@xyflow/react'
 import { Handle, Position } from '@xyflow/react'
 import type { KanbanCardState } from '@/entities/kanban-card'
 import { userVisibleLabel } from '@/features/kanban'
+import { Text } from '@/shared/ui'
 import type { SubtaskNodeType } from '../lib/cards-to-flow'
 
 const BORDER_COLORS: Record<KanbanCardState, string> = {
@@ -59,9 +60,8 @@ export function SubtaskNode({ data }: NodeProps<SubtaskNodeType>) {
 				cursor="pointer"
 			>
 				<HStack gap={2} alignItems="center">
-					<styled.span
-						fontSize="12px"
-						fontWeight="600"
+					<Text
+						textStyle="primary.xs"
 						color="#1e293b"
 						overflow="hidden"
 						textOverflow="ellipsis"
@@ -69,10 +69,9 @@ export function SubtaskNode({ data }: NodeProps<SubtaskNodeType>) {
 						flex="1"
 					>
 						{card.title}
-					</styled.span>
-					<styled.span
-						fontSize="9px"
-						fontWeight="600"
+					</Text>
+					<Text
+						textStyle="primary.xs"
 						paddingInline="5px"
 						paddingBlock="1px"
 						borderRadius="sm"
@@ -82,20 +81,19 @@ export function SubtaskNode({ data }: NodeProps<SubtaskNodeType>) {
 						flexShrink={0}
 					>
 						{userVisibleLabel(card.state)}
-					</styled.span>
+					</Text>
 				</HStack>
 
 				<HStack gap={2} alignItems="center">
 					{cost && (
-						<styled.span fontSize="9px" color="#94a3b8" whiteSpace="nowrap">
+						<Text textStyle="secondary.xs" color="#94a3b8" whiteSpace="nowrap">
 							{cost} tokens
-						</styled.span>
+						</Text>
 					)}
 					{card.explainerText && (
-						<styled.span
-							fontSize="9px"
+						<Text
+							textStyle="italic.md"
 							color="#623153"
-							fontStyle="italic"
 							overflow="hidden"
 							textOverflow="ellipsis"
 							whiteSpace="nowrap"
@@ -103,7 +101,7 @@ export function SubtaskNode({ data }: NodeProps<SubtaskNodeType>) {
 							title={card.explainerText}
 						>
 							{card.explainerText}
-						</styled.span>
+						</Text>
 					)}
 				</HStack>
 			</Flex>

@@ -3,6 +3,7 @@
 import { TEMPLATE_SUMMARIES } from '@meldar/orchestrator'
 import { Box, Grid, styled, VStack } from '@styled-system/jsx'
 import { useCallback, useState } from 'react'
+import { Heading, Text } from '@/shared/ui'
 
 export type TemplatePickerProps = {
 	readonly projectId: string
@@ -43,12 +44,12 @@ export function TemplatePicker({ projectId, onTemplateApplied, onStartChat }: Te
 	return (
 		<VStack alignItems="stretch" gap={5} paddingBlock={6} paddingInline={4}>
 			<VStack alignItems="stretch" gap={1}>
-				<styled.h2 textStyle="body.lg" fontWeight="700" color="onSurface">
+				<Heading textStyle="secondary.lg" color="onSurface">
 					Start building
-				</styled.h2>
-				<styled.p textStyle="body.sm" color="onSurfaceVariant">
+				</Heading>
+				<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 					Pick a template to get started:
-				</styled.p>
+				</Text>
 			</VStack>
 
 			<Grid columns={{ base: 1, sm: 2 }} gap={3}>
@@ -76,12 +77,12 @@ export function TemplatePicker({ projectId, onTemplateApplied, onStartChat }: Te
 						}}
 					>
 						<VStack alignItems="flex-start" gap={1}>
-							<styled.span textStyle="body.sm" fontWeight="600" color="onSurface">
+							<Text textStyle="secondary.sm" color="onSurface">
 								{template.name}
-							</styled.span>
-							<styled.span textStyle="body.xs" color="onSurfaceVariant">
+							</Text>
+							<Text textStyle="secondary.xs" color="onSurfaceVariant">
 								{template.description}
-							</styled.span>
+							</Text>
 						</VStack>
 					</styled.button>
 				))}
@@ -89,9 +90,9 @@ export function TemplatePicker({ projectId, onTemplateApplied, onStartChat }: Te
 
 			{error && (
 				<Box paddingBlock={2} paddingInline={3} borderRadius="md" background="error/10">
-					<styled.p textStyle="body.xs" color="error">
+					<Text as="p" textStyle="secondary.xs" color="error">
 						{error}
-					</styled.p>
+					</Text>
 				</Box>
 			)}
 
@@ -109,7 +110,7 @@ export function TemplatePicker({ projectId, onTemplateApplied, onStartChat }: Te
 					background="transparent"
 					color="onSurfaceVariant"
 					fontWeight="500"
-					textStyle="body.sm"
+					textStyle="secondary.sm"
 					cursor={applying ? 'not-allowed' : 'pointer'}
 					transition="all 0.15s"
 					_hover={{
@@ -127,9 +128,9 @@ export function TemplatePicker({ projectId, onTemplateApplied, onStartChat }: Te
 
 			{applying && (
 				<Box display="flex" justifyContent="center">
-					<styled.span textStyle="body.xs" color="onSurfaceVariant" fontWeight="500">
+					<Text textStyle="secondary.xs" color="onSurfaceVariant">
 						Setting up your project...
-					</styled.span>
+					</Text>
 				</Box>
 			)}
 		</VStack>

@@ -3,6 +3,7 @@
 import { Box, HStack, styled } from '@styled-system/jsx'
 import { useAtom } from 'jotai'
 import { X } from 'lucide-react'
+import { Text } from '@/shared/ui'
 import { dismissedExplainersAtom } from '../model/kanban-atoms'
 
 export type InlineExplainerProps = {
@@ -22,9 +23,9 @@ export function InlineExplainer({ cardId, text }: InlineExplainerProps) {
 	return (
 		<HStack gap={2} alignItems="flex-start" marginBlockStart={1}>
 			<Box flex="1">
-				<styled.p textStyle="body.xs" color="onSurfaceVariant" lineHeight="1.5" fontStyle="italic">
+				<Text as="p" textStyle="secondary.xs" color="onSurfaceVariant">
 					{text}
-				</styled.p>
+				</Text>
 			</Box>
 			<styled.button
 				type="button"

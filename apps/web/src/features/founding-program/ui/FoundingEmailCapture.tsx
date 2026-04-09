@@ -4,6 +4,7 @@ import { Flex, styled, VStack } from '@styled-system/jsx'
 import { Check } from 'lucide-react'
 import { trackEvent } from '@/features/analytics'
 import { useEmailSubscribe } from '@/shared/lib/use-email-subscribe'
+import { Text } from '@/shared/ui'
 
 export function FoundingEmailCapture() {
 	const { email, setEmail, status, subscribe } = useEmailSubscribe()
@@ -18,9 +19,9 @@ export function FoundingEmailCapture() {
 		return (
 			<Flex alignItems="center" gap={3} paddingBlock={4}>
 				<Check size={20} color="#623153" />
-				<styled.p textStyle="body.base" fontWeight="500" color="onSurface">
+				<Text as="p" textStyle="secondary.md" color="onSurface">
 					You&apos;re in! Check your email.
-				</styled.p>
+				</Text>
 			</Flex>
 		)
 	}
@@ -71,23 +72,23 @@ export function FoundingEmailCapture() {
 					</styled.button>
 				</Flex>
 				<VStack gap={1} alignItems="flex-start">
-					<styled.span textStyle="body.sm" color="onSurfaceVariant">
+					<Text textStyle="secondary.sm" color="onSurfaceVariant">
 						<Check size={12} style={{ display: 'inline', marginRight: 4 }} />
 						Free Time Audit (EUR 29 value)
-					</styled.span>
-					<styled.span textStyle="body.sm" color="onSurfaceVariant">
+					</Text>
+					<Text textStyle="secondary.sm" color="onSurfaceVariant">
 						<Check size={12} style={{ display: 'inline', marginRight: 4 }} />
 						Weekly automation playbook
-					</styled.span>
-					<styled.span textStyle="body.sm" color="onSurfaceVariant">
+					</Text>
+					<Text textStyle="secondary.sm" color="onSurfaceVariant">
 						<Check size={12} style={{ display: 'inline', marginRight: 4 }} />
 						Founding pricing locked forever
-					</styled.span>
+					</Text>
 				</VStack>
 				{status === 'error' && (
-					<styled.span textStyle="body.sm" color="red.500">
+					<Text textStyle="secondary.sm" color="red.500">
 						Something went wrong. Try again.
-					</styled.span>
+					</Text>
 				)}
 			</VStack>
 		</styled.form>

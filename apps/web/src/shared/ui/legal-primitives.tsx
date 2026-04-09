@@ -1,11 +1,12 @@
 import { styled, VStack } from '@styled-system/jsx'
+import { Heading, Text } from '@/shared/ui'
 
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
 	return (
 		<VStack alignItems="flex-start" gap={3} width="100%">
-			<styled.h2 fontFamily="heading" fontSize="xl" fontWeight="700" color="onSurface">
+			<Heading textStyle="primary.sm" color="onSurface">
 				{title}
-			</styled.h2>
+			</Heading>
 			{children}
 		</VStack>
 	)
@@ -13,9 +14,9 @@ export function Section({ title, children }: { title: string; children: React.Re
 
 export function P({ children }: { children: React.ReactNode }) {
 	return (
-		<styled.p fontSize="sm" fontWeight="300" color="onSurfaceVariant" lineHeight="relaxed">
+		<Text textStyle="secondary.sm" as="p" color="onSurfaceVariant">
 			{children}
-		</styled.p>
+		</Text>
 	)
 }
 
@@ -40,8 +41,8 @@ export function Li({ children }: { children: React.ReactNode }) {
 
 export function B({ children }: { children: React.ReactNode }) {
 	return (
-		<styled.span fontWeight="500" color="onSurface">
+		<Text textStyle="secondary.md" color="onSurface">
 			{children}
-		</styled.span>
+		</Text>
 	)
 }

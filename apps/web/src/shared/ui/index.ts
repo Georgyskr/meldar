@@ -1,4 +1,7 @@
 export { Button, type ButtonProps } from './button'
+export { EditorialEyebrow } from './EditorialEyebrow'
+export { EditorialPlate } from './EditorialPlate'
 export { EmailCapture } from './EmailCapture'
 export { FadeInOnScroll } from './FadeInOnScroll'
 export { JsonLd } from './JsonLd'
+export { Heading, Text } from './typography'

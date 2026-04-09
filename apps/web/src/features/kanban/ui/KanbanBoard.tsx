@@ -1,8 +1,9 @@
 'use client'
 
-import { styled, VStack } from '@styled-system/jsx'
+import { VStack } from '@styled-system/jsx'
 import { useMemo } from 'react'
 import type { KanbanCard } from '@/entities/kanban-card'
+import { Heading } from '@/shared/ui'
 import { groupCards } from '../lib/group-cards'
 import { deriveMilestoneState } from '../model/derive-milestone-state'
 import { AddMilestoneButton } from './AddMilestoneButton'
@@ -28,16 +29,9 @@ export function KanbanBoard({ cards, onAddMilestone, onAddSubtask }: KanbanBoard
 
 	return (
 		<VStack alignItems="stretch" gap={2} padding={3}>
-			<styled.h2
-				textStyle="body.xs"
-				color="onSurfaceVariant"
-				textTransform="uppercase"
-				letterSpacing="wide"
-				fontWeight="600"
-				paddingInline={1}
-			>
+			<Heading textStyle="secondary.xs" color="onSurfaceVariant" paddingInline={1}>
 				Your build plan
-			</styled.h2>
+			</Heading>
 
 			{milestones.map((milestone) => (
 				<MilestoneRow

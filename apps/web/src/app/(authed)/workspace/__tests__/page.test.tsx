@@ -33,6 +33,7 @@ vi.mock('@meldar/db/client', () => ({
 
 vi.mock('@meldar/tokens', () => ({
 	getTokenBalance: (...args: unknown[]) => mockGetTokenBalance(...args),
+	trackVisitStreak: () => Promise.resolve({ streak: 0, isNewDay: false }),
 }))
 
 vi.mock('@/server/projects/list-user-projects', () => ({
@@ -62,7 +63,12 @@ vi.mock('@/features/auth', () => ({
 	SignOutButton: () => ({ type: 'button', props: { 'data-testid': 'sign-out' } }),
 }))
 
+vi.mock('@/features/token-economy', () => ({
+	StreakBadge: () => null,
+}))
+
 vi.mock('@/widgets/workspace', () => ({
+	ContinueBanner: () => null,
 	EmailVerificationBanner: ({ email, verified }: { email: string; verified: boolean }) =>
 		verified
 			? null
@@ -176,24 +182,36 @@ describe('WorkspaceDashboardPage', () => {
 		mockListUserProjects.mockResolvedValue([
 			{
 				id: '550e8400-e29b-41d4-a716-446655440000',
-				name: 'My first build',
+				name: 'My first project',
 				lastBuildAt: new Date('2026-04-06T10:00:00Z'),
 				previewUrl: null,
 				createdAt: new Date('2026-04-05T10:00:00Z'),
+				totalSubtasks: 5,
+				builtSubtasks: 2,
+				failedSubtasks: 0,
+				nextCardTitle: 'Add chart',
+				totalMilestones: 2,
+				completedMilestones: 0,
 			},
 			{
 				id: '550e8400-e29b-41d4-a716-446655440001',
-				name: 'Second build',
+				name: 'Second project',
 				lastBuildAt: null,
 				previewUrl: null,
 				createdAt: new Date('2026-04-04T10:00:00Z'),
+				totalSubtasks: 0,
+				builtSubtasks: 0,
+				failedSubtasks: 0,
+				nextCardTitle: null,
+				totalMilestones: 0,
+				completedMilestones: 0,
 			},
 		])
 		const tree = (await WorkspaceDashboardPage()) as ReactElement
 		const text = findAllText(tree).join(' ')
-		expect(text).toContain('My first build')
-		expect(text).toContain('Second build')
-		expect(text).toContain('No builds yet')
+		expect(text).toContain('My first project')
+		expect(text).toContain('Second project')
+		expect(text).toContain('No activity yet')
 		expect(findByTestId(tree, 'first-time-welcome')).toBe(false)
 		expect(findByTestId(tree, 'new-project')).toBe(true)
 		expect(findByTestId(tree, 'sign-out')).toBe(true)

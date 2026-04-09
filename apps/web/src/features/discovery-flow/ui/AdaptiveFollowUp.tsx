@@ -4,6 +4,7 @@ import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { useAtom } from 'jotai'
 import { Check, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { Heading, Text } from '@/shared/ui'
 import type { AdaptiveFollowUpItem } from '../model/atoms'
 import { adaptiveAnswersAtom } from '../model/atoms'
 
@@ -63,31 +64,24 @@ function ScreenshotCard({
 			<VStack gap={3} padding={5} alignItems="stretch">
 				<VStack gap={1} alignItems="flex-start">
 					{item.appName && (
-						<styled.span
-							fontSize="xs"
-							fontWeight="700"
-							fontFamily="heading"
-							color="primary"
-							textTransform="uppercase"
-							letterSpacing="0.05em"
-						>
+						<Text textStyle="tertiary.lg" color="primary">
 							{item.appName}
-						</styled.span>
+						</Text>
 					)}
-					<styled.span fontFamily="heading" fontWeight="700" fontSize="sm" color="onSurface">
+					<Text textStyle="primary.xs" color="onSurface">
 						{item.title}
-					</styled.span>
-					<styled.span textStyle="body.sm" color="onSurfaceVariant/70">
+					</Text>
+					<Text textStyle="secondary.sm" color="onSurfaceVariant/70">
 						{item.description}
-					</styled.span>
+					</Text>
 				</VStack>
 
 				{status === 'done' ? (
 					<Flex gap={2} alignItems="center" justifyContent="center" paddingBlock={2}>
 						<Check size={16} color="#623153" strokeWidth={2.5} />
-						<styled.span fontSize="sm" fontWeight="600" fontFamily="heading" color="primary">
+						<Text textStyle="primary.xs" color="primary">
 							Uploaded
-						</styled.span>
+						</Text>
 					</Flex>
 				) : (
 					<styled.label
@@ -156,12 +150,12 @@ function QuestionCard({ item, index }: { item: AdaptiveFollowUpItem; index: numb
 		>
 			<VStack gap={3} padding={5} alignItems="stretch">
 				<VStack gap={1} alignItems="flex-start">
-					<styled.span fontFamily="heading" fontWeight="700" fontSize="sm" color="onSurface">
+					<Text textStyle="primary.xs" color="onSurface">
 						{item.title}
-					</styled.span>
-					<styled.span textStyle="body.sm" color="onSurfaceVariant/70">
+					</Text>
+					<Text textStyle="secondary.sm" color="onSurfaceVariant/70">
 						{item.description}
-					</styled.span>
+					</Text>
 				</VStack>
 
 				<Flex gap={2} flexWrap="wrap">
@@ -219,12 +213,12 @@ export function AdaptiveFollowUp({ followUps, sessionId, onComplete }: AdaptiveF
 		>
 			{/* Header */}
 			<VStack gap={2} textAlign="center">
-				<styled.h2 textStyle="heading.section" color="onSurface">
+				<Heading textStyle="primary.lg" color="onSurface">
 					A few more questions
-				</styled.h2>
-				<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
+				</Heading>
+				<Text as="p" textStyle="secondary.xl" color="onSurfaceVariant/70">
 					Based on your screen time, these will sharpen your results
-				</styled.p>
+				</Text>
 			</VStack>
 
 			{/* Follow-up cards */}

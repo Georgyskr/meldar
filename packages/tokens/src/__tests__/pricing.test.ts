@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MODELS } from '../models'
-import { estimateMaxCents, tokensToCents } from '../pricing'
+import { estimateMaxCents, tokensToCents, usageToCents } from '../pricing'
 
 describe('tokensToCents', () => {
 	it('returns at least 1 cent for any non-zero usage (round-up safety)', () => {
@@ -51,5 +51,64 @@ describe('estimateMaxCents', () => {
 		expect(estimateMaxCents(MODELS.SONNET, 50_000, 10_000)).toBe(
 			tokensToCents(MODELS.SONNET, 50_000, 10_000),
 		)
+	})
+})
+
+describe('usageToCents (prompt caching)', () => {
+	it('matches tokensToCents when no cache fields are present', () => {
+		expect(usageToCents(MODELS.SONNET, { inputTokens: 50_000, outputTokens: 10_000 })).toBe(
+			tokensToCents(MODELS.SONNET, 50_000, 10_000),
+		)
+	})
+
+	it('cache reads cost ~10% of regular input tokens', () => {
+		const freshInput = usageToCents(MODELS.SONNET, { inputTokens: 100_000, outputTokens: 0 })
+		const cachedInput = usageToCents(MODELS.SONNET, {
+			inputTokens: 0,
+			outputTokens: 0,
+			cacheReadTokens: 100_000,
+		})
+		const ratio = cachedInput / freshInput
+		expect(ratio).toBeGreaterThan(0.08)
+		expect(ratio).toBeLessThan(0.12)
+	})
+
+	it('cache writes cost ~25% more than regular input tokens', () => {
+		const freshInput = usageToCents(MODELS.SONNET, { inputTokens: 100_000, outputTokens: 0 })
+		const cacheWrite = usageToCents(MODELS.SONNET, {
+			inputTokens: 0,
+			outputTokens: 0,
+			cacheWriteTokens: 100_000,
+		})
+		const ratio = cacheWrite / freshInput
+		expect(ratio).toBeGreaterThan(1.2)
+		expect(ratio).toBeLessThan(1.3)
+	})
+
+	it('cached build is significantly cheaper than uncached (input savings only, output still billed)', () => {
+		const uncached = usageToCents(MODELS.SONNET, {
+			inputTokens: 100_000,
+			outputTokens: 20_000,
+		})
+		const cached = usageToCents(MODELS.SONNET, {
+			inputTokens: 5_000,
+			outputTokens: 20_000,
+			cacheReadTokens: 95_000,
+		})
+		expect(cached).toBeLessThan(uncached * 0.7)
+		expect(cached).toBeGreaterThan(uncached * 0.35)
+	})
+
+	it('cached build with low output tokens shows massive savings (input-dominated)', () => {
+		const uncached = usageToCents(MODELS.SONNET, {
+			inputTokens: 100_000,
+			outputTokens: 500,
+		})
+		const cached = usageToCents(MODELS.SONNET, {
+			inputTokens: 5_000,
+			outputTokens: 500,
+			cacheReadTokens: 95_000,
+		})
+		expect(cached).toBeLessThan(uncached * 0.25)
 	})
 })

@@ -10,7 +10,7 @@ import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { kanbanCardSchema } from '@/entities/kanban-card'
-import { PLACEHOLDER_STEP } from '@/entities/project-step'
+import { deriveProjectStep } from '@/entities/project-step'
 import { verifyToken } from '@/server/identity/jwt'
 import { WorkspaceShell } from '@/widgets/workspace'
 
@@ -55,6 +55,17 @@ export default async function WorkspacePage({ params }: PageProps) {
 		storage = buildProjectStorageWithoutR2()
 	}
 
+	const db = getDb()
+	let project: Awaited<ReturnType<typeof storage.getProject>>
+	try {
+		project = await storage.getProject(projectId, session.userId)
+	} catch (err) {
+		if (err instanceof ProjectNotFoundError) {
+			notFound()
+		}
+		throw err
+	}
+
 	const cutoff = new Date(Date.now() - STUCK_BUILD_THRESHOLD_MS)
 	try {
 		await storage.reapStuckBuilds(projectId, cutoff)
@@ -62,17 +73,10 @@ export default async function WorkspacePage({ params }: PageProps) {
 		console.error('[workspace/page] reapStuckBuilds failed', err)
 	}
 
-	const db = getDb()
-	let project: Awaited<ReturnType<typeof storage.getProject>>
-	let currentFiles: Awaited<ReturnType<typeof storage.getCurrentFiles>>
-	let activeBuildId: Awaited<ReturnType<typeof storage.getActiveStreamingBuild>>
 	let kanbanCards: Awaited<ReturnType<typeof storage.getKanbanCards>>
 	let tokenBalance: number
 	try {
-		;[project, currentFiles, activeBuildId, kanbanCards, tokenBalance] = await Promise.all([
-			storage.getProject(projectId, session.userId),
-			storage.getCurrentFiles(projectId),
-			storage.getActiveStreamingBuild(projectId),
+		;[kanbanCards, tokenBalance] = await Promise.all([
 			storage.getKanbanCards(projectId),
 			getTokenBalance(db, session.userId),
 		])
@@ -87,6 +91,8 @@ export default async function WorkspacePage({ params }: PageProps) {
 		!project.previewUrlUpdatedAt ||
 		Date.now() - project.previewUrlUpdatedAt.getTime() > PREVIEW_STALENESS_MS
 	const initialPreviewUrl = isPreviewStale ? null : project.previewUrl
+	const parsedCards = kanbanCards.map((c) => kanbanCardSchema.parse(c))
+	const step = deriveProjectStep(parsedCards)
 
 	return (
 		<WorkspaceShell
@@ -95,10 +101,8 @@ export default async function WorkspacePage({ params }: PageProps) {
 			tier={project.tier}
 			tokenBalance={tokenBalance}
 			initialPreviewUrl={initialPreviewUrl}
-			currentFiles={currentFiles}
-			step={PLACEHOLDER_STEP}
-			activeBuildId={activeBuildId}
-			initialKanbanCards={kanbanCards.map((c) => kanbanCardSchema.parse(c))}
+			step={step}
+			initialKanbanCards={parsedCards}
 		/>
 	)
 }

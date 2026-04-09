@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 import { TokenBalancePill } from '@/features/token-economy'
+import { Heading, Text } from '@/shared/ui'
 import { TemplatePreviewDrawer } from './TemplatePreviewDrawer'
 
 export type FirstTimeWelcomeProps = {
@@ -183,26 +184,22 @@ export function FirstTimeWelcome({ email, tokenBalance }: FirstTimeWelcomeProps)
 
 	return (
 		<VStack alignItems="stretch" gap={8} maxWidth="720px" marginInline="auto">
-			<styled.h2
-				fontFamily="heading"
-				fontSize={{ base: '2xl', md: '3xl' }}
-				fontWeight="700"
-				letterSpacing="-0.02em"
-				color="onSurface"
-			>
-				Let's build your first app, {displayName}
-			</styled.h2>
+			<Box borderBottom="2px solid" borderColor="onSurface" paddingBlockEnd={6}>
+				<Heading textStyle="primary.lg" color="onSurface">
+					Your first app, {displayName}
+				</Heading>
+			</Box>
 
 			<VStack alignItems="stretch" gap={3}>
-				<styled.p textStyle="body.sm" color="onSurfaceVariant" fontWeight="500">
-					What brings you here?
-				</styled.p>
+				<Text as="p" textStyle="tertiary.sm" color="primary">
+					§ I — What brings you here?
+				</Text>
 				<Flex gap={2} flexWrap="wrap">
 					{(
 						[
-							{ value: 'learning', label: '\u{1F393} Learning AI' },
-							{ value: 'work', label: '\u{1F3E2} Building for work' },
-							{ value: 'exploring', label: '\u{1F50D} Just exploring' },
+							{ value: 'learning', label: 'Learning AI' },
+							{ value: 'work', label: 'Making for work' },
+							{ value: 'exploring', label: 'Just exploring' },
 						] as const
 					).map((goal) => (
 						<styled.button
@@ -211,112 +208,85 @@ export function FirstTimeWelcome({ email, tokenBalance }: FirstTimeWelcomeProps)
 							onClick={() => setSelectedGoal(goal.value)}
 							paddingInline={4}
 							paddingBlock={2}
-							borderRadius="full"
-							border="2px solid"
-							borderColor={selectedGoal === goal.value ? 'transparent' : 'outlineVariant/50'}
-							background={selectedGoal === goal.value ? 'transparent' : 'surfaceContainerLowest'}
-							color={selectedGoal === goal.value ? 'onSurface' : 'onSurfaceVariant'}
-							fontWeight={selectedGoal === goal.value ? '600' : '400'}
-							textStyle="body.sm"
+							border="1.5px solid"
+							borderColor={selectedGoal === goal.value ? 'primary' : 'onSurface/20'}
+							bg={selectedGoal === goal.value ? 'primary/6' : 'transparent'}
+							color="onSurface"
 							cursor="pointer"
 							transition="all 0.15s"
-							style={
-								selectedGoal === goal.value
-									? {
-											backgroundImage:
-												'linear-gradient(#faf9f6, #faf9f6), linear-gradient(135deg, #623153 0%, #FFB876 100%)',
-											backgroundOrigin: 'border-box',
-											backgroundClip: 'padding-box, border-box',
-										}
-									: undefined
-							}
 							_hover={{ borderColor: 'primary/50' }}
 						>
-							{goal.label}
+							<Text
+								textStyle="primary.xs"
+								color={selectedGoal === goal.value ? 'primary' : 'onSurface'}
+							>
+								{goal.label}
+							</Text>
 						</styled.button>
 					))}
 				</Flex>
 			</VStack>
 
 			<VStack alignItems="stretch" gap={3}>
-				<styled.p textStyle="body.sm" color="onSurfaceVariant" fontWeight="500">
-					Pick a template to get started:
-				</styled.p>
+				<Text as="p" textStyle="tertiary.sm" color="primary">
+					§ II — Pick a template
+				</Text>
 				<Grid
 					gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }}
-					gap={3}
+					gap={0}
 				>
-					{sortedTemplates.map((template) => (
+					{sortedTemplates.map((template, i) => (
 						<styled.button
 							key={template.id}
 							type="button"
 							onClick={() => handleTemplateClick(template.id)}
 							disabled={busy}
 							textAlign="left"
-							paddingBlock={4}
+							paddingBlock={5}
 							paddingInline={5}
-							borderRadius="lg"
 							border="1px solid"
-							borderColor="outlineVariant/50"
-							bg="surfaceContainerLowest"
+							borderColor="onSurface/15"
+							bg="surface"
 							cursor={busy ? 'wait' : 'pointer'}
 							transition="all 0.15s"
 							_hover={{
-								borderColor: 'primary',
-								background: 'primary/5',
-								transform: 'translateY(-2px)',
-								boxShadow: '0 4px 12px rgba(98,49,83,0.08)',
+								bg: 'primary/3',
+								borderColor: 'onSurface/40',
 							}}
 							_disabled={{ opacity: 0.5 }}
 						>
 							<VStack alignItems="flex-start" gap={2}>
-								<styled.span
-									textStyle="body.sm"
-									fontWeight="600"
-									fontFamily="heading"
-									color="onSurface"
-								>
+								<Flex justifyContent="space-between" width="100%" alignItems="baseline">
+									<Text textStyle="tertiary.sm" color="primary">
+										Nº {String(i + 1).padStart(2, '0')}
+									</Text>
+									<Text textStyle="tertiary.sm" color="onSurfaceVariant/50">
+										{formatDifficulty(template.difficulty)}
+									</Text>
+								</Flex>
+								<Text textStyle="primary.xs" color="onSurface">
 									{getCategoryEmoji(template)} {template.name}
-								</styled.span>
-								<styled.span textStyle="body.xs" color="onSurfaceVariant">
+								</Text>
+								<Text textStyle="secondary.xs" color="onSurfaceVariant">
 									{template.description}
-								</styled.span>
+								</Text>
 
 								{template.learningHighlights.length > 0 && (
 									<VStack alignItems="flex-start" gap={0.5} width="100%">
-										<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant/80">
+										<Text textStyle="italic.sm" color="onSurfaceVariant/80">
 											You'll learn:
-										</styled.span>
+										</Text>
 										{template.learningHighlights.slice(0, 2).map((highlight) => (
-											<styled.span key={highlight} textStyle="body.xs" color="onSurfaceVariant/70">
+											<Text key={highlight} textStyle="secondary.xs" color="onSurfaceVariant/70">
 												&bull; {highlight}
-											</styled.span>
+											</Text>
 										))}
 									</VStack>
 								)}
 
-								<styled.span textStyle="body.xs" color="onSurfaceVariant/60">
-									{formatDifficulty(template.difficulty)} &middot; ~{template.estimatedMinutes} min
-									&middot; {template.estimatedTokens} tokens
-								</styled.span>
-
-								<Flex gap={1} flexWrap="wrap">
-									{template.tags.map((tag) => (
-										<styled.span
-											key={tag}
-											textStyle="body.xs"
-											color="onSurfaceVariant/70"
-											paddingInline={1.5}
-											paddingBlock={0.5}
-											borderRadius="sm"
-											bg="surfaceContainer"
-											fontSize="10px"
-											lineHeight="1.2"
-										>
-											#{tag}
-										</styled.span>
-									))}
-								</Flex>
+								<Text textStyle="tertiary.sm" color="onSurfaceVariant/50">
+									~{template.estimatedMinutes} min · {template.estimatedTokens} tokens
+								</Text>
 							</VStack>
 						</styled.button>
 					))}
@@ -324,9 +294,9 @@ export function FirstTimeWelcome({ email, tokenBalance }: FirstTimeWelcomeProps)
 			</VStack>
 
 			<VStack alignItems="stretch" gap={2}>
-				<styled.p textStyle="body.sm" color="onSurfaceVariant" fontWeight="500">
-					Or describe what you want:
-				</styled.p>
+				<Text as="p" textStyle="tertiary.sm" color="primary">
+					§ III — Or describe what you want
+				</Text>
 				<Flex gap={2}>
 					<styled.input
 						type="text"
@@ -340,12 +310,11 @@ export function FirstTimeWelcome({ email, tokenBalance }: FirstTimeWelcomeProps)
 						flex="1"
 						paddingBlock={2.5}
 						paddingInline={4}
-						borderRadius="md"
 						border="1px solid"
-						borderColor="outlineVariant/50"
-						bg="surfaceContainerLowest"
+						borderColor="onSurface/20"
+						bg="surface"
 						color="onSurface"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						transition="border-color 0.15s"
 						_focus={{ borderColor: 'primary', outline: 'none' }}
 						_disabled={{ opacity: 0.5 }}
@@ -357,16 +326,13 @@ export function FirstTimeWelcome({ email, tokenBalance }: FirstTimeWelcomeProps)
 						disabled={busy || !freeformValue.trim()}
 						paddingInline={4}
 						paddingBlock={2.5}
-						borderRadius="md"
 						border="none"
-						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-						color="white"
-						fontWeight="600"
-						fontSize="sm"
+						bg="onSurface"
+						color="surface"
 						cursor={busy ? 'wait' : 'pointer'}
 						opacity={busy || !freeformValue.trim() ? 0.5 : 1}
-						transition="opacity 0.15s"
-						_hover={{ opacity: busy || !freeformValue.trim() ? 0.5 : 0.9 }}
+						transition="all 0.15s"
+						_hover={{ bg: 'primary', opacity: busy || !freeformValue.trim() ? 0.5 : 1 }}
 						_focusVisible={{
 							outline: '2px solid',
 							outlineColor: 'primary',
@@ -374,71 +340,80 @@ export function FirstTimeWelcome({ email, tokenBalance }: FirstTimeWelcomeProps)
 						}}
 						aria-label="Submit"
 					>
-						<ArrowRight size={18} />
+						<ArrowRight size={18} color="white" />
 					</styled.button>
 				</Flex>
 			</VStack>
 
 			{error && (
-				<Box paddingBlock={2} paddingInline={3} borderRadius="md" background="error/10">
-					<styled.p role="alert" textStyle="body.xs" color="error">
+				<Box
+					paddingBlock={3}
+					paddingInline={4}
+					border="1px solid"
+					borderColor="red.300"
+					bg="red.50"
+				>
+					<Text as="p" role="alert" textStyle="secondary.xs" color="red.700">
 						{error}
-					</styled.p>
+					</Text>
 				</Box>
 			)}
 
-			<Box borderBlockStart="1px solid" borderColor="outlineVariant/20" paddingBlockStart={6}>
-				<styled.p textStyle="body.sm" color="onSurfaceVariant/70" marginBlockEnd={4}>
-					How it works:
-				</styled.p>
-				<Grid gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }} gap={4}>
-					<HStack gap={2.5} alignItems="flex-start">
-						<Box flexShrink={0} marginBlockStart={0.5}>
-							<Lightbulb size={16} color="#81737a" />
-						</Box>
-						<VStack alignItems="flex-start" gap={0.5}>
-							<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
-								1. Pick or describe
-							</styled.span>
-							<styled.span textStyle="body.xs" color="onSurfaceVariant/70">
-								Choose a template or tell us what you want
-							</styled.span>
-						</VStack>
-					</HStack>
-					<HStack gap={2.5} alignItems="flex-start">
-						<Box flexShrink={0} marginBlockStart={0.5}>
-							<ListChecks size={16} color="#81737a" />
-						</Box>
-						<VStack alignItems="flex-start" gap={0.5}>
-							<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
-								2. We plan it
-							</styled.span>
-							<styled.span textStyle="body.xs" color="onSurfaceVariant/70">
-								AI breaks it into milestones
-							</styled.span>
-						</VStack>
-					</HStack>
-					<HStack gap={2.5} alignItems="flex-start">
-						<Box flexShrink={0} marginBlockStart={0.5}>
-							<Rocket size={16} color="#81737a" />
-						</Box>
-						<VStack alignItems="flex-start" gap={0.5}>
-							<styled.span textStyle="body.xs" fontWeight="600" color="onSurfaceVariant">
-								3. Build with AI
-							</styled.span>
-							<styled.span textStyle="body.xs" color="onSurfaceVariant/70">
-								Click Build, watch it happen
-							</styled.span>
-						</VStack>
-					</HStack>
+			<Box borderBlockStart="2px solid" borderColor="onSurface" paddingBlockStart={6}>
+				<Text as="p" textStyle="tertiary.sm" color="primary" marginBlockEnd={4}>
+					How it works
+				</Text>
+				<Grid gridTemplateColumns={{ base: '1fr', sm: 'repeat(3, 1fr)' }} gap={0}>
+					{[
+						{
+							icon: Lightbulb,
+							number: '01',
+							title: 'Pick or describe',
+							desc: 'Choose a template or tell us what you want',
+						},
+						{
+							icon: ListChecks,
+							number: '02',
+							title: 'We plan it',
+							desc: 'AI breaks it into milestones',
+						},
+						{
+							icon: Rocket,
+							number: '03',
+							title: 'Watch it happen',
+							desc: 'Click Start, see your app appear',
+						},
+					].map((item) => (
+						<HStack
+							key={item.number}
+							gap={3}
+							alignItems="flex-start"
+							paddingBlock={4}
+							paddingInline={4}
+							border="1px solid"
+							borderColor="onSurface/10"
+						>
+							<Box flexShrink={0} marginBlockStart={0.5}>
+								<item.icon size={16} color="#623153" strokeWidth={1.5} />
+							</Box>
+							<VStack alignItems="flex-start" gap={0.5}>
+								<Text textStyle="primary.xs" color="onSurface">
+									{item.title}
+								</Text>
+								<Text textStyle="secondary.xs" color="onSurfaceVariant/70">
+									{item.desc}
+								</Text>
+							</VStack>
+						</HStack>
+					))}
 				</Grid>
 			</Box>
 
 			<VStack alignItems="center" gap={1}>
 				<TokenBalancePill balance={tokenBalance} />
-				<styled.p textStyle="body.xs" color="onSurfaceVariant/60" textAlign="center">
-					Enough for 2-3 complete apps &middot; Your first app is free
-				</styled.p>
+				<Text as="p" textStyle="secondary.xs" color="onSurfaceVariant/60" textAlign="center">
+					Enough for 2-3 complete apps · Your first app is free
+				</Text>
 			</VStack>
 
 			<TemplatePreviewDrawer

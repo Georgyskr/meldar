@@ -2,6 +2,7 @@
 
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { Text } from '@/shared/ui'
 import { createInitialState, onboardingReducer, TOTAL_QUESTIONS } from '../model/onboarding-state'
 import { OnboardingMessage } from './OnboardingMessage'
 
@@ -128,9 +129,9 @@ export function OnboardingChat({ projectId, projectName, onPlanGenerated }: Onbo
 				borderBlockEnd="1px solid"
 				borderColor="outlineVariant/30"
 			>
-				<styled.p textStyle="body.xs" color="onSurfaceVariant" fontWeight="500">
+				<Text as="p" textStyle="secondary.xs" color="onSurfaceVariant">
 					Step {Math.min(state.currentStep + 1, TOTAL_QUESTIONS)} of {TOTAL_QUESTIONS}
-				</styled.p>
+				</Text>
 				<Flex gap={1} marginBlockStart={2}>
 					{STEP_KEYS.map((stepKey, i) => (
 						<Box
@@ -181,7 +182,7 @@ export function OnboardingChat({ projectId, projectName, onPlanGenerated }: Onbo
 							borderColor="outlineVariant/50"
 							background="surface"
 							color="onSurface"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							_focus={{
 								outline: 'none',
 								borderColor: 'primary',
@@ -197,7 +198,7 @@ export function OnboardingChat({ projectId, projectName, onPlanGenerated }: Onbo
 							background="primary"
 							color="onPrimary"
 							fontWeight="600"
-							textStyle="body.sm"
+							textStyle="secondary.sm"
 							cursor="pointer"
 							transition="opacity 0.15s"
 							_hover={{ opacity: 0.9 }}
@@ -225,9 +226,9 @@ function TypingIndicator() {
 				borderBottomLeftRadius="sm"
 				background="surfaceContainerHigh"
 			>
-				<styled.span textStyle="body.sm" color="onSurfaceVariant">
+				<Text textStyle="secondary.sm" color="onSurfaceVariant">
 					...
-				</styled.span>
+				</Text>
 			</Box>
 		</Box>
 	)
@@ -243,9 +244,9 @@ function GeneratingIndicator() {
 				borderBottomLeftRadius="sm"
 				background="surfaceContainerHigh"
 			>
-				<styled.span textStyle="body.sm" color="onSurfaceVariant" fontWeight="500">
+				<Text textStyle="secondary.sm" color="onSurfaceVariant">
 					Creating your build plan...
-				</styled.span>
+				</Text>
 			</Box>
 		</Box>
 	)

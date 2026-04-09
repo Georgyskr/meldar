@@ -3,6 +3,7 @@
 import { Flex, styled } from '@styled-system/jsx'
 import { useRouter } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
+import { Text } from '@/shared/ui'
 
 type Status = 'idle' | 'submitting'
 
@@ -72,7 +73,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 					<styled.label
 						htmlFor="reset-password"
 						display="block"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						fontWeight="500"
 						color="onSurface"
 						marginBlockEnd={2}
@@ -101,16 +102,16 @@ export function ResetPasswordForm({ token }: { token: string }) {
 						transition="border-color 0.2s ease"
 						_focus={{ borderColor: 'primary' }}
 					/>
-					<styled.span textStyle="body.xs" color="onSurfaceVariant/70" marginBlockStart={1}>
+					<Text textStyle="secondary.xs" color="onSurfaceVariant/70" marginBlockStart={1}>
 						At least 8 characters.
-					</styled.span>
+					</Text>
 				</styled.div>
 
 				<styled.div>
 					<styled.label
 						htmlFor="reset-confirm"
 						display="block"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						fontWeight="500"
 						color="onSurface"
 						marginBlockEnd={2}
@@ -141,9 +142,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
 				</styled.div>
 
 				{error && (
-					<styled.span
+					<Text
 						role="alert"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						color="red.500"
 						paddingInline={3}
 						paddingBlock={2}
@@ -165,7 +166,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 								</styled.a>
 							</>
 						)}
-					</styled.span>
+					</Text>
 				)}
 
 				<styled.button

@@ -1,5 +1,10 @@
+import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
-import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
+import { MODELS } from '@/server/lib/anthropic'
+import {
+	GuardedCallBlockedError,
+	guardedAnthropicCallOrThrow,
+} from '@/server/lib/guarded-anthropic'
 
 const topicExtractionSchema = z.object({
 	topTopics: z.array(
@@ -36,79 +41,90 @@ export async function extractTopicsFromMessages(
 	const sample = messages.slice(0, 300)
 	const messageDump = sample.map((m) => m.text).join('\n---\n')
 
-	const response = await getAnthropicClient().messages.create({
-		model: MODELS.HAIKU,
-		max_tokens: 2048,
-		system: `You are a topic extraction engine. Given user messages from ${platform}, extract the most common topics and identify repeated questions. Be specific — "meal planning" not "food", "Python debugging" not "coding".`,
-		messages: [
-			{
-				role: 'user',
-				content: `Here are ${sample.length} user messages from ${platform}. Extract the top 5-8 topics they ask about most, and identify repeated questions (same topic asked 3+ times).\n\n${messageDump}`,
-			},
-		],
-		tools: [
-			{
-				name: 'extract_topics',
-				description: 'Extract structured topic data from user messages',
-				input_schema: {
-					type: 'object' as const,
-					properties: {
-						topTopics: {
-							type: 'array',
-							items: {
-								type: 'object',
-								properties: {
-									topic: {
-										type: 'string',
-										description: 'Specific topic name, e.g. "meal planning", "Python debugging"',
+	let response: Anthropic.Messages.Message
+	try {
+		response = await guardedAnthropicCallOrThrow({
+			kind: 'discovery_extract_topics',
+			model: MODELS.HAIKU,
+			params: {
+				model: MODELS.HAIKU,
+				max_tokens: 2048,
+				system: `You are a topic extraction engine. Given user messages from ${platform}, extract the most common topics and identify repeated questions. Be specific — "meal planning" not "food", "Python debugging" not "coding".`,
+				messages: [
+					{
+						role: 'user',
+						content: `Here are ${sample.length} user messages from ${platform}. Extract the top 5-8 topics they ask about most, and identify repeated questions (same topic asked 3+ times).\n\n${messageDump}`,
+					},
+				],
+				tools: [
+					{
+						name: 'extract_topics',
+						description: 'Extract structured topic data from user messages',
+						input_schema: {
+							type: 'object' as const,
+							properties: {
+								topTopics: {
+									type: 'array',
+									items: {
+										type: 'object',
+										properties: {
+											topic: {
+												type: 'string',
+												description:
+													'Specific topic name, e.g. "meal planning", "Python debugging"',
+											},
+											count: {
+												type: 'number',
+												description: 'Approximate number of messages about this topic',
+											},
+											examples: {
+												type: 'array',
+												items: { type: 'string' },
+												description:
+													'2-3 representative short summaries of what they asked (not verbatim messages)',
+											},
+										},
+										required: ['topic', 'count', 'examples'],
 									},
-									count: {
-										type: 'number',
-										description: 'Approximate number of messages about this topic',
-									},
-									examples: {
-										type: 'array',
-										items: { type: 'string' },
-										description:
-											'2-3 representative short summaries of what they asked (not verbatim messages)',
-									},
+									description: 'Top 5-8 topics by frequency',
 								},
-								required: ['topic', 'count', 'examples'],
-							},
-							description: 'Top 5-8 topics by frequency',
-						},
-						repeatedQuestions: {
-							type: 'array',
-							items: {
-								type: 'object',
-								properties: {
-									pattern: {
-										type: 'string',
-										description:
-											'The repeated question pattern, e.g. "How to format dates in Python"',
+								repeatedQuestions: {
+									type: 'array',
+									items: {
+										type: 'object',
+										properties: {
+											pattern: {
+												type: 'string',
+												description:
+													'The repeated question pattern, e.g. "How to format dates in Python"',
+											},
+											frequency: {
+												type: 'number',
+												description: 'How many times this pattern appeared',
+											},
+											lastAsked: {
+												type: 'string',
+												nullable: true,
+												description: 'Approximate date of last occurrence, or null if unknown',
+											},
+										},
+										required: ['pattern', 'frequency', 'lastAsked'],
 									},
-									frequency: {
-										type: 'number',
-										description: 'How many times this pattern appeared',
-									},
-									lastAsked: {
-										type: 'string',
-										nullable: true,
-										description: 'Approximate date of last occurrence, or null if unknown',
-									},
+									description:
+										'Questions asked 3+ times about the same topic — signals real pain points',
 								},
-								required: ['pattern', 'frequency', 'lastAsked'],
 							},
-							description:
-								'Questions asked 3+ times about the same topic — signals real pain points',
+							required: ['topTopics', 'repeatedQuestions'],
 						},
 					},
-					required: ['topTopics', 'repeatedQuestions'],
-				},
+				],
+				tool_choice: { type: 'tool', name: 'extract_topics' },
 			},
-		],
-		tool_choice: { type: 'tool', name: 'extract_topics' },
-	})
+		})
+	} catch (err) {
+		if (err instanceof GuardedCallBlockedError) return { topTopics: [], repeatedQuestions: [] }
+		throw err
+	}
 
 	const toolUse = response.content.find((c) => c.type === 'tool_use')
 	if (!toolUse || toolUse.type !== 'tool_use') {
@@ -168,75 +184,86 @@ export async function extractGoogleTopics(
 		)
 	}
 
-	const response = await getAnthropicClient().messages.create({
-		model: MODELS.HAIKU,
-		max_tokens: 2048,
-		system:
-			'You are a topic extraction engine for Google Takeout data. Categorize searches and YouTube watches into meaningful topics.',
-		messages: [
-			{
-				role: 'user',
-				content: `Analyze this Google data and extract structured topics.\n\n${parts.join('\n\n')}`,
-			},
-		],
-		tools: [
-			{
-				name: 'extract_google_topics',
-				description: 'Extract structured topics from Google search and YouTube data',
-				input_schema: {
-					type: 'object' as const,
-					properties: {
-						searchTopics: {
-							type: 'array',
-							items: {
-								type: 'object',
-								properties: {
-									topic: {
-										type: 'string',
-										description: 'Topic name',
-									},
-									queryCount: {
-										type: 'number',
-										description: 'Number of searches about this topic',
-									},
-									examples: {
-										type: 'array',
-										items: { type: 'string' },
-										description: '2-3 representative search queries',
-									},
-								},
-								required: ['topic', 'queryCount', 'examples'],
-							},
-						},
-						youtubeTopCategories: {
-							type: 'array',
-							items: {
-								type: 'object',
-								properties: {
-									category: {
-										type: 'string',
-										description: 'Category name',
-									},
-									watchCount: {
-										type: 'number',
-										description: 'Number of videos watched in this category',
-									},
-									totalMinutes: {
-										type: 'number',
-										description:
-											'Estimated total watch time in minutes (estimate 10 min per video if unknown)',
+	let response: Anthropic.Messages.Message
+	try {
+		response = await guardedAnthropicCallOrThrow({
+			kind: 'discovery_extract_topics',
+			model: MODELS.HAIKU,
+			params: {
+				model: MODELS.HAIKU,
+				max_tokens: 2048,
+				system:
+					'You are a topic extraction engine for Google Takeout data. Categorize searches and YouTube watches into meaningful topics.',
+				messages: [
+					{
+						role: 'user',
+						content: `Analyze this Google data and extract structured topics.\n\n${parts.join('\n\n')}`,
+					},
+				],
+				tools: [
+					{
+						name: 'extract_google_topics',
+						description: 'Extract structured topics from Google search and YouTube data',
+						input_schema: {
+							type: 'object' as const,
+							properties: {
+								searchTopics: {
+									type: 'array',
+									items: {
+										type: 'object',
+										properties: {
+											topic: {
+												type: 'string',
+												description: 'Topic name',
+											},
+											queryCount: {
+												type: 'number',
+												description: 'Number of searches about this topic',
+											},
+											examples: {
+												type: 'array',
+												items: { type: 'string' },
+												description: '2-3 representative search queries',
+											},
+										},
+										required: ['topic', 'queryCount', 'examples'],
 									},
 								},
-								required: ['category', 'watchCount', 'totalMinutes'],
+								youtubeTopCategories: {
+									type: 'array',
+									items: {
+										type: 'object',
+										properties: {
+											category: {
+												type: 'string',
+												description: 'Category name',
+											},
+											watchCount: {
+												type: 'number',
+												description: 'Number of videos watched in this category',
+											},
+											totalMinutes: {
+												type: 'number',
+												description:
+													'Estimated total watch time in minutes (estimate 10 min per video if unknown)',
+											},
+										},
+										required: ['category', 'watchCount', 'totalMinutes'],
+									},
+								},
 							},
+							required: ['searchTopics', 'youtubeTopCategories'],
 						},
 					},
-					required: ['searchTopics', 'youtubeTopCategories'],
-				},
+				],
+				tool_choice: { type: 'tool', name: 'extract_google_topics' },
 			},
-		],
-		tool_choice: { type: 'tool', name: 'extract_google_topics' },
-	})
+		})
+	} catch (err) {
+		if (err instanceof GuardedCallBlockedError)
+			return { searchTopics: [], youtubeTopCategories: [] }
+		throw err
+	}
 
 	const toolUse = response.content.find((c) => c.type === 'tool_use')
 	if (!toolUse || toolUse.type !== 'tool_use') {

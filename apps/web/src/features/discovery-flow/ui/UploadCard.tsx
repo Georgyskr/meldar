@@ -3,6 +3,7 @@
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { Check, ChevronDown, ChevronUp, Clock, type LucideIcon, Upload, X } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
+import { Text } from '@/shared/ui'
 import type { UploadPreviewData } from '../model/atoms'
 
 export type UploadStatus = 'idle' | 'uploading' | 'processing' | 'done' | 'waiting' | 'error'
@@ -120,9 +121,9 @@ export function UploadCard({
 						{isDone ? (
 							<Check size={22} color="#623153" strokeWidth={2.5} />
 						) : isPartiallyDone ? (
-							<styled.span fontFamily="heading" fontWeight="700" fontSize="xs" color="primary">
+							<Text textStyle="primary.xs" color="primary">
 								{uploadCount}/{maxFiles}
-							</styled.span>
+							</Text>
 						) : isWaiting ? (
 							<Box style={{ animation: 'gentleBreathe 1.5s ease-in-out infinite' }}>
 								<Clock size={22} color="#d97706" strokeWidth={1.5} />
@@ -134,13 +135,12 @@ export function UploadCard({
 
 					<VStack gap={0.5} flex={1} alignItems="flex-start">
 						<Flex gap={2} alignItems="center">
-							<styled.span fontFamily="heading" fontWeight="700" fontSize="sm" color="onSurface">
+							<Text textStyle="primary.xs" color="onSurface">
 								{title}
-							</styled.span>
+							</Text>
 							{isDone && (
-								<styled.span
-									fontSize="xs"
-									fontWeight="600"
+								<Text
+									textStyle="primary.xs"
 									color="primary"
 									bg="primary/8"
 									paddingInline={2}
@@ -148,12 +148,11 @@ export function UploadCard({
 									borderRadius="md"
 								>
 									{hasMultiFile ? `${uploadCount} of ${maxFiles} done` : 'Analyzed'}
-								</styled.span>
+								</Text>
 							)}
 							{isPartiallyDone && (
-								<styled.span
-									fontSize="xs"
-									fontWeight="600"
+								<Text
+									textStyle="primary.xs"
 									color="primary"
 									bg="primary/8"
 									paddingInline={2}
@@ -161,12 +160,11 @@ export function UploadCard({
 									borderRadius="md"
 								>
 									{uploadCount} of {maxFiles} sections
-								</styled.span>
+								</Text>
 							)}
 							{isWaiting && (
-								<styled.span
-									fontSize="xs"
-									fontWeight="600"
+								<Text
+									textStyle="primary.xs"
 									color="orange.700"
 									bg="orange.100"
 									paddingInline={2}
@@ -174,17 +172,17 @@ export function UploadCard({
 									borderRadius="md"
 								>
 									Waiting
-								</styled.span>
+								</Text>
 							)}
 						</Flex>
-						<styled.span fontSize="xs" color="onSurfaceVariant/60">
+						<Text textStyle="secondary.xs" color="onSurfaceVariant/60">
 							{isWaiting ? 'Export started — come back when you get the email' : description}
-						</styled.span>
+						</Text>
 					</VStack>
 
-					<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50" flexShrink={0}>
+					<Text textStyle="secondary.xs" color="onSurfaceVariant/50" flexShrink={0}>
 						{timeEstimate}
-					</styled.span>
+					</Text>
 				</Flex>
 
 				{/* Upload progress */}
@@ -205,16 +203,15 @@ export function UploadCard({
 								style={{ width: progress != null ? `${progress}%` : '60%' }}
 							/>
 						</Box>
-						<styled.span
-							fontSize="xs"
+						<Text
+							textStyle="secondary.xs"
 							color="primary"
-							fontWeight="500"
 							marginBlockStart={1}
 							display="block"
 							style={{ animation: 'gentleBreathe 1.5s ease-in-out infinite' }}
 						>
 							{status === 'uploading' ? 'Uploading...' : 'Analyzing...'}
-						</styled.span>
+						</Text>
 					</Box>
 				)}
 
@@ -291,9 +288,9 @@ export function UploadCard({
 				{isError && (
 					<Flex gap={2} alignItems="center">
 						<X size={14} color="#ef4444" />
-						<styled.span fontSize="xs" color="red.500" fontWeight="500">
+						<Text textStyle="secondary.xs" color="red.500">
 							{errorMessage || 'Something went wrong. Try again.'}
-						</styled.span>
+						</Text>
 					</Flex>
 				)}
 
@@ -424,18 +421,9 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 				paddingBlockEnd={4}
 				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
 			>
-				<styled.span
-					fontSize="xs"
-					fontWeight="600"
-					fontFamily="heading"
-					color="primary"
-					textTransform="uppercase"
-					letterSpacing="0.05em"
-					display="block"
-					marginBlockEnd={2}
-				>
+				<Text textStyle="tertiary.lg" color="primary" display="block" marginBlockEnd={2}>
 					What we found
-				</styled.span>
+				</Text>
 				{data.totalScreenTimeMinutes && (
 					<Flex
 						gap={2}
@@ -443,18 +431,12 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 						marginBlockEnd={3}
 						style={{ animation: 'staggerFadeIn 0.3s ease-out 0.1s both' }}
 					>
-						<styled.span
-							fontFamily="heading"
-							fontWeight="800"
-							fontSize="xl"
-							color="onSurface"
-							letterSpacing="-0.02em"
-						>
+						<Text textStyle="primary.sm" color="onSurface">
 							{Math.round((data.totalScreenTimeMinutes / 60) * 10) / 10}h
-						</styled.span>
-						<styled.span fontSize="xs" color="onSurfaceVariant/60">
+						</Text>
+						<Text textStyle="secondary.xs" color="onSurfaceVariant/60">
 							total screen time/day
-						</styled.span>
+						</Text>
 					</Flex>
 				)}
 				<VStack gap={1} width="100%">
@@ -470,8 +452,8 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 									animation: `staggerFadeIn 0.3s ease-out ${0.15 + i * 0.07}s both`,
 								}}
 							>
-								<styled.span
-									fontSize="xs"
+								<Text
+									textStyle="secondary.xs"
 									color="onSurfaceVariant/60"
 									width="80px"
 									flexShrink={0}
@@ -480,7 +462,7 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 									whiteSpace="nowrap"
 								>
 									{app.name}
-								</styled.span>
+								</Text>
 								<Box flex={1} height="4px" borderRadius="full" bg="outlineVariant/10">
 									<Box
 										height="100%"
@@ -492,10 +474,8 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 										}}
 									/>
 								</Box>
-								<styled.span
-									fontSize="xs"
-									fontWeight="600"
-									fontFamily="heading"
+								<Text
+									textStyle="primary.xs"
 									color={i === 0 ? 'primary' : 'onSurfaceVariant/60'}
 									width="32px"
 									textAlign="right"
@@ -506,21 +486,21 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 											? `${Math.round((app.usageMinutes / 60) * 10) / 10}h`
 											: `${app.usageMinutes}m`
 										: ''}
-								</styled.span>
+								</Text>
 							</Flex>
 						)
 					})}
 				</VStack>
 				{typeof data.pickups === 'number' && data.pickups > 0 && (
-					<styled.span
-						fontSize="xs"
+					<Text
+						textStyle="secondary.xs"
 						color="onSurfaceVariant/50"
 						marginBlockStart={2}
 						display="block"
 						style={{ animation: 'staggerFadeIn 0.3s ease-out 0.5s both' }}
 					>
 						{data.pickups} pickups/day
-					</styled.span>
+					</Text>
 				)}
 			</Box>
 		)
@@ -534,18 +514,9 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 				paddingBlockEnd={4}
 				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
 			>
-				<styled.span
-					fontSize="xs"
-					fontWeight="600"
-					fontFamily="heading"
-					color="primary"
-					textTransform="uppercase"
-					letterSpacing="0.05em"
-					display="block"
-					marginBlockEnd={2}
-				>
+				<Text textStyle="tertiary.lg" color="primary" display="block" marginBlockEnd={2}>
 					What we found
-				</styled.span>
+				</Text>
 				<VStack gap={1} width="100%">
 					{data.subscriptions.slice(0, 6).map((sub, i) => (
 						<Flex
@@ -555,13 +526,13 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 							width="100%"
 							style={{ animation: `staggerFadeIn 0.3s ease-out ${0.1 + i * 0.06}s both` }}
 						>
-							<styled.span fontSize="xs" color="onSurface">
+							<Text textStyle="secondary.xs" color="onSurface">
 								{sub.name}
-							</styled.span>
-							<styled.span fontSize="xs" fontWeight="600" fontFamily="heading" color="primary">
+							</Text>
+							<Text textStyle="primary.xs" color="primary">
 								{sub.price}
 								{sub.frequency ? `/${sub.frequency}` : ''}
-							</styled.span>
+							</Text>
 						</Flex>
 					))}
 				</VStack>
@@ -577,18 +548,9 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 				paddingBlockEnd={4}
 				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
 			>
-				<styled.span
-					fontSize="xs"
-					fontWeight="600"
-					fontFamily="heading"
-					color="primary"
-					textTransform="uppercase"
-					letterSpacing="0.05em"
-					display="block"
-					marginBlockEnd={2}
-				>
+				<Text textStyle="tertiary.lg" color="primary" display="block" marginBlockEnd={2}>
 					What we found
-				</styled.span>
+				</Text>
 				<VStack gap={1} width="100%">
 					{data.metrics.slice(0, 5).map((m, i) => (
 						<Flex
@@ -597,13 +559,13 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 							width="100%"
 							style={{ animation: `staggerFadeIn 0.3s ease-out ${0.1 + i * 0.06}s both` }}
 						>
-							<styled.span fontSize="xs" color="onSurfaceVariant">
+							<Text textStyle="secondary.xs" color="onSurfaceVariant">
 								{m.name}
-							</styled.span>
-							<styled.span fontSize="xs" fontWeight="600" color="onSurface">
+							</Text>
+							<Text textStyle="primary.xs" color="onSurface">
 								{m.value}
 								{m.unit ? ` ${m.unit}` : ''}
-							</styled.span>
+							</Text>
 						</Flex>
 					))}
 				</VStack>
@@ -618,18 +580,9 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 				paddingBlockEnd={4}
 				style={{ animation: 'meldarFadeSlideUp 0.4s ease-out both' }}
 			>
-				<styled.span
-					fontSize="xs"
-					fontWeight="600"
-					fontFamily="heading"
-					color="primary"
-					textTransform="uppercase"
-					letterSpacing="0.05em"
-					display="block"
-					marginBlockEnd={2}
-				>
+				<Text textStyle="tertiary.lg" color="primary" display="block" marginBlockEnd={2}>
 					{data.events.length} events this week
-				</styled.span>
+				</Text>
 				<VStack gap={1} width="100%">
 					{data.events.slice(0, 4).map((e, i) => (
 						<Flex
@@ -639,16 +592,21 @@ function UploadPreview({ data }: { data: UploadPreviewData }) {
 							width="100%"
 							style={{ animation: `staggerFadeIn 0.3s ease-out ${0.1 + i * 0.06}s both` }}
 						>
-							<styled.span fontSize="xs" color="onSurfaceVariant/50" width="40px" flexShrink={0}>
+							<Text
+								textStyle="secondary.xs"
+								color="onSurfaceVariant/50"
+								width="40px"
+								flexShrink={0}
+							>
 								{e.day || ''}
-							</styled.span>
-							<styled.span fontSize="xs" color="onSurface" flex={1}>
+							</Text>
+							<Text textStyle="secondary.xs" color="onSurface" flex={1}>
 								{e.title}
-							</styled.span>
+							</Text>
 							{e.time && (
-								<styled.span fontSize="xs" color="onSurfaceVariant/60" flexShrink={0}>
+								<Text textStyle="secondary.xs" color="onSurfaceVariant/60" flexShrink={0}>
 									{e.time}
-								</styled.span>
+								</Text>
 							)}
 						</Flex>
 					))}

@@ -1,0 +1,35 @@
+{
+  "scope": "page",
+  "isRedesign": true,
+  "targetPath": "src/widgets/workspace/WorkspaceShell.tsx",
+  "targetName": "WorkspaceShell",
+  "painPoints": [
+    "Too spread out — hard to see everything at once",
+    "Vertical scroll required to reach build prompt",
+    "No task-based view switching",
+    "Low information density compared to game HUDs",
+    "Build log and plan compete for vertical space"
+  ],
+  "inspiration": {
+    "visual": ["EVE Online", "Starcraft HUD", "VS Code"],
+    "functional": ["Floating panels", "Overlapping windows", "Tabs", "Expandable/collapsible sections"]
+  },
+  "brand": {
+    "adjectives": ["dense", "editorial", "utilitarian", "powerful"],
+    "density": "compact",
+    "darkMode": false
+  },
+  "persona": {
+    "primary": "End consumer (non-technical)",
+    "context": "desktop-first",
+    "keyTasks": ["See plan + progress", "Run builds", "View live preview", "Enter prompts"]
+  },
+  "constraints": {
+    "mustKeep": ["Flow graph view", "Build prompt input", "Live preview iframe"],
+    "technical": ["Panda CSS", "No new dependencies", "Editorial design language"]
+  },
+  "firstView": "status-dependent: new→plan, in-progress→next-task+preview, done→preview",
+  "framework": "nextjs-app",
+  "packageManager": "pnpm",
+  "stylingSystem": "panda-css"
+}

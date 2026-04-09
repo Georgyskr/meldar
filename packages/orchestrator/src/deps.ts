@@ -22,7 +22,7 @@ import { CloudflareSandboxProvider, type SandboxProvider } from '@meldar/sandbox
 import { buildProjectStorageFromEnv } from '@meldar/storage'
 import { UpstashTokenLedger } from '@meldar/tokens'
 import { Redis } from '@upstash/redis'
-import type { OrchestratorDeps } from './engine'
+import type { AiCallLogger, GlobalSpendGuard, OrchestratorDeps } from './engine'
 
 let cached: OrchestratorDeps | null = null
 
@@ -33,8 +33,10 @@ let cached: OrchestratorDeps | null = null
  * this is intentional. The orchestrator route is gated behind auth and a 500
  * here is a deployment misconfiguration we want to see loudly in logs.
  */
-export function buildOrchestratorDeps(): OrchestratorDeps {
-	if (cached) return cached
+export function buildOrchestratorDeps(
+	overrides?: { globalSpendGuard?: GlobalSpendGuard; aiCallLogger?: AiCallLogger },
+): OrchestratorDeps {
+	if (cached && !overrides) return cached
 
 	const storage = buildProjectStorageFromEnv()
 
@@ -45,8 +47,17 @@ export function buildOrchestratorDeps(): OrchestratorDeps {
 	const sandbox = createSandboxProviderFromEnv()
 	const anthropic = new Anthropic()
 
-	cached = { storage, sandbox, ledger, anthropic }
-	return cached
+	const deps: OrchestratorDeps = {
+		storage,
+		sandbox,
+		ledger,
+		anthropic,
+		globalSpendGuard: overrides?.globalSpendGuard,
+		aiCallLogger: overrides?.aiCallLogger,
+	}
+
+	if (!overrides) cached = deps
+	return deps
 }
 
 /** Reset the cache. Used by tests that mutate process.env. */

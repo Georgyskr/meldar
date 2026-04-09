@@ -3,6 +3,7 @@
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { Text } from '@/shared/ui'
 import { setFocusMode, useFocusMode } from '../lib/use-focus-mode'
 
 type PopoverState = 'hidden' | 'asking' | 'none'
@@ -80,7 +81,7 @@ export function FocusModeToggle() {
 				aria-label={focusMode ? 'Focus mode is on. Click to turn off.' : 'Turn on focus mode'}
 			>
 				<Sparkles size={14} />
-				<styled.span display={{ base: 'none', md: 'inline' }}>Focus</styled.span>
+				<Text display={{ base: 'none', md: 'inline' }}>Focus</Text>
 			</styled.button>
 
 			{popover === 'asking' && (
@@ -99,10 +100,10 @@ export function FocusModeToggle() {
 					zIndex={60}
 					style={{ animation: 'meldarFadeSlideUp 0.2s ease-out both' }}
 				>
-					<styled.p textStyle="body.sm" color="onSurface" lineHeight="1.6">
+					<Text as="p" textStyle="secondary.sm" color="onSurface">
 						Some people use their phone to help focus — games, music, fidgets. Want us to factor
 						that in?
-					</styled.p>
+					</Text>
 					<Flex gap={2} width="100%">
 						<styled.button
 							onClick={handleYes}

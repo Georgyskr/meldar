@@ -2,6 +2,7 @@
 
 import { styled } from '@styled-system/jsx'
 import { useCallback, useRef, useState } from 'react'
+import { Text } from '@/shared/ui'
 import { performSignOut } from './sign-out'
 
 type Status = 'idle' | 'signing-out'
@@ -63,9 +64,9 @@ export function SignOutButton() {
 				{busy ? 'Signing out…' : 'Sign out'}
 			</styled.button>
 			{error && (
-				<styled.span role="alert" textStyle="body.xs" color="red.500" marginInlineStart={3}>
+				<Text role="alert" textStyle="secondary.xs" color="red.500" marginInlineStart={3}>
 					{error}
-				</styled.span>
+				</Text>
 			)}
 		</>
 	)

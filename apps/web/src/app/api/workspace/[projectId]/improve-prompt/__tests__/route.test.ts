@@ -57,6 +57,12 @@ vi.mock('@meldar/db/client', () => ({
 vi.mock('@meldar/tokens', () => ({
 	debitTokens: mockDebitTokens,
 	getTokenBalance: mockGetTokenBalance,
+	usageToCents: () => 1,
+	MODELS: {
+		OPUS: 'claude-opus-4-6',
+		SONNET: 'claude-sonnet-4-6',
+		HAIKU: 'claude-haiku-4-5-20251001',
+	},
 }))
 
 const { POST } = await import('../route')

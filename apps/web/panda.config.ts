@@ -79,58 +79,94 @@ export default defineConfig({
 				},
 			},
 			textStyles: {
-				'heading.hero': {
+				/* ========================================================
+				 * Primary — titles, headings, the most prominent text
+				 * Six T-shirt sizes mapping to semantic H1–H6.
+				 * ======================================================== */
+				'primary.xxl': {
 					value: {
 						fontFamily: 'heading',
-						fontSize: { base: '3xl', md: '5xl', lg: '7xl' },
-						fontWeight: '700',
+						fontSize: { base: '4xl', md: '6xl', lg: '7xl' },
+						fontWeight: '800',
 						letterSpacing: '-0.04em',
-						lineHeight: '1.1',
+						lineHeight: '0.95',
 					},
 				},
-				'heading.display': {
+				'primary.xl': {
 					value: {
 						fontFamily: 'heading',
-						fontSize: { base: '3xl', md: '4xl', lg: '5xl' },
+						fontSize: { base: '3xl', md: '5xl', lg: '6xl' },
+						fontWeight: '700',
+						letterSpacing: '-0.035em',
+						lineHeight: '0.98',
+					},
+				},
+				'primary.lg': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: { base: '2xl', md: '4xl', lg: '5xl' },
 						fontWeight: '700',
 						letterSpacing: '-0.03em',
-						lineHeight: '1.1',
+						lineHeight: '1.05',
 					},
 				},
-				'heading.section': {
+				'primary.md': {
 					value: {
 						fontFamily: 'heading',
-						fontSize: { base: '2xl', md: '3xl', lg: '4xl' },
+						fontSize: { base: 'xl', md: '3xl' },
 						fontWeight: '700',
-						letterSpacing: '-0.02em',
-						lineHeight: '1.15',
+						letterSpacing: '-0.025em',
+						lineHeight: '1.12',
 					},
 				},
-				'heading.card': {
+				'primary.sm': {
 					value: {
 						fontFamily: 'heading',
 						fontSize: { base: 'lg', md: 'xl' },
 						fontWeight: '700',
+						letterSpacing: '-0.02em',
+						lineHeight: '1.2',
+					},
+				},
+				'primary.xs': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: 'md',
+						fontWeight: '700',
+						letterSpacing: '-0.015em',
 						lineHeight: '1.3',
 					},
 				},
-				'body.lead': {
+
+				/* ========================================================
+				 * Secondary — body paragraphs, descriptions, supporting text
+				 * Five sizes. Always Inter 300.
+				 * ======================================================== */
+				'secondary.xl': {
 					value: {
 						fontFamily: 'body',
 						fontSize: { base: 'md', md: 'lg', lg: 'xl' },
 						fontWeight: '300',
-						lineHeight: '1.7',
+						lineHeight: '1.6',
 					},
 				},
-				'body.base': {
+				'secondary.lg': {
+					value: {
+						fontFamily: 'body',
+						fontSize: { base: 'md', md: 'lg' },
+						fontWeight: '300',
+						lineHeight: '1.65',
+					},
+				},
+				'secondary.md': {
 					value: {
 						fontFamily: 'body',
 						fontSize: 'md',
 						fontWeight: '300',
-						lineHeight: '1.7',
+						lineHeight: '1.65',
 					},
 				},
-				'body.sm': {
+				'secondary.sm': {
 					value: {
 						fontFamily: 'body',
 						fontSize: 'sm',
@@ -138,12 +174,199 @@ export default defineConfig({
 						lineHeight: '1.6',
 					},
 				},
-				'label.upper': {
+				'secondary.xs': {
+					value: {
+						fontFamily: 'body',
+						fontSize: 'xs',
+						fontWeight: '300',
+						lineHeight: '1.55',
+					},
+				},
+
+				/* ========================================================
+				 * Tertiary — eyebrows, labels, captions, metadata
+				 * Uppercase letterspaced small text.
+				 * ======================================================== */
+				'tertiary.xl': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: 'sm',
+						fontWeight: '700',
+						letterSpacing: '0.22em',
+						textTransform: 'uppercase',
+						lineHeight: '1',
+					},
+				},
+				'tertiary.lg': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: 'xs',
+						fontWeight: '700',
+						letterSpacing: '0.22em',
+						textTransform: 'uppercase',
+						lineHeight: '1',
+					},
+				},
+				'tertiary.md': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: '2xs',
+						fontWeight: '700',
+						letterSpacing: '0.22em',
+						textTransform: 'uppercase',
+						lineHeight: '1',
+					},
+				},
+				'tertiary.sm': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: '2xs',
+						fontWeight: '500',
+						letterSpacing: '0.18em',
+						textTransform: 'uppercase',
+						lineHeight: '1.2',
+					},
+				},
+				'tertiary.xs': {
+					value: {
+						fontFamily: 'body',
+						fontSize: '2xs',
+						fontWeight: '600',
+						letterSpacing: '0.1em',
+						textTransform: 'uppercase',
+						lineHeight: '1',
+					},
+				},
+
+				/* ========================================================
+				 * Label — strong UI text, non-uppercase
+				 * For sheet headers, glass card titles, button labels
+				 * that need more weight than body but aren't headlines.
+				 * ======================================================== */
+				'label.lg': {
+					value: {
+						fontFamily: 'body',
+						fontSize: 'md',
+						fontWeight: '600',
+						lineHeight: '1.3',
+					},
+				},
+				'label.md': {
+					value: {
+						fontFamily: 'body',
+						fontSize: 'sm',
+						fontWeight: '500',
+						lineHeight: '1.4',
+					},
+				},
+				'label.sm': {
 					value: {
 						fontFamily: 'body',
 						fontSize: 'xs',
 						fontWeight: '500',
-						letterSpacing: '0.2em',
+						lineHeight: '1.4',
+					},
+				},
+
+				/* ========================================================
+				 * Display — huge numeric stat displays
+				 * For "2,847", "62%", chapter numbers, etc.
+				 * ======================================================== */
+				'display.xl': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: { base: '5xl', md: '7xl' },
+						fontWeight: '800',
+						letterSpacing: '-0.04em',
+						lineHeight: '0.9',
+					},
+				},
+				'display.lg': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: { base: '4xl', md: '6xl' },
+						fontWeight: '800',
+						letterSpacing: '-0.04em',
+						lineHeight: '0.9',
+					},
+				},
+				'display.md': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: { base: '3xl', md: '5xl' },
+						fontWeight: '800',
+						letterSpacing: '-0.035em',
+						lineHeight: '0.95',
+					},
+				},
+				'display.sm': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: { base: 'lg', md: '2xl' },
+						fontWeight: '800',
+						letterSpacing: '-0.02em',
+						lineHeight: '1',
+					},
+				},
+
+				/* ========================================================
+				 * Italic — Bricolage italic flourishes
+				 * For pull-quotes, asides, "— no credit card" moments.
+				 * ======================================================== */
+				'italic.lg': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: { base: 'md', md: 'lg' },
+						fontWeight: '500',
+						fontStyle: 'italic',
+						letterSpacing: '-0.01em',
+						lineHeight: '1.4',
+					},
+				},
+				'italic.md': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: 'md',
+						fontWeight: '500',
+						fontStyle: 'italic',
+						lineHeight: '1.4',
+					},
+				},
+				'italic.sm': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: 'sm',
+						fontWeight: '400',
+						fontStyle: 'italic',
+						lineHeight: '1.5',
+					},
+				},
+
+				/* ========================================================
+				 * Button — CTA label text
+				 * ======================================================== */
+				'button.lg': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: 'md',
+						fontWeight: '700',
+						letterSpacing: '-0.01em',
+					},
+				},
+				'button.md': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: 'sm',
+						fontWeight: '600',
+						letterSpacing: '-0.005em',
+					},
+				},
+				'button.sm': {
+					value: {
+						fontFamily: 'heading',
+						fontSize: '2xs',
+						fontWeight: '700',
+						letterSpacing: '0.18em',
 						textTransform: 'uppercase',
 					},
 				},

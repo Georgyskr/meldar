@@ -27,6 +27,8 @@ export type OrchestratorEvent =
 			actualCents: number
 			fileCount: number
 			kanbanCardId?: string
+			cacheReadTokens?: number
+			cacheWriteTokens?: number
 	  }
 	| { type: 'failed'; reason: string; buildId?: string; code?: string; kanbanCardId?: string }
 

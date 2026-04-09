@@ -1,4 +1,5 @@
-import { Box, Flex, styled, VStack } from '@styled-system/jsx'
+import { Box, Flex, VStack } from '@styled-system/jsx'
+import { Text } from '@/shared/ui'
 import type { AppUsage, Insight } from '../model/types'
 
 type XRayCardProps = {
@@ -39,35 +40,21 @@ export function XRayCard({ totalHours, topApp, apps, pickups, insights }: XRayCa
 					background="url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')"
 				/>
 				<Flex justifyContent="space-between" alignItems="center" position="relative">
-					<styled.span
-						fontFamily="heading"
-						fontWeight="700"
-						fontSize="xs"
-						color="white"
-						letterSpacing="0.1em"
-						textTransform="uppercase"
-					>
+					<Text textStyle="tertiary.lg" color="white">
 						Your Digital Footprint
-					</styled.span>
-					<styled.span fontSize="xs" color="white/60" fontFamily="body" fontWeight="300">
+					</Text>
+					<Text textStyle="secondary.xs" color="white/60">
 						meldar.ai
-					</styled.span>
+					</Text>
 				</Flex>
 				{/* Big number */}
 				<Flex alignItems="baseline" gap={2} marginBlockStart={4} position="relative">
-					<styled.span
-						fontFamily="heading"
-						fontWeight="800"
-						fontSize={{ base: '4xl', md: '5xl' }}
-						color="white"
-						lineHeight="1"
-						letterSpacing="-0.03em"
-					>
+					<Text textStyle="primary.xl" color="white">
 						{totalHours}
-					</styled.span>
-					<styled.span fontFamily="heading" fontWeight="500" fontSize="md" color="white/70">
+					</Text>
+					<Text textStyle="primary.xs" color="white/70">
 						hrs/day
-					</styled.span>
+					</Text>
 				</Flex>
 			</Box>
 
@@ -78,26 +65,18 @@ export function XRayCard({ totalHours, topApp, apps, pickups, insights }: XRayCa
 						const barWidth = Math.max((app.usageMinutes / maxMinutes) * 100, 4)
 						return (
 							<Flex key={app.name} alignItems="center" width="100%" gap={3} paddingBlock="6px">
-								<styled.span
-									fontSize="xs"
-									fontWeight="600"
-									fontFamily="heading"
+								<Text
+									textStyle="primary.xs"
 									color="onSurfaceVariant/50"
 									width="16px"
 									textAlign="right"
 									flexShrink={0}
 								>
 									{i + 1}
-								</styled.span>
-								<styled.span
-									textStyle="body.sm"
-									color="onSurface"
-									fontWeight="500"
-									width="100px"
-									flexShrink={0}
-								>
+								</Text>
+								<Text textStyle="secondary.sm" color="onSurface" width="100px" flexShrink={0}>
 									{app.name}
-								</styled.span>
+								</Text>
 								<Box flex={1} position="relative" height="6px">
 									<Box position="absolute" inset={0} borderRadius="full" bg="outlineVariant/8" />
 									<Box
@@ -114,17 +93,15 @@ export function XRayCard({ totalHours, topApp, apps, pickups, insights }: XRayCa
 										}}
 									/>
 								</Box>
-								<styled.span
-									textStyle="body.sm"
-									fontWeight="600"
+								<Text
+									textStyle="secondary.sm"
 									color={i === 0 ? 'primary' : 'onSurfaceVariant'}
-									fontFamily="heading"
 									width="40px"
 									textAlign="right"
 									flexShrink={0}
 								>
 									{(app.usageMinutes / 60).toFixed(1)}h
-								</styled.span>
+								</Text>
 							</Flex>
 						)
 					})}
@@ -137,47 +114,29 @@ export function XRayCard({ totalHours, topApp, apps, pickups, insights }: XRayCa
 				<Flex justifyContent="space-between" width="100%" paddingBlock={4}>
 					{pickups != null && (
 						<VStack gap={0}>
-							<styled.span
-								fontSize="xs"
-								color="onSurfaceVariant/60"
-								textTransform="uppercase"
-								letterSpacing="0.05em"
-								fontWeight="500"
-							>
+							<Text textStyle="tertiary.lg" color="onSurfaceVariant/60">
 								Daily pickups
-							</styled.span>
-							<styled.span
-								fontFamily="heading"
-								fontWeight="800"
-								fontSize="xl"
+							</Text>
+							<Text
+								textStyle="primary.sm"
 								color="onSurface"
-								letterSpacing="-0.02em"
 								style={{ animation: 'counterUp 0.5s ease-out 0.4s both' }}
 							>
 								{pickups}
-							</styled.span>
+							</Text>
 						</VStack>
 					)}
 					<VStack gap={0} alignItems={pickups != null ? 'flex-end' : 'flex-start'}>
-						<styled.span
-							fontSize="xs"
-							color="onSurfaceVariant/60"
-							textTransform="uppercase"
-							letterSpacing="0.05em"
-							fontWeight="500"
-						>
+						<Text textStyle="tertiary.lg" color="onSurfaceVariant/60">
 							Top app
-						</styled.span>
-						<styled.span
-							fontFamily="heading"
-							fontWeight="800"
-							fontSize="xl"
+						</Text>
+						<Text
+							textStyle="primary.sm"
 							color="primary"
-							letterSpacing="-0.02em"
 							style={{ animation: 'counterUp 0.5s ease-out 0.5s both' }}
 						>
 							{topApp}
-						</styled.span>
+						</Text>
 					</VStack>
 				</Flex>
 
@@ -186,15 +145,9 @@ export function XRayCard({ totalHours, topApp, apps, pickups, insights }: XRayCa
 					<>
 						<Box width="100%" height="1px" bg="outlineVariant/12" />
 						<Box paddingBlock={4}>
-							<styled.p
-								textStyle="body.sm"
-								color="onSurface/80"
-								fontStyle="italic"
-								lineHeight="1.65"
-								letterSpacing="0.005em"
-							>
+							<Text as="p" textStyle="secondary.sm" color="onSurface/80">
 								&ldquo;{topInsight.headline}. {topInsight.comparison}.&rdquo;
-							</styled.p>
+							</Text>
 						</Box>
 					</>
 				)}

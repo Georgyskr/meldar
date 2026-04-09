@@ -2,6 +2,7 @@
 
 import { Flex, styled } from '@styled-system/jsx'
 import { useEffect, useState } from 'react'
+import { Text } from '@/shared/ui'
 import {
 	getStoredConsent,
 	REOPEN_CONSENT_EVENT,
@@ -55,7 +56,7 @@ export function CookieConsent() {
 				justifyContent="space-between"
 				gap={4}
 			>
-				<styled.p fontSize="sm" fontWeight="300" maxWidth="breakpoint-md">
+				<Text textStyle="secondary.sm" as="p" maxWidth="breakpoint-md">
 					We use cookies to understand how visitors use this site. No tracking until you say so.{' '}
 					<styled.a
 						href="/privacy-policy"
@@ -66,7 +67,7 @@ export function CookieConsent() {
 					>
 						Privacy policy
 					</styled.a>
-				</styled.p>
+				</Text>
 				<Flex gap={3} flexShrink={0}>
 					<styled.button
 						onClick={decline}

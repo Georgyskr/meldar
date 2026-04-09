@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
 import { trackEvent } from '@/features/analytics'
+import { Heading, Text } from '@/shared/ui'
 import {
 	DATA_TERMS_CHANGED_EVENT,
 	getDataTermsAccepted,
@@ -124,34 +125,27 @@ function ScreenTimeInstructions() {
 	return (
 		<VStack gap={4} alignItems="flex-start" width="100%">
 			<VStack gap={1} alignItems="flex-start">
-				<styled.span
-					fontSize="xs"
-					fontWeight="700"
-					fontFamily="heading"
-					color="onSurface"
-					textTransform="uppercase"
-					letterSpacing="0.05em"
-				>
+				<Text textStyle="tertiary.lg" color="onSurface">
 					We need 3 screenshots
-				</styled.span>
-				<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+				</Text>
+				<Text textStyle="secondary.sm" color="onSurfaceVariant">
 					Go to Settings &rarr; Screen Time &rarr; See All Activity
-				</styled.span>
+				</Text>
 			</VStack>
 			<VStack gap={2} alignItems="flex-start" width="100%">
-				<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+				<Text textStyle="secondary.sm" color="primary">
 					1. &ldquo;Most Used&rdquo; &mdash; screenshot the app list with times
-				</styled.span>
-				<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+				</Text>
+				<Text textStyle="secondary.sm" color="primary">
 					2. &ldquo;Pickups&rdquo; &mdash; scroll down, screenshot the pickups section
-				</styled.span>
-				<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+				</Text>
+				<Text textStyle="secondary.sm" color="primary">
 					3. &ldquo;Notifications&rdquo; &mdash; scroll down more, screenshot notifications
-				</styled.span>
+				</Text>
 			</VStack>
-			<styled.span textStyle="body.sm" color="onSurfaceVariant/60" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant/60">
 				Android: Settings &rarr; Digital Wellbeing &rarr; Dashboard. Same 3 sections.
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -159,12 +153,12 @@ function ScreenTimeInstructions() {
 function SubscriptionsInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				1. Settings &rarr; [your name] &rarr; Subscriptions
-			</styled.span>
-			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="primary">
 				2. Screenshot the list
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -172,12 +166,12 @@ function SubscriptionsInstructions() {
 function BatteryInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				1. Settings &rarr; Battery
-			</styled.span>
-			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="primary">
 				2. Screenshot the app list
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -185,12 +179,12 @@ function BatteryInstructions() {
 function StorageInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				1. Settings &rarr; General &rarr; iPhone Storage
-			</styled.span>
-			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="primary">
 				2. Screenshot the app list
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -198,7 +192,7 @@ function StorageInstructions() {
 function ChatGPTInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				1.{' '}
 				<styled.a
 					href="https://chatgpt.com/#settings/DataControls"
@@ -211,16 +205,16 @@ function ChatGPTInstructions() {
 				>
 					Open ChatGPT Data Controls
 				</styled.a>
-			</styled.span>
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				2. Click &ldquo;Export data&rdquo;
-			</styled.span>
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				3. Wait for the email (can take hours)
-			</styled.span>
-			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="primary">
 				4. Download the .zip and upload it here
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -228,7 +222,7 @@ function ChatGPTInstructions() {
 function ClaudeInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				1.{' '}
 				<styled.a
 					href="https://claude.ai/settings/privacy"
@@ -241,16 +235,16 @@ function ClaudeInstructions() {
 				>
 					Open Claude Privacy Settings
 				</styled.a>
-			</styled.span>
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				2. Click &ldquo;Export data&rdquo;
-			</styled.span>
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				3. Wait for the download email (can take hours)
-			</styled.span>
-			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="primary">
 				4. Upload the .json file here
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -258,12 +252,12 @@ function ClaudeInstructions() {
 function CalendarInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				1. Open Calendar app &rarr; Week view
-			</styled.span>
-			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="primary">
 				2. Screenshot
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -271,12 +265,12 @@ function CalendarInstructions() {
 function HealthInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				1. Open Health app (or Google Fit) &rarr; Summary
-			</styled.span>
-			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="primary">
 				2. Screenshot
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -284,7 +278,7 @@ function HealthInstructions() {
 function GoogleInstructions() {
 	return (
 		<VStack gap={1} alignItems="flex-start">
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				1.{' '}
 				<styled.a
 					href="https://takeout.google.com"
@@ -297,16 +291,16 @@ function GoogleInstructions() {
 				>
 					Go to Google Takeout
 				</styled.a>
-			</styled.span>
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				2. Select only: Search, YouTube, Chrome
-			</styled.span>
-			<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="onSurfaceVariant">
 				3. Click &ldquo;Create export&rdquo; and wait (hours/days)
-			</styled.span>
-			<styled.span textStyle="body.sm" color="primary" fontWeight="500" lineHeight="1.5">
+			</Text>
+			<Text textStyle="secondary.sm" color="primary">
 				4. Download the .zip and upload it here
-			</styled.span>
+			</Text>
 		</VStack>
 	)
 }
@@ -570,12 +564,12 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 		<VStack gap={6} width="100%" style={{ animation: 'meldarFadeSlideUp 0.5s ease-out both' }}>
 			{/* Header */}
 			<VStack gap={2} textAlign="center">
-				<styled.h2 textStyle="heading.section" color="onSurface">
+				<Heading textStyle="primary.lg" color="onSurface">
 					Add your data
-				</styled.h2>
-				<styled.p textStyle="body.lead" color="onSurfaceVariant/70">
+				</Heading>
+				<Text as="p" textStyle="secondary.xl" color="onSurfaceVariant/70">
 					The more you add, the sharper your results
-				</styled.p>
+				</Text>
 			</VStack>
 
 			{/* Data terms: persisted to localStorage like cookie consent */}
@@ -590,7 +584,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 					borderColor="primary/20"
 				>
 					<VStack gap={4} alignItems="stretch">
-						<styled.p textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.6">
+						<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 							Your data will be processed by Meldar to generate personalized recommendations. Data
 							is analyzed and deleted — never stored raw.{' '}
 							<styled.a
@@ -616,7 +610,7 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 							>
 								Terms
 							</styled.a>
-						</styled.p>
+						</Text>
 						<styled.button
 							onClick={acceptTerms}
 							paddingInline={5}
@@ -698,23 +692,16 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 				<VStack gap={4} flex={1}>
 					<Flex gap={2} justifyContent="space-between" alignItems="center" width="100%">
 						<VStack gap={0} alignItems="flex-start">
-							<styled.h3
-								fontSize="xs"
-								fontWeight="700"
-								fontFamily="heading"
-								color="onSurface"
-								textTransform="uppercase"
-								letterSpacing="0.05em"
-							>
+							<Heading textStyle="tertiary.lg" as="h3" color="onSurface">
 								Quick scans
-							</styled.h3>
-							<styled.span fontSize="xs" color="onSurfaceVariant/50">
+							</Heading>
+							<Text textStyle="secondary.xs" color="onSurfaceVariant/50">
 								Free &middot; screenshots you already have
-							</styled.span>
+							</Text>
 						</VStack>
-						<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50">
+						<Text textStyle="secondary.xs" color="onSurfaceVariant/50">
 							{instantDoneCount} of {INSTANT_SOURCES.length} done
-						</styled.span>
+						</Text>
 					</Flex>
 
 					{/* Progress dots */}
@@ -750,16 +737,9 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 					<Flex gap={2} justifyContent="space-between" alignItems="center" width="100%">
 						<VStack gap={0} alignItems="flex-start">
 							<Flex gap={2} alignItems="center">
-								<styled.h3
-									fontSize="xs"
-									fontWeight="700"
-									fontFamily="heading"
-									color="onSurface"
-									textTransform="uppercase"
-									letterSpacing="0.05em"
-								>
+								<Heading textStyle="tertiary.lg" as="h3" color="onSurface">
 									Deep analysis
-								</styled.h3>
+								</Heading>
 								<Flex
 									gap={1}
 									alignItems="center"
@@ -769,18 +749,18 @@ export function DataUploadHub({ ensureSession, onGenerateResults, onSkip }: Data
 									bg="orange.100"
 								>
 									<Lock size={10} color="#d97706" />
-									<styled.span fontSize="10px" fontWeight="600" color="orange.700">
+									<Text textStyle="primary.xs" color="orange.700">
 										EUR 9.99/mo
-									</styled.span>
+									</Text>
 								</Flex>
 							</Flex>
-							<styled.span fontSize="xs" color="onSurfaceVariant/50">
+							<Text textStyle="secondary.xs" color="onSurfaceVariant/50">
 								Requires async exports (hours/days)
-							</styled.span>
+							</Text>
 						</VStack>
-						<styled.span fontSize="xs" fontWeight="500" color="onSurfaceVariant/50">
+						<Text textStyle="secondary.xs" color="onSurfaceVariant/50">
 							{deepDoneCount} of {DEEP_SOURCES.length} done
-						</styled.span>
+						</Text>
 					</Flex>
 
 					{/* Progress dots */}

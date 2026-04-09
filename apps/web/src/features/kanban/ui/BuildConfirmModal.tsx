@@ -4,6 +4,7 @@ import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { KanbanCard } from '@/entities/kanban-card'
+import { Heading, Text } from '@/shared/ui'
 
 export type BuildConfirmModalProps = {
 	readonly subtasks: readonly KanbanCard[]
@@ -51,14 +52,9 @@ export function BuildConfirmModal({ subtasks, onConfirm, onCancel }: BuildConfir
 					paddingBlockStart={5}
 					paddingInline={6}
 				>
-					<styled.h2
-						id="build-confirm-title"
-						textStyle="body.lg"
-						fontWeight="700"
-						marginBlockEnd={2}
-					>
+					<Heading id="build-confirm-title" textStyle="secondary.lg" marginBlockEnd={2}>
 						Confirm build
-					</styled.h2>
+					</Heading>
 					<styled.button
 						type="button"
 						onClick={() => onCancel()}
@@ -74,20 +70,20 @@ export function BuildConfirmModal({ subtasks, onConfirm, onCancel }: BuildConfir
 					</styled.button>
 				</Flex>
 				<Box paddingInline={6}>
-					<styled.p textStyle="body.sm" color="onSurfaceVariant" marginBlockEnd={4}>
+					<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant" marginBlockEnd={4}>
 						This will build {subtasks.length} subtask{subtasks.length > 1 ? 's' : ''} using
 						approximately {Math.round(totalCost)} tokens.
-					</styled.p>
+					</Text>
 
 					<VStack alignItems="stretch" gap={1}>
 						{subtasks.map((s) => (
 							<Flex key={s.id} alignItems="center" gap={2}>
-								<styled.span textStyle="body.sm" flex="1" color="onSurface">
+								<Text textStyle="secondary.sm" flex="1" color="onSurface">
 									{s.title}
-								</styled.span>
-								<styled.span textStyle="body.xs" color="onSurfaceVariant">
+								</Text>
+								<Text textStyle="secondary.xs" color="onSurfaceVariant">
 									~{((s.tokenCostEstimateMin ?? 0) + (s.tokenCostEstimateMax ?? 0)) / 2 || 3} tokens
-								</styled.span>
+								</Text>
 							</Flex>
 						))}
 					</VStack>
@@ -111,7 +107,7 @@ export function BuildConfirmModal({ subtasks, onConfirm, onCancel }: BuildConfir
 						border="1px solid"
 						borderColor="outlineVariant/40"
 						color="onSurface"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						fontWeight="500"
 						cursor="pointer"
 						transition="background 0.15s"
@@ -127,7 +123,7 @@ export function BuildConfirmModal({ subtasks, onConfirm, onCancel }: BuildConfir
 						borderRadius="md"
 						background="primary"
 						color="onPrimary"
-						textStyle="body.sm"
+						textStyle="secondary.sm"
 						fontWeight="600"
 						cursor="pointer"
 						transition="opacity 0.15s"

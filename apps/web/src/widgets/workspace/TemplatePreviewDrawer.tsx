@@ -4,6 +4,7 @@ import type { TemplatePlan } from '@meldar/orchestrator'
 import { Box, Flex, styled, VStack } from '@styled-system/jsx'
 import { ChevronDown, ChevronRight, Clock, Coins, Layers, X, Zap } from 'lucide-react'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { Heading, Text } from '@/shared/ui'
 
 export type TemplatePreviewDrawerProps = {
 	readonly templateId: string | null
@@ -170,8 +171,8 @@ export function TemplatePreviewDrawer({
 				insetBlockEnd={0}
 				width={{ base: '100%', md: '480px' }}
 				bg="surface"
-				borderInlineStart="1px solid"
-				borderColor="outlineVariant/40"
+				borderInlineStart="2px solid"
+				borderColor="onSurface"
 				display="flex"
 				flexDirection="column"
 				overflowY="auto"
@@ -182,26 +183,21 @@ export function TemplatePreviewDrawer({
 					paddingBlock={5}
 					paddingInline={6}
 					borderBlockEnd="1px solid"
-					borderColor="outlineVariant/20"
+					borderColor="onSurface/15"
 					flexShrink={0}
 				>
-					<styled.h2
-						id={titleId}
-						fontFamily="heading"
-						textStyle="heading.md"
-						color="onSurface"
-						fontWeight="700"
-					>
+					<Heading id={titleId} textStyle="primary.sm" color="onSurface">
 						{plan?.name ?? 'Loading...'}
-					</styled.h2>
+					</Heading>
 					<styled.button
 						ref={closeButtonRef}
 						type="button"
 						onClick={() => onClose()}
 						padding={1}
-						borderRadius="sm"
 						color="onSurfaceVariant"
 						cursor="pointer"
+						bg="transparent"
+						border="none"
 						transition="color 0.15s"
 						_hover={{ color: 'onSurface' }}
 						aria-label="Close preview"
@@ -212,18 +208,24 @@ export function TemplatePreviewDrawer({
 
 				{loading && (
 					<Flex flex="1" alignItems="center" justifyContent="center" padding={6}>
-						<styled.p textStyle="body.sm" color="onSurfaceVariant">
+						<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 							Loading template...
-						</styled.p>
+						</Text>
 					</Flex>
 				)}
 
 				{error && (
 					<Box padding={6}>
-						<Box paddingBlock={2} paddingInline={3} borderRadius="md" background="error/10">
-							<styled.p role="alert" textStyle="body.xs" color="error">
+						<Box
+							paddingBlock={3}
+							paddingInline={4}
+							border="1px solid"
+							borderColor="red.300"
+							bg="red.50"
+						>
+							<Text as="p" role="alert" textStyle="secondary.xs" color="red.700">
 								{error}
-							</styled.p>
+							</Text>
 						</Box>
 					</Box>
 				)}
@@ -231,28 +233,28 @@ export function TemplatePreviewDrawer({
 				{plan && !loading && (
 					<>
 						<VStack alignItems="stretch" gap={5} padding={6} flex="1">
-							<styled.p textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.6">
+							<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 								{plan.description}
-							</styled.p>
+							</Text>
 
 							<Flex gap={4} flexWrap="wrap">
 								<Flex alignItems="center" gap={1.5}>
-									<Layers size={14} color="#81737a" aria-hidden />
-									<styled.span textStyle="body.xs" color="onSurfaceVariant">
+									<Layers size={14} color="#623153" aria-hidden />
+									<Text textStyle="tertiary.sm" color="onSurfaceVariant">
 										{difficultyFromMilestones(plan.milestones.length)}
-									</styled.span>
+									</Text>
 								</Flex>
 								<Flex alignItems="center" gap={1.5}>
-									<Clock size={14} color="#81737a" aria-hidden />
-									<styled.span textStyle="body.xs" color="onSurfaceVariant">
+									<Clock size={14} color="#623153" aria-hidden />
+									<Text textStyle="tertiary.sm" color="onSurfaceVariant">
 										~{estimatedMinutes} min
-									</styled.span>
+									</Text>
 								</Flex>
 								<Flex alignItems="center" gap={1.5}>
-									<Coins size={14} color="#81737a" aria-hidden />
-									<styled.span textStyle="body.xs" color="onSurfaceVariant">
+									<Coins size={14} color="#623153" aria-hidden />
+									<Text textStyle="tertiary.sm" color="onSurfaceVariant">
 										~{estimatedTokens} tokens
-									</styled.span>
+									</Text>
 								</Flex>
 							</Flex>
 
@@ -261,19 +263,13 @@ export function TemplatePreviewDrawer({
 									alignItems="center"
 									gap={2}
 									paddingBlockEnd={3}
-									borderBlockEnd="1px solid"
-									borderColor="outlineVariant/20"
+									borderBlockEnd="2px solid"
+									borderColor="onSurface"
 								>
 									<Zap size={14} color="#623153" aria-hidden />
-									<styled.span
-										textStyle="body.xs"
-										fontWeight="600"
-										color="onSurfaceVariant"
-										textTransform="uppercase"
-										letterSpacing="wide"
-									>
-										What you'll build
-									</styled.span>
+									<Text textStyle="tertiary.sm" color="primary">
+										What you'll make
+									</Text>
 								</Flex>
 
 								<VStack alignItems="stretch" gap={0}>
@@ -285,7 +281,7 @@ export function TemplatePreviewDrawer({
 												alignItems="stretch"
 												gap={0}
 												borderBlockEnd="1px solid"
-												borderColor="outlineVariant/10"
+												borderColor="onSurface/10"
 											>
 												<styled.button
 													type="button"
@@ -296,26 +292,27 @@ export function TemplatePreviewDrawer({
 													paddingBlock={3}
 													paddingInline={0}
 													background="transparent"
+													border="none"
 													cursor="pointer"
 													textAlign="start"
 													width="100%"
-													_hover={{ background: 'surfaceContainerLow' }}
+													_hover={{ background: 'primary/3' }}
 												>
 													<Box flexShrink={0} marginBlockStart="2px" color="onSurfaceVariant">
 														{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
 													</Box>
 													<VStack alignItems="flex-start" gap={0.5} flex="1">
-														<styled.span textStyle="body.sm" fontWeight="600" color="onSurface">
+														<Text textStyle="primary.xs" color="onSurface">
 															{milestone.title}
-														</styled.span>
-														<styled.span textStyle="body.xs" color="primary" fontStyle="italic">
+														</Text>
+														<Text textStyle="italic.sm" color="primary">
 															You'll learn: {milestone.whatYouLearn.toLowerCase()}
-														</styled.span>
+														</Text>
 														{!expanded && (
-															<styled.span textStyle="body.xs" color="onSurfaceVariant/60">
+															<Text textStyle="tertiary.sm" color="onSurfaceVariant/60">
 																{milestone.subtasks.length} subtask
 																{milestone.subtasks.length !== 1 ? 's' : ''}
-															</styled.span>
+															</Text>
 														)}
 													</VStack>
 												</styled.button>
@@ -333,16 +330,10 @@ export function TemplatePreviewDrawer({
 																gap={2}
 																paddingBlock={1}
 															>
-																<Box
-																	width="6px"
-																	height="6px"
-																	borderRadius="full"
-																	bg="outlineVariant/50"
-																	flexShrink={0}
-																/>
-																<styled.span textStyle="body.xs" color="onSurfaceVariant">
+																<Box width="4px" height="4px" bg="primary/40" flexShrink={0} />
+																<Text textStyle="secondary.xs" color="onSurfaceVariant">
 																	{subtask.title}
-																</styled.span>
+																</Text>
 															</Flex>
 														))}
 													</VStack>
@@ -359,32 +350,26 @@ export function TemplatePreviewDrawer({
 									gap={2}
 									paddingBlockEnd={3}
 									borderBlockEnd="1px solid"
-									borderColor="outlineVariant/20"
+									borderColor="onSurface/15"
 								>
 									<Coins size={14} color="#623153" aria-hidden />
-									<styled.span
-										textStyle="body.xs"
-										fontWeight="600"
-										color="onSurfaceVariant"
-										textTransform="uppercase"
-										letterSpacing="wide"
-									>
+									<Text textStyle="tertiary.sm" color="primary">
 										Cost
-									</styled.span>
+									</Text>
 								</Flex>
-								<styled.p textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.6">
+								<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 									This will use ~{estimatedTokens} of your {tokenBalance} tokens.
-								</styled.p>
+								</Text>
 								{tokensRemaining > 0 && (
-									<styled.p textStyle="body.xs" color="onSurfaceVariant/70">
+									<Text as="p" textStyle="secondary.xs" color="onSurfaceVariant/70">
 										You'll have ~{tokensRemaining} left for more projects.
-									</styled.p>
+									</Text>
 								)}
 								{tokensRemaining <= 0 && (
-									<styled.p textStyle="body.xs" color="amber.600">
+									<Text as="p" textStyle="secondary.xs" color="amber.600">
 										You may not have enough tokens to finish this project. You earn 15 free tokens
 										daily.
-									</styled.p>
+									</Text>
 								)}
 							</VStack>
 						</VStack>
@@ -394,8 +379,8 @@ export function TemplatePreviewDrawer({
 							justifyContent="flex-end"
 							paddingBlock={4}
 							paddingInline={6}
-							borderBlockStart="1px solid"
-							borderColor="outlineVariant/20"
+							borderBlockStart="2px solid"
+							borderColor="onSurface"
 							flexShrink={0}
 						>
 							<styled.button
@@ -403,38 +388,38 @@ export function TemplatePreviewDrawer({
 								onClick={() => onClose()}
 								paddingBlock={2.5}
 								paddingInline={5}
-								borderRadius="md"
 								background="transparent"
-								color="onSurfaceVariant"
-								textStyle="body.sm"
-								fontWeight="500"
+								border="1.5px solid"
+								borderColor="onSurface"
+								color="onSurface"
 								cursor="pointer"
-								transition="color 0.15s"
-								_hover={{ color: 'onSurface' }}
+								transition="all 0.15s"
+								_hover={{ bg: 'onSurface', color: 'surface' }}
 							>
-								Cancel
+								<Text textStyle="button.sm" color="inherit">
+									Cancel
+								</Text>
 							</styled.button>
 							<styled.button
 								type="button"
 								onClick={() => handleStart()}
 								paddingBlock={2.5}
 								paddingInline={5}
-								borderRadius="md"
 								border="none"
-								background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
-								color="white"
-								textStyle="body.sm"
-								fontWeight="600"
+								bg="onSurface"
+								color="surface"
 								cursor="pointer"
-								transition="opacity 0.15s"
-								_hover={{ opacity: 0.9 }}
+								transition="all 0.15s"
+								_hover={{ bg: 'primary' }}
 								_focusVisible={{
 									outline: '2px solid',
 									outlineColor: 'primary',
 									outlineOffset: '2px',
 								}}
 							>
-								Start building
+								<Text textStyle="button.sm" color="surface">
+									Start project
+								</Text>
 							</styled.button>
 						</Flex>
 					</>

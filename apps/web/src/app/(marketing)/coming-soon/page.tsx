@@ -1,10 +1,16 @@
 import { styled, VStack } from '@styled-system/jsx'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { SITE_CONFIG } from '@/shared/config/seo'
+import { Heading, Text } from '@/shared/ui'
 import { EmailCapture } from '@/shared/ui/EmailCapture'
 
+const StyledLink = styled(Link)
+
 export const metadata: Metadata = {
-	title: `Coming Soon | ${SITE_CONFIG.name}`,
+	title: `Waitlist | ${SITE_CONFIG.name}`,
+	description:
+		'Join the Meldar waitlist. Be first to access the full AI learning platform when premium tiers launch.',
 	robots: { index: false },
 }
 
@@ -12,52 +18,48 @@ export default function ComingSoonPage() {
 	return (
 		<styled.main paddingBlock={24} paddingInline={6} minHeight="100dvh">
 			<VStack gap={6} maxWidth="480px" marginInline="auto" textAlign="center">
-				<styled.span fontSize="5xl">&#128295;</styled.span>
-				<styled.h1
-					fontFamily="heading"
-					fontSize="2xl"
-					fontWeight="800"
-					color="onSurface"
-					letterSpacing="-0.02em"
-				>
-					AI Automation Toolkit is getting ready
-				</styled.h1>
-				<styled.p textStyle="body.base" color="onSurfaceVariant" lineHeight="1.7">
-					We&apos;re building a solid collection of SOPs, video walkthroughs, and automation
-					templates before we open this up. Leave your email and you&apos;ll be first to know.
-				</styled.p>
+				<Text textStyle="primary.xl">&#127919;</Text>
+				<Heading textStyle="primary.md" as="h1" color="onSurface">
+					Premium access is coming soon
+				</Heading>
+				<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
+					We&apos;re finalizing the premium tiers. Leave your email and you&apos;ll be first to know
+					when they launch.
+				</Text>
 
 				<EmailCapture />
 
 				<VStack gap={3} paddingBlockStart={4}>
-					<styled.p textStyle="body.sm" color="onSurfaceVariant" fontWeight="500">
-						In the meantime:
-					</styled.p>
-					<styled.a
-						href="https://twitter.com/meldar_ai"
-						target="_blank"
-						rel="noopener noreferrer"
-						textStyle="body.sm"
-						color="primary"
+					<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
+						Ready to start learning AI for free?
+					</Text>
+					<StyledLink
+						href="/sign-up"
+						display="inline-flex"
+						alignItems="center"
+						justifyContent="center"
+						paddingInline={6}
+						paddingBlock={3}
+						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
+						borderRadius="md"
+						fontSize="sm"
+						fontWeight="700"
+						fontFamily="heading"
+						color="white"
 						textDecoration="none"
-						_hover={{ textDecoration: 'underline' }}
+						transition="opacity 0.2s ease"
+						_hover={{ opacity: 0.9 }}
+						_focusVisible={{
+							outline: '2px solid',
+							outlineColor: 'primary',
+							outlineOffset: '2px',
+						}}
 					>
-						Follow us on Twitter/X &rarr;
-					</styled.a>
-					<styled.a
-						href="https://discord.gg/meldar"
-						target="_blank"
-						rel="noopener noreferrer"
-						textStyle="body.sm"
-						color="primary"
-						textDecoration="none"
-						_hover={{ textDecoration: 'underline' }}
-					>
-						Join our Discord &rarr;
-					</styled.a>
+						Start free
+					</StyledLink>
 				</VStack>
 
-				<styled.a
+				<StyledLink
 					href="/"
 					paddingInline={6}
 					paddingBlock={3}
@@ -69,9 +71,14 @@ export default function ComingSoonPage() {
 					textDecoration="none"
 					marginBlockStart={4}
 					_hover={{ opacity: 0.8 }}
+					_focusVisible={{
+						outline: '2px solid',
+						outlineColor: 'primary',
+						outlineOffset: '2px',
+					}}
 				>
 					Back to Meldar
-				</styled.a>
+				</StyledLink>
 			</VStack>
 		</styled.main>
 	)

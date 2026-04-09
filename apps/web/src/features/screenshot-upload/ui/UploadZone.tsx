@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Smartphone, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import type { XRayResponse } from '@/entities/xray-result/model/types'
 import { trackEvent } from '@/features/analytics'
+import { Text } from '@/shared/ui'
 
 type UploadState = 'idle' | 'compressing' | 'uploading' | 'analyzing' | 'done' | 'error'
 
@@ -178,20 +179,15 @@ export function UploadZone({
 							<Smartphone size={26} color="#623153" strokeWidth={1.5} />
 						</Box>
 						<VStack gap={2} textAlign="center">
-							<styled.span
-								fontFamily="heading"
-								fontWeight="700"
-								fontSize="md"
-								color="onSurface"
-								letterSpacing="-0.01em"
-							>
+							<Text textStyle="primary.xs" color="onSurface">
 								Drop your Screen Time screenshot
-							</styled.span>
-							<styled.span textStyle="body.sm" color="onSurfaceVariant/70" lineHeight="1.5">
+							</Text>
+							<Text textStyle="secondary.sm" color="onSurfaceVariant/70">
 								iPhone or Android. Takes 3 seconds to analyze.
-							</styled.span>
+							</Text>
 						</VStack>
-						<styled.span
+						<Text
+							textStyle="primary.xs"
 							display="inline-flex"
 							alignItems="center"
 							gap={2}
@@ -199,16 +195,13 @@ export function UploadZone({
 							paddingBlock="10px"
 							background="linear-gradient(135deg, #623153 0%, #874a72 100%)"
 							borderRadius="12px"
-							fontSize="sm"
-							fontWeight="600"
-							fontFamily="heading"
 							color="white"
 							boxShadow="0 2px 8px rgba(98, 49, 83, 0.25)"
 							transition="all 0.2s ease"
 						>
 							<Upload size={15} />
 							Choose image
-						</styled.span>
+						</Text>
 					</>
 				)}
 
@@ -234,9 +227,8 @@ export function UploadZone({
 									>
 										{isDone ? '\u2713' : ''}
 									</Box>
-									<styled.span
-										textStyle="body.sm"
-										fontWeight={isCurrent ? '600' : '400'}
+									<Text
+										textStyle="secondary.sm"
 										color={isDone ? 'primary' : isCurrent ? 'onSurface' : 'onSurfaceVariant/40'}
 										transition="all 0.3s ease"
 										style={
@@ -246,7 +238,7 @@ export function UploadZone({
 										}
 									>
 										{s}
-									</styled.span>
+									</Text>
 								</Flex>
 							)
 						})}
@@ -265,13 +257,13 @@ export function UploadZone({
 							justifyContent="center"
 							marginInline="auto"
 						>
-							<styled.span fontSize="xl" color="red.500">
+							<Text textStyle="primary.sm" color="red.500">
 								!
-							</styled.span>
+							</Text>
 						</Box>
-						<styled.span textStyle="body.base" color="red.600" fontWeight="500">
+						<Text textStyle="secondary.md" color="red.600">
 							{errorMsg}
-						</styled.span>
+						</Text>
 						<styled.button
 							onClick={(e) => {
 								e.preventDefault()
@@ -336,21 +328,21 @@ export function UploadZone({
 							style={{ animation: 'meldarFadeSlideUp 0.3s ease-out both' }}
 						>
 							<VStack gap={3} alignItems="flex-start" width="100%">
-								<styled.span textStyle="body.sm" color="onSurfaceVariant" lineHeight="1.5">
+								<Text textStyle="secondary.sm" color="onSurfaceVariant">
 									Settings &rarr; Screen Time &rarr; See All Activity
-								</styled.span>
-								<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+								</Text>
+								<Text textStyle="secondary.sm" color="primary">
 									1. Screenshot &ldquo;Most Used&rdquo; (app list with times)
-								</styled.span>
-								<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+								</Text>
+								<Text textStyle="secondary.sm" color="primary">
 									2. Screenshot &ldquo;Pickups&rdquo; (scroll down)
-								</styled.span>
-								<styled.span textStyle="body.sm" color="primary" fontWeight="600" lineHeight="1.5">
+								</Text>
+								<Text textStyle="secondary.sm" color="primary">
 									3. Screenshot &ldquo;Notifications&rdquo; (scroll down more)
-								</styled.span>
-								<styled.span textStyle="body.sm" color="onSurfaceVariant/60" lineHeight="1.5">
+								</Text>
+								<Text textStyle="secondary.sm" color="onSurfaceVariant/60">
 									Android: Settings &rarr; Digital Wellbeing &rarr; Dashboard
-								</styled.span>
+								</Text>
 							</VStack>
 						</Box>
 					)}

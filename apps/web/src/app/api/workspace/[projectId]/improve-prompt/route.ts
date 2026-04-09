@@ -1,10 +1,17 @@
 import { getDb } from '@meldar/db/client'
-import { debitTokens, getTokenBalance } from '@meldar/tokens'
+import { debitTokens, getTokenBalance, usageToCents } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifyToken } from '@/server/identity/jwt'
+import { recordAiCall } from '@/server/lib/ai-call-log'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
 import { checkRateLimit, improvePromptLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
+import {
+	checkAllSpendCeilings,
+	recordGlobalSpend,
+	recordUserDailySpend,
+	recordUserHourlySpend,
+} from '@/server/lib/spend-ceiling'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
@@ -54,11 +61,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const { success } = await checkRateLimit(limiter, session.userId)
+	const { success, serviceError } = await checkRateLimit(limiter, session.userId, true)
 	if (!success) {
 		return NextResponse.json(
-			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Wait a few minutes.' } },
-			{ status: 429 },
+			{
+				error: {
+					code: serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED',
+					message: serviceError
+						? 'Rate limiter is temporarily unavailable. Try again shortly.'
+						: 'Too many requests. Wait a few minutes.',
+				},
+			},
+			{ status: serviceError ? 503 : 429 },
 		)
 	}
 
@@ -103,11 +117,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
+	const spendCheck = await checkAllSpendCeilings(session.userId)
+	if (!spendCheck.allowed) {
+		const status =
+			spendCheck.reason === 'user_hourly' ? 429 : spendCheck.reason === 'user_daily' ? 402 : 503
+		return NextResponse.json(
+			{
+				error: { code: spendCheck.reason.toUpperCase(), message: spendCheck.userMessage },
+			},
+			{ status },
+		)
+	}
+
 	const { description, acceptanceCriteria } = parsed.data
 
 	const userMessage = acceptanceCriteria?.length
 		? `Description:\n${description}\n\nAcceptance criteria:\n${acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}`
 		: description
+
+	const startedAt = Date.now()
 
 	try {
 		const client = getAnthropicClient()
@@ -121,18 +149,47 @@ export async function POST(request: NextRequest, context: RouteContext) {
 			{ signal: request.signal, timeout: 30_000 },
 		)
 
+		const inputTokens = response.usage?.input_tokens ?? 0
+		const outputTokens = response.usage?.output_tokens ?? 0
+
 		const textBlock = response.content.find((block) => block.type === 'text')
 		if (!textBlock || textBlock.type !== 'text') {
+			recordAiCall({
+				userId: session.userId,
+				projectId,
+				kind: 'improve_prompt',
+				model: MODELS.HAIKU,
+				inputTokens,
+				outputTokens,
+				centsCharged: 0,
+				latencyMs: Date.now() - startedAt,
+				stopReason: response.stop_reason ?? null,
+				status: 'error',
+				errorCode: 'no_text_content',
+			})
 			return NextResponse.json(
 				{ error: { code: 'GENERATION_FAILED', message: 'No text in model response' } },
 				{ status: 500 },
 			)
 		}
 
+		const failedLogArgs = {
+			userId: session.userId,
+			projectId,
+			kind: 'improve_prompt' as const,
+			model: MODELS.HAIKU,
+			inputTokens,
+			outputTokens,
+			centsCharged: usageToCents(MODELS.HAIKU, { inputTokens, outputTokens }),
+			latencyMs: Date.now() - startedAt,
+			stopReason: response.stop_reason ?? null,
+		}
+
 		let jsonContent: unknown
 		try {
 			jsonContent = JSON.parse(textBlock.text)
 		} catch {
+			recordAiCall({ ...failedLogArgs, status: 'error', errorCode: 'invalid_json' })
 			return NextResponse.json(
 				{ error: { code: 'GENERATION_FAILED', message: 'Model returned invalid JSON' } },
 				{ status: 500 },
@@ -141,6 +198,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 		const validated = improveOutputSchema.safeParse(jsonContent)
 		if (!validated.success) {
+			recordAiCall({ ...failedLogArgs, status: 'error', errorCode: 'schema_validation_failed' })
 			return NextResponse.json(
 				{ error: { code: 'GENERATION_FAILED', message: 'Model output did not pass validation' } },
 				{ status: 500 },
@@ -156,6 +214,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 		await debitTokens(db, session.userId, 1, 'improve_prompt', projectId).catch((err) => {
 			console.error('Improve-prompt debit failed:', err instanceof Error ? err.message : 'Unknown')
+		})
+
+		const actualCents = usageToCents(MODELS.HAIKU, { inputTokens, outputTokens })
+		Promise.all([
+			recordGlobalSpend(actualCents),
+			recordUserHourlySpend(session.userId, actualCents),
+			recordUserDailySpend(session.userId, actualCents),
+		]).catch((err) => {
+			console.error('[improve-prompt] spend recording failed:', err)
+		})
+		recordAiCall({
+			userId: session.userId,
+			projectId,
+			kind: 'improve_prompt',
+			model: MODELS.HAIKU,
+			inputTokens,
+			outputTokens,
+			centsCharged: actualCents,
+			latencyMs: Date.now() - startedAt,
+			stopReason: response.stop_reason ?? null,
+			status: 'ok',
 		})
 
 		return NextResponse.json({ improved, explanation })

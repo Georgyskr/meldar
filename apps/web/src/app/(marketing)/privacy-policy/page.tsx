@@ -1,6 +1,7 @@
 import { styled, VStack } from '@styled-system/jsx'
 import type { Metadata } from 'next'
 import { BUSINESS_INFO, SITE_CONFIG } from '@/shared/config'
+import { Heading, Text } from '@/shared/ui'
 import { B, Li, P, Section, Ul } from '@/shared/ui/legal-primitives'
 
 export const metadata: Metadata = {
@@ -23,13 +24,13 @@ export default function PrivacyPolicyPage() {
 			bg="surface"
 		>
 			<VStack maxWidth="breakpoint-md" marginInline="auto" gap={8} alignItems="flex-start">
-				<styled.h1 fontFamily="heading" fontSize="4xl" fontWeight="700" color="primary">
+				<Heading textStyle="primary.xl" as="h1" color="primary">
 					Privacy Policy
-				</styled.h1>
+				</Heading>
 
-				<styled.p fontSize="sm" color="onSurfaceVariant">
+				<Text textStyle="primary.xs" as="p" color="onSurfaceVariant">
 					Last updated: March 30, 2026
-				</styled.p>
+				</Text>
 
 				<Section title="Who we are">
 					<P>

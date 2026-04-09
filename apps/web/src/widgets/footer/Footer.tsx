@@ -1,126 +1,175 @@
 'use client'
 
 import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
+import Link from 'next/link'
 import { requestConsentReopen } from '@/features/cookie-consent'
 import { requestDataTermsReopen } from '@/features/discovery-flow/lib/data-terms'
+import { Heading, Text } from '@/shared/ui'
+
+const StyledLink = styled(Link)
 
 export function Footer() {
 	return (
 		<styled.footer
-			paddingBlock={{ base: 12, md: 16 }}
+			paddingBlock={{ base: 16, md: 20 }}
 			paddingInline={{ base: 6, md: 12 }}
-			borderBlockStart="1px solid"
-			borderColor="outlineVariant/10"
-			bg="#1a1c1a"
-			color="white/40"
+			bg="#0f0b0d"
+			position="relative"
+			overflow="hidden"
 		>
+			<Box
+				maxWidth="breakpoint-xl"
+				marginInline="auto"
+				paddingBlockEnd={10}
+				borderBottom="1px solid"
+				borderColor="white/12"
+			>
+				<Flex justifyContent="space-between" alignItems="baseline" gap={6} flexWrap="wrap">
+					<Text textStyle="tertiary.md" color="secondaryLight">
+						Colophon · Nº 012
+					</Text>
+					<Text textStyle="italic.md" color="white/60">
+						— printed in cream, bound in mauve.
+					</Text>
+				</Flex>
+			</Box>
+
 			<Grid
 				maxWidth="breakpoint-xl"
 				marginInline="auto"
-				columns={{ base: 2, md: 4 }}
-				gap={{ base: 10, md: 8 }}
+				gridTemplateColumns={{ base: 'repeat(2, 1fr)', md: '2fr 1fr 1fr 1fr' }}
+				gap={{ base: 10, md: 12 }}
+				paddingBlockStart={10}
 			>
-				{/* Brand column */}
-				<VStack alignItems="flex-start" gap={4} gridColumn={{ base: '1 / -1', md: 'auto' }}>
-					<styled.span
-						fontFamily="heading"
-						fontSize="xl"
-						fontWeight="800"
-						letterSpacing="-0.04em"
-						color="white"
-					>
-						Meldar
-					</styled.span>
-					<styled.p fontSize="xs" color="white/30" lineHeight="1.6" maxWidth="240px">
-						Your data. Your AI. Learn to fish or fall behind.
-					</styled.p>
+				<VStack alignItems="flex-start" gap={5} gridColumn={{ base: '1 / -1', md: 'auto' }}>
+					<Flex alignItems="baseline" gap={3}>
+						<Box
+							width="8px"
+							height="8px"
+							borderRadius="full"
+							bg="secondaryLight"
+							boxShadow="0 0 12px #FFB876"
+							style={{ animation: 'gentleBreathe 3s ease-in-out infinite' }}
+						/>
+						<Heading as="h2" textStyle="primary.md" color="white">
+							Meldar
+						</Heading>
+					</Flex>
+					<Text as="p" textStyle="secondary.sm" color="white/50" maxWidth="320px">
+						Your data. Your AI. Nobody else&apos;s.{' '}
+						<Text as="em" textStyle="italic.sm" color="white/70">
+							Learn to fish or fall behind.
+						</Text>
+					</Text>
+					<Text textStyle="tertiary.sm" color="white/30">
+						Est. Helsinki · 2026
+					</Text>
 				</VStack>
 
-				{/* Product column */}
-				<VStack alignItems="flex-start" gap={3}>
-					<FooterHeading>Product</FooterHeading>
-					<FooterLink href="/start">Get started</FooterLink>
-					<FooterLink href="/xray">Free scan</FooterLink>
-					<FooterLink href="/discover">Discover</FooterLink>
-				</VStack>
+				<FooterColumn number="I" title="Product">
+					<FooterLink href="/sign-up">Sign up</FooterLink>
+					<FooterLink href="/workspace">Workspace</FooterLink>
+				</FooterColumn>
 
-				{/* Legal column */}
-				<VStack alignItems="flex-start" gap={3}>
-					<FooterHeading>Legal</FooterHeading>
+				<FooterColumn number="II" title="Legal">
 					<FooterLink href="/privacy-policy">Privacy</FooterLink>
 					<FooterLink href="/terms">Terms</FooterLink>
 					<FooterButton onClick={() => requestConsentReopen()}>Cookies</FooterButton>
 					<FooterButton onClick={() => requestDataTermsReopen()}>Data terms</FooterButton>
-				</VStack>
+				</FooterColumn>
 
-				{/* Company column */}
-				<VStack alignItems="flex-start" gap={3}>
-					<FooterHeading>Company</FooterHeading>
+				<FooterColumn number="III" title="Company">
 					<FooterLink href="mailto:gosha.skryuchenkov@gmail.com">Contact</FooterLink>
-					<styled.span fontSize="xs" color="white/20">
+					<Text textStyle="italic.sm" color="white/30">
 						ClickTheRoadFi Oy
-					</styled.span>
-					<styled.span fontSize="xs" color="white/20">
+					</Text>
+					<Text textStyle="italic.sm" color="white/30">
 						Helsinki, Finland
-					</styled.span>
-				</VStack>
+					</Text>
+				</FooterColumn>
 			</Grid>
 
-			{/* Bottom bar */}
 			<Box
 				maxWidth="breakpoint-xl"
 				marginInline="auto"
-				marginBlockStart={12}
-				paddingBlockStart={6}
+				marginBlockStart={16}
+				paddingBlockStart={8}
 				borderBlockStart="1px solid"
-				borderColor="white/6"
+				borderColor="white/10"
 			>
 				<Flex
 					justifyContent="space-between"
 					alignItems="center"
 					flexDir={{ base: 'column', md: 'row' }}
-					gap={3}
+					gap={4}
 				>
-					<styled.span fontSize="2xs" color="white/20">
-						&copy; {new Date().getFullYear()} ClickTheRoadFi Oy &middot; Y-tunnus 3362511-1
-					</styled.span>
-					<styled.span fontSize="2xs" color="white/15">
-						Built in Helsinki with AI
-					</styled.span>
+					<Text textStyle="tertiary.sm" color="white/30">
+						&copy; {new Date().getFullYear()} ClickTheRoadFi Oy · Y-tunnus 3362511-1
+					</Text>
+					<Text textStyle="italic.md" color="white/50">
+						— Made in Helsinki
+					</Text>
 				</Flex>
 			</Box>
 		</styled.footer>
 	)
 }
 
-function FooterHeading({ children }: { children: React.ReactNode }) {
+function FooterColumn({
+	number,
+	title,
+	children,
+}: {
+	number: string
+	title: string
+	children: React.ReactNode
+}) {
 	return (
-		<styled.span
-			fontSize="xs"
-			fontWeight="600"
-			fontFamily="heading"
-			color="white/60"
-			textTransform="uppercase"
-			letterSpacing="0.08em"
-			marginBlockEnd={1}
-		>
+		<VStack alignItems="flex-start" gap={4}>
+			<Box paddingBlockStart={3} borderTop="1px solid" borderColor="white/20" width="100%">
+				<Text textStyle="tertiary.md" color="secondaryLight" display="block" marginBlockEnd={4}>
+					§ {number} — {title}
+				</Text>
+			</Box>
 			{children}
-		</styled.span>
+		</VStack>
 	)
 }
 
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+	const isExternal = href.startsWith('http') || href.startsWith('mailto:')
+
+	if (isExternal) {
+		return (
+			<styled.a
+				href={href}
+				textDecoration="none"
+				transition="all 0.2s ease"
+				_hover={{ transform: 'translateX(2px)' }}
+				_focusVisible={{
+					outline: '2px solid',
+					outlineColor: 'secondaryLight',
+					outlineOffset: '2px',
+				}}
+			>
+				<Text textStyle="primary.xs" color="white/60" _hover={{ color: 'secondaryLight' }}>
+					{children}
+				</Text>
+			</styled.a>
+		)
+	}
 	return (
-		<styled.a
-			href={href}
-			fontSize="sm"
-			color="white/35"
-			textDecoration="none"
-			transition="color 0.2s ease"
-			_hover={{ color: 'white/70' }}
-		>
-			{children}
-		</styled.a>
+		<StyledLink href={href} style={{ textDecoration: 'none' }}>
+			<Text
+				textStyle="primary.xs"
+				color="white/60"
+				display="inline-block"
+				transition="all 0.2s ease"
+				_hover={{ color: 'secondaryLight', transform: 'translateX(2px)' }}
+			>
+				{children}
+			</Text>
+		</StyledLink>
 	)
 }
 
@@ -129,16 +178,22 @@ function FooterButton({ onClick, children }: { onClick: () => void; children: Re
 		<styled.button
 			type="button"
 			onClick={onClick}
-			fontSize="sm"
-			color="white/35"
 			bg="transparent"
 			border="none"
 			padding={0}
 			cursor="pointer"
-			transition="color 0.2s ease"
-			_hover={{ color: 'white/70' }}
+			textAlign="left"
+			transition="all 0.2s ease"
+			_hover={{ transform: 'translateX(2px)' }}
+			_focusVisible={{
+				outline: '2px solid',
+				outlineColor: 'secondaryLight',
+				outlineOffset: '2px',
+			}}
 		>
-			{children}
+			<Text textStyle="primary.xs" color="white/60" _hover={{ color: 'secondaryLight' }}>
+				{children}
+			</Text>
 		</styled.button>
 	)
 }

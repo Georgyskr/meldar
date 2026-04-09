@@ -39,19 +39,28 @@ You MUST output via tool calls only. Do not write any prose, explanations, or co
 
 Make the smallest defensible interpretation, ship it, and let the user iterate. Do NOT ask the user clarifying questions in tool calls (you have no way to ask). The workspace flow is iterative — the user will correct you on the next prompt if you guess wrong.`
 
-export function buildUserMessage(args: {
-	projectFiles: ReadonlyArray<{ path: string; content: string }>
-	userPrompt: string
-}): string {
-	const fileBlocks = args.projectFiles
+export function buildProjectFilesBlock(
+	projectFiles: ReadonlyArray<{ path: string; content: string }>,
+): string {
+	const sorted = [...projectFiles].sort((a, b) => a.path.localeCompare(b.path))
+	const fileBlocks = sorted
 		.map((f) => `--- FILE: ${f.path} ---\n${f.content}`)
 		.join('\n\n')
 
 	return `# Current project files
 
-${fileBlocks || '(empty project — this is a fresh genesis build)'}
+${fileBlocks || '(empty project — this is a fresh genesis build)'}`
+}
 
-# User request
+export function buildUserPromptBlock(userPrompt: string): string {
+	return `# User request
 
-${args.userPrompt}`
+${userPrompt}`
+}
+
+export function buildUserMessage(args: {
+	projectFiles: ReadonlyArray<{ path: string; content: string }>
+	userPrompt: string
+}): string {
+	return `${buildProjectFilesBlock(args.projectFiles)}\n\n${buildUserPromptBlock(args.userPrompt)}`
 }

@@ -1,6 +1,10 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
-import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
+import { MODELS } from '@/server/lib/anthropic'
+import {
+	GuardedCallBlockedError,
+	guardedAnthropicCallOrThrow,
+} from '@/server/lib/guarded-anthropic'
 
 const adaptiveFollowUpSchema = z.object({
 	followUps: z.array(
@@ -188,14 +192,24 @@ ${appList}
 
 Based on their screen time and profile, generate the most valuable follow-up requests. Pick from the app-to-screenshot mapping where their apps match, and add 1-2 targeted questions about detected patterns.`
 
-	const response = await getAnthropicClient().messages.create({
-		model: MODELS.HAIKU,
-		max_tokens: 1024,
-		system: ADAPTIVE_SYSTEM_PROMPT,
-		messages: [{ role: 'user', content: userMessage }],
-		tools: [ADAPTIVE_TOOL],
-		tool_choice: { type: 'tool', name: 'generate_follow_ups' },
-	})
+	let response: Anthropic.Messages.Message
+	try {
+		response = await guardedAnthropicCallOrThrow({
+			kind: 'discovery_adaptive',
+			model: MODELS.HAIKU,
+			params: {
+				model: MODELS.HAIKU,
+				max_tokens: 1024,
+				system: ADAPTIVE_SYSTEM_PROMPT,
+				messages: [{ role: 'user', content: userMessage }],
+				tools: [ADAPTIVE_TOOL],
+				tool_choice: { type: 'tool', name: 'generate_follow_ups' },
+			},
+		})
+	} catch (err) {
+		if (err instanceof GuardedCallBlockedError) return []
+		throw err
+	}
 
 	const toolUse = response.content.find((c) => c.type === 'tool_use')
 	if (!toolUse || toolUse.type !== 'tool_use') {

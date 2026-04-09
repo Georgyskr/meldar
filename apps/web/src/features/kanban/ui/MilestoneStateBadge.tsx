@@ -1,7 +1,7 @@
 'use client'
 
-import { styled } from '@styled-system/jsx'
 import type { MilestoneState } from '@/entities/kanban-card'
+import { Text } from '@/shared/ui'
 
 const STATE_CONFIG: Record<MilestoneState, { label: string; bg: string; color: string }> = {
 	not_started: { label: 'Not started', bg: 'surfaceContainerHigh', color: 'onSurfaceVariant' },
@@ -17,9 +17,8 @@ export type MilestoneStateBadgeProps = {
 export function MilestoneStateBadge({ state }: MilestoneStateBadgeProps) {
 	const config = STATE_CONFIG[state]
 	return (
-		<styled.span
-			textStyle="body.xs"
-			fontWeight="500"
+		<Text
+			textStyle="secondary.xs"
 			paddingInline={2}
 			paddingBlock="2px"
 			borderRadius="full"
@@ -28,6 +27,6 @@ export function MilestoneStateBadge({ state }: MilestoneStateBadgeProps) {
 			whiteSpace="nowrap"
 		>
 			{config.label}
-		</styled.span>
+		</Text>
 	)
 }

@@ -1,15 +1,12 @@
+export { ContinueBanner, type ContinueBannerProps } from './ContinueBanner'
 export { EmailVerificationBanner } from './EmailVerificationBanner'
 export { FirstTimeWelcome, type FirstTimeWelcomeProps } from './FirstTimeWelcome'
-export { LastBuildRelativeTime } from './LastBuildRelativeTime'
-export { LeftPane, type LeftPaneProps } from './LeftPane'
 export { NewProjectButton } from './NewProjectButton'
-export { PreviewPane, type PreviewPaneProps } from './PreviewPane'
 export { StepIndicator, type StepIndicatorProps } from './StepIndicator'
 export {
 	TemplatePreviewDrawer,
 	type TemplatePreviewDrawerProps,
 } from './TemplatePreviewDrawer'
-export { WhatJustHappenedSlot, type WhatJustHappenedSlotProps } from './WhatJustHappenedSlot'
 export { WorkspaceBottomBar, type WorkspaceBottomBarProps } from './WorkspaceBottomBar'
 export { WorkspaceShell, type WorkspaceShellProps } from './WorkspaceShell'
 export { WorkspaceTopBar, type WorkspaceTopBarProps } from './WorkspaceTopBar'
