@@ -792,8 +792,13 @@ full audit log + email alerts.
 **Founder alert email + cron:**
 - [x] `sendFounderAlertEmail({level, subjectDetail, bodyHtml})` in
   `send-email.ts`, default recipient `gosha.skryuchenkov@gmail.com`
-- [x] `/api/cron/spend-alert` runs every 5 min
-  (`vercel.json` cron), warning at €20/day, panic at €50/hour
+- [x] `/api/cron/spend-alert` cron, warning at €20/day, panic at
+  €50/hour. **Schedule: `0 9 * * *` (daily at 09:00 UTC)** — Hobby
+  plan only allows daily crons; upgrade to Pro to restore `*/5 * * * *`
+  for near-real-time panic alerts. The hour-window panic check still
+  runs but only catches bursts in the hour before the cron fires.
+  Ceilings themselves are enforced synchronously on every request, so
+  this cron is purely for email notification.
 - [x] Redis NX dedup locks: 1 warning/day, 1 panic/15min
 - [x] `FOUNDER_ALERT_EMAIL` env var override
 
