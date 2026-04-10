@@ -1,13 +1,13 @@
 import type { KanbanCardState } from '@/entities/kanban-card'
 
 const VALID_TRANSITIONS: Record<KanbanCardState, readonly KanbanCardState[]> = {
-	draft: ['ready'],
-	ready: ['queued'],
+	draft: ['ready', 'building'],
+	ready: ['queued', 'building'],
 	queued: ['building'],
 	building: ['built', 'failed'],
-	built: [],
-	failed: ['needs_rework'],
-	needs_rework: ['ready'],
+	built: ['building'],
+	failed: ['needs_rework', 'ready', 'building'],
+	needs_rework: ['ready', 'building'],
 }
 
 export function canTransition(from: KanbanCardState, to: KanbanCardState): boolean {

@@ -123,7 +123,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 			}
 
 			const currentState = currentCard.state as KanbanCardState
-			if (!canTransition(currentState, parsed.data.state)) {
+			if (currentState !== parsed.data.state && !canTransition(currentState, parsed.data.state)) {
 				return NextResponse.json(
 					{
 						error: {
