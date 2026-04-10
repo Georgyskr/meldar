@@ -192,11 +192,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		try {
 			jsonContent = JSON.parse(textBlock.text)
 		} catch {
-			recordAiCall({ ...failedLogArgs, status: 'error', errorCode: 'invalid_json' })
-			return NextResponse.json(
-				{ error: { code: 'GENERATION_FAILED', message: 'Model returned invalid JSON' } },
-				{ status: 500 },
-			)
+			const stripped = textBlock.text.replace(/```(?:json)?\n?/g, '').trim()
+			try {
+				jsonContent = JSON.parse(stripped)
+			} catch {
+				recordAiCall({ ...failedLogArgs, status: 'error', errorCode: 'invalid_json' })
+				return NextResponse.json(
+					{ error: { code: 'GENERATION_FAILED', message: 'Model returned invalid JSON' } },
+					{ status: 500 },
+				)
+			}
 		}
 
 		const validated = improveOutputSchema.safeParse(jsonContent)

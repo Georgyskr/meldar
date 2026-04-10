@@ -64,10 +64,10 @@ type VercelConfig = {
 }
 
 function readConfig(): VercelConfig | { readonly missing: string[] } {
-	const token = process.env.VERCEL_DEPLOY_TOKEN
+	const token = process.env.MELDAR_DEPLOY_TOKEN
 	const appsDomain = process.env.VERCEL_APPS_DOMAIN ?? 'apps.meldar.ai'
 	const missing: string[] = []
-	if (!token) missing.push('VERCEL_DEPLOY_TOKEN')
+	if (!token) missing.push('MELDAR_DEPLOY_TOKEN')
 	if (missing.length > 0) return { missing }
 	return {
 		token: token as string,
