@@ -186,6 +186,7 @@ describe('build file validation in orchestrateBuild', () => {
 		)
 
 		const failed = events.find((e) => e.type === 'failed')
-		expect(failed?.type === 'failed' && failed.reason).toContain('eval')
+		expect(failed).toBeDefined()
+		expect(failed?.type === 'failed' && failed.code).toBe('validation_failed')
 	})
 })

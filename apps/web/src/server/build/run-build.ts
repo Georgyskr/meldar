@@ -374,11 +374,11 @@ export function sseStreamFromGenerator(
 					if (!safeEnqueue(formatSseEvent(event))) break
 				}
 			} catch (err) {
-				const reason = err instanceof Error ? err.message : String(err)
+				console.error('[sse-stream] error:', err instanceof Error ? err.message : err)
 				safeEnqueue(
 					formatSseEvent({
 						type: 'failed',
-						reason: `route streaming error: ${reason}`,
+						reason: 'Something went wrong. Try the step again.',
 						code: 'route_stream_error',
 					}),
 				)

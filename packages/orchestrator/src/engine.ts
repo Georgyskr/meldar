@@ -258,16 +258,92 @@ export async function* orchestrateBuild(
 
 		const existingPaths = new Set(currentFiles.map((f) => f.path))
 		const validation = validateBuildFiles(validatedFiles, existingPaths)
+		let repairResponse: Anthropic.Messages.Message | undefined
 		if (!validation.ok) {
-			const summary = validation.errors.map((e) => `${e.path}: ${e.message}`).join('; ')
-			throw new OrchestratorBuildError(`Build validation failed: ${summary}`, 'validation_failed')
+			const errorSummary = validation.errors.map((e) => `${e.path}: ${e.message}`).join('\n')
+			console.error(
+				`[orchestrator] [project=${request.projectId} build=${buildId}] validation failed, attempting self-repair:\n${errorSummary}`,
+			)
+
+			repairResponse = await deps.anthropic.messages
+				.stream(
+					{
+						model,
+						max_tokens: MAX_OUTPUT_TOKENS_PER_BUILD,
+						system: [
+							{ type: 'text', text: BUILD_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+						],
+						tools: [WRITE_FILE_TOOL],
+						messages: [
+							{
+								role: 'user',
+								content: [
+									{ type: 'text', text: projectFilesBlock, cache_control: { type: 'ephemeral' } },
+									{ type: 'text', text: userPromptBlock },
+								],
+							},
+							{ role: 'assistant', content: response.content },
+							{
+								role: 'user',
+								content: `The code you wrote has validation errors. Fix ONLY the errors below — do not rewrite files that are fine.\n\n${errorSummary}`,
+							},
+						],
+					},
+					request.signal ? { signal: request.signal } : undefined,
+				)
+				.finalMessage()
+
+			if (repairResponse.stop_reason === 'end_turn' || repairResponse.stop_reason === 'tool_use') {
+				const repairToolUses = repairResponse.content.filter(
+					(block): block is Anthropic.Messages.ToolUseBlock =>
+						block.type === 'tool_use' && block.name === WRITE_FILE_TOOL.name,
+				)
+
+				const fileMap = new Map(validatedFiles.map((f) => [f.path, f]))
+				for (const toolUse of repairToolUses) {
+					const parsed = writeFileInputSchema.safeParse(toolUse.input)
+					if (!parsed.success) continue
+					if (LOCKED_STARTER_PATHS.has(parsed.data.path)) continue
+
+					await buildContext.writeFile(parsed.data)
+					fileMap.set(parsed.data.path, parsed.data)
+
+					yield {
+						type: 'file_written',
+						path: parsed.data.path,
+						contentHash: await sha256Hex(parsed.data.content),
+						sizeBytes: byteLength(parsed.data.content),
+						fileIndex: fileIndex++,
+					}
+				}
+				validatedFiles.length = 0
+				validatedFiles.push(...fileMap.values())
+			}
+
+			const revalidation = validateBuildFiles(validatedFiles, existingPaths)
+			if (!revalidation.ok) {
+				const detail = revalidation.errors.map((e) => `${e.path}: ${e.message}`).join('; ')
+				console.error(
+					`[orchestrator] [project=${request.projectId} build=${buildId}] repair failed: ${detail}`,
+				)
+				throw new OrchestratorBuildError(
+					"Meldar couldn't finish this step. The code had issues — trying a different approach usually fixes it.",
+					'validation_failed',
+				)
+			}
+			console.log(`[orchestrator] [project=${request.projectId} build=${buildId}] self-repair succeeded`)
 		}
 
-		const cacheReadTokens = response.usage.cache_read_input_tokens ?? 0
-		const cacheWriteTokens = response.usage.cache_creation_input_tokens ?? 0
+		const repairUsage = repairResponse?.usage
+		const cacheReadTokens =
+			(response.usage.cache_read_input_tokens ?? 0) +
+			(repairUsage?.cache_read_input_tokens ?? 0)
+		const cacheWriteTokens =
+			(response.usage.cache_creation_input_tokens ?? 0) +
+			(repairUsage?.cache_creation_input_tokens ?? 0)
 		const actualCents = usageToCents(model, {
-			inputTokens: response.usage.input_tokens,
-			outputTokens: response.usage.output_tokens,
+			inputTokens: response.usage.input_tokens + (repairUsage?.input_tokens ?? 0),
+			outputTokens: response.usage.output_tokens + (repairUsage?.output_tokens ?? 0),
 			cacheReadTokens,
 			cacheWriteTokens,
 		})
