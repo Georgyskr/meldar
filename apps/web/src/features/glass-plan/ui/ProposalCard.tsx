@@ -2,7 +2,7 @@
 
 import type { ResolvedWishes } from '@meldar/orchestrator'
 import { css } from '@styled-system/css'
-import { Flex, VStack } from '@styled-system/jsx'
+import { Box, Flex, VStack } from '@styled-system/jsx'
 import { Heading, Text } from '@/shared/ui'
 import { gradientButton, outlineButton } from './glass-styles'
 
