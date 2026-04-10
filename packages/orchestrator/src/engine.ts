@@ -166,7 +166,7 @@ export async function* orchestrateBuild(
 		const userPromptBlock = buildUserPromptBlock(request.prompt)
 
 		const anthropicStartedAt = Date.now()
-		const response = await deps.anthropic.messages.create(
+		const stream = deps.anthropic.messages.stream(
 			{
 				model,
 				max_tokens: MAX_OUTPUT_TOKENS_PER_BUILD,
@@ -197,6 +197,7 @@ export async function* orchestrateBuild(
 			},
 			request.signal ? { signal: request.signal } : undefined,
 		)
+		const response = await stream.finalMessage()
 		const anthropicLatencyMs = Date.now() - anthropicStartedAt
 
 		// A non-natural stop means the last tool_use input may be partial JSON —

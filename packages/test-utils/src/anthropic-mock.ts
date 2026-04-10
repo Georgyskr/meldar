@@ -15,7 +15,14 @@ export type AnthropicMockResult = {
 
 export function makeAnthropicMock(handler: AnthropicCreateHandler): AnthropicMockResult {
 	const mock = vi.fn(handler)
-	const client = { messages: { create: mock } } as unknown as Anthropic
+	const streamMock = vi.fn(
+		(body: Parameters<AnthropicMessagesCreate>[0], options?: Parameters<AnthropicMessagesCreate>[1]) => ({
+			finalMessage: () => mock(body, options),
+		}),
+	)
+	const client = {
+		messages: { create: mock, stream: streamMock },
+	} as unknown as Anthropic
 	return { client, mock }
 }
 
