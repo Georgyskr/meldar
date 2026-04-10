@@ -1,8 +1,14 @@
-# §JARVIS Workspace Specification
+# §JARVIS Workspace Specification — ARCHIVED
+
+> **ARCHIVED (2026-04-10).** This spec described a 3D galaxy-based
+> workspace that was prototyped but not shipped. The production workspace
+> uses a two-column layout (TaskListPane + ArtifactPane) with a
+> conversational onboarding chat. See the 2026-04-10 section of
+> `meldar-v3-mvp-backlog.md` for current state.
 
 **Created:** 2026-04-09
-**Status:** Design lab iteration in progress
-**Depends on:** §JARVIS 3D Galaxy plan in `meldar-v3-mvp-backlog.md`
+**Status:** Archived — design superseded by two-column workspace
+**Depends on:** N/A (archived)
 
 ---
 

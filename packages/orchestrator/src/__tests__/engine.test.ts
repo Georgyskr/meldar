@@ -176,7 +176,7 @@ describe('orchestrateBuild', () => {
 		})
 
 		it('debits the token ledger by the actual cost', async () => {
-			const { client: anthropic } = makeToolUseMock([{ path: 'src/app/page.tsx', content: 'x' }])
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/app/page.tsx', content: 'export default function Page() { return <div>hi</div> }' }])
 			const before = await fixture.ledger.getSnapshot(fixture.userId)
 
 			await collectEvents(
@@ -203,8 +203,8 @@ describe('orchestrateBuild', () => {
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
-				{ path: 'src/app/page.tsx', content: 'x' },
-				{ path: 'src/lib/util.ts', content: 'y' },
+				{ path: 'src/app/page.tsx', content: 'export default function Page() { return <div>hi</div> }' },
+				{ path: 'src/lib/util.ts', content: 'export function util() { return 1 }' },
 			])
 
 			await collectEvents(
@@ -233,9 +233,9 @@ describe('orchestrateBuild', () => {
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
-				{ path: 'a.ts', content: 'a' },
-				{ path: 'b.ts', content: 'b' },
-				{ path: 'c.ts', content: 'c' },
+				{ path: 'src/a.ts', content: 'a' },
+				{ path: 'src/b.ts', content: 'b' },
+				{ path: 'src/c.ts', content: 'c' },
 			])
 
 			const events = await collectEvents(
@@ -258,7 +258,7 @@ describe('orchestrateBuild', () => {
 		})
 
 		it('does not emit sandbox_ready when no sandbox provider is configured', async () => {
-			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
 			const events = await collectEvents(
 				orchestrateBuild(
 					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
@@ -313,7 +313,7 @@ describe('orchestrateBuild', () => {
 			// Exhaust the user's daily ceiling first
 			await fixture.ledger.tryDebit(fixture.userId, 200)
 
-			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'x' }])
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'x' }])
 			const events = await collectEvents(
 				orchestrateBuild(
 					{
@@ -426,7 +426,7 @@ describe('orchestrateBuild', () => {
 		})
 
 		it('emits failed when project does not belong to the user', async () => {
-			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'x' }])
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'x' }])
 			const events = await collectEvents(
 				orchestrateBuild(
 					{
@@ -581,8 +581,8 @@ describe('orchestrateBuild', () => {
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
-				{ path: 'a.ts', content: 'a' },
-				{ path: 'b.ts', content: 'b' },
+				{ path: 'src/a.ts', content: 'a' },
+				{ path: 'src/b.ts', content: 'b' },
 			])
 
 			const events = await collectEvents(
@@ -622,7 +622,7 @@ describe('orchestrateBuild', () => {
 					return ctx
 				})
 
-			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
 
 			const events = await collectEvents(
 				orchestrateBuild(
@@ -652,7 +652,7 @@ describe('orchestrateBuild', () => {
 			const project0 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
 			const previewBefore = project0.previewUrl
 
-			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
 
 			const events = await collectEvents(
 				orchestrateBuild(
@@ -676,9 +676,9 @@ describe('orchestrateBuild', () => {
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
-				{ path: 'a.ts', content: 'a' },
-				{ path: 'b.ts', content: 'b' },
-				{ path: 'c.ts', content: 'c' },
+				{ path: 'src/a.ts', content: 'a' },
+				{ path: 'src/b.ts', content: 'b' },
+				{ path: 'src/c.ts', content: 'c' },
 			])
 
 			const events = await collectEvents(
@@ -707,7 +707,7 @@ describe('orchestrateBuild', () => {
 				.mockRejectedValue(new Error('forced cache write failure'))
 			const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
-			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
 
 			const events = await collectEvents(
 				orchestrateBuild(
@@ -726,7 +726,7 @@ describe('orchestrateBuild', () => {
 
 		it('does not emit sandbox_ready or call setPreviewUrl when deps.sandbox is null', async () => {
 			const setPreviewUrlSpy = vi.spyOn(fixture.storage, 'setPreviewUrl')
-			const { client: anthropic } = makeToolUseMock([{ path: 'a.ts', content: 'a' }])
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
 
 			const events = await collectEvents(
 				orchestrateBuild(

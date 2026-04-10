@@ -1,3 +1,4 @@
+import { STARTER_FILES } from '@meldar/orchestrator'
 import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@meldar/storage'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -60,7 +61,10 @@ export async function GET(request: NextRequest) {
 	}
 }
 
-const STARTER_README = '# Meldar v3 project\n\nStart a build to see something here.\n'
+// Starter scaffold for every new project — pre-seeded before Claude touches
+// anything so the project is always a valid buildable Next.js 16 + Panda
+// skeleton from the moment the user clicks "Make this now" on their first step.
+const STARTER_INITIAL_FILES = STARTER_FILES.map((f) => ({ path: f.path, content: f.content }))
 
 export async function POST(request: NextRequest) {
 	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
@@ -108,7 +112,7 @@ export async function POST(request: NextRequest) {
 		)
 	}
 
-	const name = parsed.data.name ?? 'Untitled build'
+	const name = parsed.data.name ?? 'My project'
 
 	let storage: ReturnType<typeof buildProjectStorageFromEnv>
 	let hasR2 = true
@@ -129,7 +133,7 @@ export async function POST(request: NextRequest) {
 			userId: session.userId,
 			name,
 			templateId: 'next-landing-v1',
-			initialFiles: hasR2 ? [{ path: 'README.md', content: STARTER_README }] : [],
+			initialFiles: hasR2 ? STARTER_INITIAL_FILES : [],
 		})
 		return NextResponse.json({ projectId: created.project.id }, { status: 200 })
 	} catch (err) {

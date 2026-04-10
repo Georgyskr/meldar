@@ -84,16 +84,63 @@ describe('workspaceBuildReducer', () => {
 		expect(next.lastBuildAt ?? 0).toBeGreaterThanOrEqual(before)
 	})
 
-	it('does not change state on file_written events', () => {
+	it('appends to writtenFiles on file_written events', () => {
 		const before = seed({ previewUrl: 'https://x.example.com', lastBuildAt: 1700000000 })
 		const next = workspaceBuildReducer(before, {
 			type: 'file_written',
-			path: 'a.ts',
+			path: 'src/app/page.tsx',
 			contentHash: 'h',
-			sizeBytes: 1,
+			sizeBytes: 123,
 			fileIndex: 0,
 		})
-		expect(next).toBe(before)
+		expect(next.writtenFiles).toHaveLength(1)
+		expect(next.writtenFiles[0].path).toBe('src/app/page.tsx')
+		expect(next.writtenFiles[0].sizeBytes).toBe(123)
+		expect(next.previewUrl).toBe('https://x.example.com')
+		expect(next.lastBuildAt).toBe(1700000000)
+	})
+
+	it('resets writtenFiles on started events', () => {
+		const before = seed({
+			writtenFiles: [{ path: 'old.ts', sizeBytes: 1, writtenAt: 1 }],
+			failureMessage: 'previous error',
+		})
+		const next = workspaceBuildReducer(before, {
+			type: 'started',
+			buildId: 'b1',
+			projectId: 'p1',
+			kanbanCardId: 'c1',
+		})
+		expect(next.writtenFiles).toEqual([])
+		expect(next.failureMessage).toBeNull()
+		expect(next.activeBuildCardId).toBe('c1')
+	})
+
+	it('clears activeBuildCardId on committed events', () => {
+		const c = makeCard({ id: 'c1', state: 'building' })
+		const before = seed({ cards: [c], activeBuildCardId: 'c1' })
+		const next = workspaceBuildReducer(before, {
+			type: 'committed',
+			buildId: 'b1',
+			tokenCost: 5,
+			actualCents: 1,
+			fileCount: 2,
+			kanbanCardId: 'c1',
+		})
+		expect(next.activeBuildCardId).toBeNull()
+	})
+
+	it('sets failureMessage on failed events', () => {
+		const c = makeCard({ id: 'c1', state: 'building' })
+		const before = seed({ cards: [c], activeBuildCardId: 'c1' })
+		const next = workspaceBuildReducer(before, {
+			type: 'failed',
+			reason: 'timeout',
+			code: 'timeout',
+			kanbanCardId: 'c1',
+		})
+		expect(next.failureMessage).toBe('timeout')
+		expect(next.activeBuildCardId).toBeNull()
 	})
 
 	it('does not change state on prompt_sent events', () => {

@@ -65,6 +65,14 @@ export const projectsCreateLimit = redis
 		})
 	: null
 
+export const templateApplyLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(20, '1 h'),
+			prefix: 'rl:template:apply',
+		})
+	: null
+
 export const projectsListLimit = redis
 	? new Ratelimit({
 			redis,

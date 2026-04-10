@@ -274,7 +274,7 @@ export function FirstTimeWelcome({ email, tokenBalance }: FirstTimeWelcomeProps)
 								{template.learningHighlights.length > 0 && (
 									<VStack alignItems="flex-start" gap={0.5} width="100%">
 										<Text textStyle="italic.sm" color="onSurfaceVariant/80">
-											You'll learn:
+											What you'll add:
 										</Text>
 										{template.learningHighlights.slice(0, 2).map((highlight) => (
 											<Text key={highlight} textStyle="secondary.xs" color="onSurfaceVariant/70">
@@ -307,6 +307,7 @@ export function FirstTimeWelcome({ email, tokenBalance }: FirstTimeWelcomeProps)
 						}}
 						placeholder={PLACEHOLDERS[placeholderIndex]}
 						disabled={busy}
+						aria-label="Describe what you want to build"
 						flex="1"
 						paddingBlock={2.5}
 						paddingInline={4}

@@ -11,6 +11,7 @@ import {
 } from '@meldar/tokens'
 import { z } from 'zod'
 import { BUILD_SYSTEM_PROMPT, buildProjectFilesBlock, buildUserPromptBlock } from './prompts'
+import { LOCKED_STARTER_PATHS } from './starter-files'
 import {
 	MAX_INPUT_TOKENS_PER_BUILD,
 	MAX_OUTPUT_TOKENS_PER_BUILD,
@@ -18,6 +19,7 @@ import {
 	type OrchestratorEvent,
 	WRITE_FILE_TOOL,
 } from './types'
+import { validateBuildFiles } from './validate-files'
 
 const writeFileInputSchema = z.object({
 	path: z.string().min(1).max(512),
@@ -231,6 +233,10 @@ export async function* orchestrateBuild(
 			}
 			const file = parsed.data
 
+			if (LOCKED_STARTER_PATHS.has(file.path)) {
+				continue
+			}
+
 			await buildContext.writeFile(file)
 			validatedFiles.push(file)
 
@@ -243,6 +249,17 @@ export async function* orchestrateBuild(
 				fileIndex,
 			}
 			fileIndex += 1
+		}
+
+		if (validatedFiles.length === 0) {
+			throw new Error('Sonnet returned no writable file writes (all targeted locked paths)')
+		}
+
+		const existingPaths = new Set(currentFiles.map((f) => f.path))
+		const validation = validateBuildFiles(validatedFiles, existingPaths)
+		if (!validation.ok) {
+			const summary = validation.errors.map((e) => `${e.path}: ${e.message}`).join('; ')
+			throw new OrchestratorBuildError(`Build validation failed: ${summary}`, 'validation_failed')
 		}
 
 		const cacheReadTokens = response.usage.cache_read_input_tokens ?? 0

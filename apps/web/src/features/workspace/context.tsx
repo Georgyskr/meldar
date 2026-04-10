@@ -20,11 +20,27 @@ export type BuildReceipt = {
 	readonly tokenCost: number
 }
 
+export type WrittenFile = {
+	readonly path: string
+	readonly sizeBytes: number
+	readonly writtenAt: number
+}
+
 export type WorkspaceMode =
 	| { readonly type: 'plan' }
 	| { readonly type: 'taskFocus'; readonly taskId: string }
 	| { readonly type: 'building'; readonly taskId: string }
 	| { readonly type: 'review'; readonly taskId: string; readonly receipt: BuildReceipt }
+
+export type DeploymentPhase =
+	| { readonly type: 'idle' }
+	| { readonly type: 'deploying'; readonly slug: string; readonly hostname: string }
+	| {
+			readonly type: 'deployed'
+			readonly url: string
+			readonly deployedAt: number
+	  }
+	| { readonly type: 'failed'; readonly reason: string; readonly code: string }
 
 export type WorkspaceBuildState = {
 	readonly previewUrl: string | null
@@ -33,6 +49,12 @@ export type WorkspaceBuildState = {
 	readonly lastBuildReceipt: BuildReceipt | null
 	readonly selectedTaskId: string | null
 	readonly chatOpen: boolean
+	readonly writtenFiles: readonly WrittenFile[]
+	readonly activeBuildCardId: string | null
+	readonly failureMessage: string | null
+	readonly deployment: DeploymentPhase
+	readonly buildsCompleted: number
+	readonly lastBuildId: string | null
 }
 
 export type WorkspaceUiAction =
@@ -54,6 +76,16 @@ export function workspaceBuildInitialState(init: WorkspaceBuildInit): WorkspaceB
 		lastBuildReceipt: null,
 		selectedTaskId: null,
 		chatOpen: false,
+		writtenFiles: [],
+		activeBuildCardId: null,
+		failureMessage: null,
+		deployment: init.initialPreviewUrl
+			? { type: 'deployed', url: init.initialPreviewUrl, deployedAt: Date.now() }
+			: { type: 'idle' },
+		buildsCompleted: init.initialKanbanCards.filter(
+			(c) => c.state === 'built' && c.parentId !== null,
+		).length,
+		lastBuildId: null,
 	}
 }
 
@@ -108,7 +140,7 @@ export function workspaceBuildReducer(
 	if (isUiAction(action)) {
 		switch (action.type) {
 			case 'ui/selectTask':
-				return { ...state, selectedTaskId: action.taskId }
+				return { ...state, selectedTaskId: action.taskId, failureMessage: null }
 			case 'ui/clearSelection':
 				return { ...state, selectedTaskId: null }
 			case 'ui/openChat':
@@ -123,6 +155,18 @@ export function workspaceBuildReducer(
 			return {
 				...state,
 				cards: updateCardState(state.cards, action.kanbanCardId, 'building'),
+				activeBuildCardId: action.kanbanCardId ?? state.selectedTaskId,
+				writtenFiles: [],
+				failureMessage: null,
+				deployment: { type: 'idle' },
+			}
+		case 'file_written':
+			return {
+				...state,
+				writtenFiles: [
+					...state.writtenFiles,
+					{ path: action.path, sizeBytes: action.sizeBytes, writtenAt: Date.now() },
+				],
 			}
 		case 'sandbox_ready':
 			return { ...state, previewUrl: action.previewUrl }
@@ -135,6 +179,9 @@ export function workspaceBuildReducer(
 					lastBuildId: action.buildId,
 					builtAt: new Date(),
 				}),
+				activeBuildCardId: null,
+				buildsCompleted: state.buildsCompleted + 1,
+				lastBuildId: action.buildId,
 				lastBuildReceipt: action.kanbanCardId
 					? {
 							cardId: action.kanbanCardId,
@@ -150,6 +197,36 @@ export function workspaceBuildReducer(
 				cards: updateCardState(state.cards, action.kanbanCardId, 'failed', {
 					blockedReason: action.reason,
 				}),
+				activeBuildCardId: null,
+				failureMessage: action.reason,
+			}
+		case 'deploying':
+			return {
+				...state,
+				deployment: {
+					type: 'deploying',
+					slug: action.slug,
+					hostname: action.hostname,
+				},
+			}
+		case 'deployed':
+			return {
+				...state,
+				previewUrl: action.url,
+				deployment: {
+					type: 'deployed',
+					url: action.url,
+					deployedAt: Date.now(),
+				},
+			}
+		case 'deploy_failed':
+			return {
+				...state,
+				deployment: {
+					type: 'failed',
+					reason: action.reason,
+					code: action.code,
+				},
 			}
 		default:
 			return state

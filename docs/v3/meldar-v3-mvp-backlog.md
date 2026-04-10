@@ -1,8 +1,8 @@
 # Meldar v3 MVP Backlog
 
-**Last updated:** 2026-04-09 (post editorial architecture rewrite + §JARVIS 3D galaxy plan)
+**Last updated:** 2026-04-10 (post deploy unblock + build prevention + sandbox fix)
 **Replaces:** v2 angle-change MVP backlog
-**Based on:** Full 2026-04-07/08/09 sessions: auth/sandbox → email flows → Build Plan engine → 6-feature wave → payment architecture audit → UX overhaul → editorial architecture rewrite → 3D workspace prototype (§JARVIS)
+**Based on:** Full 2026-04-07/08/09/10 sessions: auth/sandbox → email flows → Build Plan engine → 6-feature wave → payment architecture audit → UX overhaul → editorial architecture rewrite → 3D workspace prototype (§JARVIS) → deploy pipeline unblock → proactive build prevention → sandbox startProcess fix
 
 ---
 
@@ -543,6 +543,48 @@ animation.
 | MVP scope | Full Jarvis for founding members. Galaxy + melding + chat + skill routing + learning hints + achievement toasts. |
 | Risk mitigation | Performance (varied hardware) and user confusion (non-technical). Address with: WebGL detection + 2D fallback, progressive disclosure, contextual help at every node. |
 
+### Open strategy questions (unresolved — brainstorm needed)
+
+**Template category strategy (not individual use cases):** what
+*categories* of apps can Meldar build well, and what must we explicitly
+refuse? We should not design around specific use cases ("Habit Tracker",
+"Weight Tracker") but around broad app-shape categories. Good examples
+of broad categories the founder has flagged:
+
+- **Personal landing / portfolio site** — one-page, mostly static,
+  contact form optional. Broad enough that any use case fits.
+- **Link-in-bio / Linktree clone** — tiny surface, huge demand.
+- **Personal Calendly / booking page** — external automation (calendar
+  integration), broad enough to cover 10+ specific use cases.
+- **Configurable automation frontend** — a form that POSTs to an
+  n8n/Zapier-like backend. Broad enough that the underlying workflow is
+  irrelevant.
+- **Dashboard with data entry + chart** — covers weight tracking,
+  habit tracking, budget tracking, anything with one numeric input and
+  one chart.
+- **Feed / aggregator** — RSS reader, news digest, anything that
+  pulls + displays a list.
+
+Categories to explicitly REFUSE (tell the user upfront, don't let them
+discover it mid-build):
+
+- **Games** (state machine + graphics + physics — Claude can't ship a
+  playable game in 15 subtasks without collapsing under its own weight)
+- **Realtime multiplayer** (WebSocket orchestration, session state,
+  latency budget)
+- **Native mobile apps** (we ship web)
+- **Payment flows** (compliance, security, PCI-DSS, Meldar liability)
+- **Video streaming** (bandwidth, encoding, DRM)
+- **Anything needing GPU / ML inference** (can't run on static Vercel)
+
+**TODO: write a dedicated doc `docs/v3/template-strategy.md`** that
+enumerates all viable categories with: (a) rough shape of the starter
+tree Claude needs, (b) which subtasks are "always needed" vs
+"conditional on use case", (c) explicit refusal copy for unsupported
+categories, (d) how the empty-state picker presents them to a
+first-time user without overwhelming them. This unblocks the next wave
+of template creation once we have Phase 1 deploy pipeline shipped.
+
 ### Phased delivery
 
 #### Phase J-1: 3D Foundation (P0, ~3 days)
@@ -1006,7 +1048,7 @@ delegation).
 - [x] Apex + www proxied (orange cloud) — traffic routes
   `CF → Vercel`
 
-### Sandbox worker: free-path deploy — **PARTIAL (blocked on startProcess hang)**
+### Sandbox worker: free-path deploy — **UNBLOCKED (2026-04-10)**
 
 Cloudflare payments fixed, Containers Beta subscribed, sandbox worker
 deployed with the **free** cert path instead of paying $10/mo for
@@ -1101,6 +1143,54 @@ revisit when real traffic + uptime matter.
   persist source files. **Recommendation**: leave the env vars unset
   on Vercel until this is unblocked — ships everything else without
   exposing the broken preview path.
+
+### 2026-04-10 — Deploy unblock + build prevention + sandbox fix
+
+**Vercel Deploy: UNBLOCKED on Hobby (free)**
+- `VERCEL_DEPLOY_TOKEN` is the only required env var (no team ID needed)
+- `installCommand: 'npm install --ignore-scripts'` — fixes Panda CSS postinstall crash
+- `buildCommand: 'npx panda codegen --silent && npx next build'` — codegen in build step
+- `cert_missing` alias error tolerated (SSL provisions async, catches up)
+- Custom domains: `*.apps.meldar.ai` CNAME → `cname.vercel-dns.com` (DNS-only in Cloudflare)
+- Full scaffold (Next.js 16 + Panda CSS + Park UI) builds in ~70s on Hobby
+- Verified end-to-end: file upload → build → custom domain → SSL → HTTP 200
+
+**Proactive Build Prevention (new `validate-files.ts` module)**
+- `validateFileImports()` — AST-based import detection (static + dynamic `import()` + `require()` + template literals), allowlist enforcement, relative path resolution
+- `validateFilePath()` — directory allowlist (app/, src/app/, src/, public/), blocks app/api/, route.ts/tsx, middleware.ts, instrumentation.ts. Path normalization prevents traversal.
+- `validateStructure()` — 'use client' enforcement (AST-based, no false positives on comments/strings), default export on pages, forbidden patterns (eval, Function, child_process, process.env, "use server", fetch, dangerouslySetInnerHTML, XMLHttpRequest, WebSocket, EventSource, sendBeacon, document.write), external URL detection in JSX attributes
+- `validatePandaCss()` — color token allowlist (78 tokens), textStyle validation (30 styles), shorthand prop enforcement
+- `validateBuildFiles()` — composes all validators + empty file check. Wired into `engine.ts` before commit.
+- `next/dynamic` explicitly denied (prevents framework-level dynamic import bypass)
+- 605 orchestrator tests, 715 web tests, all green. Biome clean.
+- BUILD_SYSTEM_PROMPT enriched: import allowlist, Panda CSS tokens, canonical examples, negative examples
+- Projected: 30% failure rate → <5%
+
+**Security fixes**
+- `process.env.VERCEL_URL` removed from starter template (env var leak)
+- All network egress blocked in user apps (fetch, XMLHttpRequest, WebSocket, EventSource, sendBeacon)
+- External URLs in JSX src/href/action attributes detected and blocked
+- Dynamic `import()` and `require()` detected via recursive AST walk
+- Path traversal prevented via `path.posix.normalize()` + `..` rejection
+
+**Sandbox: startProcess hang FIXED**
+- Root cause: Cloudflare SDK `startProcess` is synchronous (waits for process exit). `npm run dev` never exits.
+- Fix: 8s timeout wraps `startProcess`. Timeout fires, catch swallows, dev server continues in container.
+- SDK upgraded 0.8.7 → 0.8.8. Dockerfile updated.
+- Worker deployed to Cloudflare. Start returns in ~10s with preview URL.
+- Preview proxy routes traffic (confirmed HTTP responses from container).
+
+**Path alignment fix**
+- STARTER_FILES aligned to `src/app/` prefix (was `app/` — mismatched tests, prompts, and sandbox template)
+- `allowedDevOrigins` added to STARTER_FILES next.config.ts (required for sandbox HMR proxy)
+- Panda include glob cleaned: removed dead `./app/**`, kept `./src/**`
+- `isAppPageFile` and `validateFilePath` updated to handle both `app/` and `src/app/` paths
+
+**Architecture decisions (documented in memory)**
+- 33 specialist agents across 3 swarms analyzed build error prevention + recovery
+- Proactive layer (prevent by design) is primary investment; reactive layer (auto-repair) is fallback
+- Reactive design: Option B (frontend-triggered repair), max 2 retries, $0.15/cycle cap
+- Proactive design: 4 layers — prompt engineering → validation gate → structural constraints → sandbox gate
 
 ### New env vars (optional, all have safe defaults)
 
@@ -1677,14 +1767,111 @@ have safe defaults, none are required for Phase 0 to function:**
 - [x] Empty workspace state fix (2026-04-09 late evening) — new
   projects now show `WorkspaceEmptyState` template picker overlay
   instead of blank 3D scene
-- [x] E2E regression guard (Playwright) — 3 specs covering the empty
-  state → template pick → populated galaxy flow
-- [ ] Live preview iframe — **blocked on sandbox worker
-  `startProcess` hang** (see 2026-04-09 late-evening section).
-  Orchestrator gracefully degrades to "no preview, build still
-  persists files" so this is not a hard blocker for the first user.
+- [x] E2E regression guard (Playwright) — 6 specs covering onboarding
+  chat, empty state, template chips, skip-onboarding fallback
+- [x] Two-column workspace replaces 3D galaxy (2026-04-09/10) —
+  TaskListPane (280px left) + ArtifactPane (flex right) with 5 states
+- [x] Code content preview with Shiki server-side highlighting
+- [x] Vercel deploy pipeline (Phase 1) — `vercel-deploy.ts`,
+  `guarded-deploy-call.ts`, `deployment-log.ts`, starter files scaffold
+- [x] Conversational onboarding chat replaces TemplatePicker grid
+- [x] Teaching layer Phase B: PromptEditor + AnatomyStrip (5 anatomy
+  dots: Who / Background / The ask / Limits / Shape)
+- [x] Teaching layer Phase C: DecisionsCard ("3 things I decided for
+  you") with Haiku post-build analysis
+- [x] Template strategy doc (`docs/v3/template-strategy.md`)
+- [ ] Live preview iframe — **superseded by Vercel deploy pipeline**.
+  Sandbox worker parked. User apps deploy to
+  `<slug>.apps.meldar.ai` via Vercel REST API.
 - [ ] R2 bucket setup — content-addressed blob storage for build
   artifacts
+
+### 2026-04-10 — Full-stack workspace + deploy pipeline + teaching layer
+
+Massive overnight wave. Two-column workspace, Vercel deploy pipeline,
+conversational onboarding, teaching layer, template strategy, then a
+13-agent review → 20 fixes → 4-agent re-review, all green.
+
+**What shipped (code):**
+- [x] Two-column workspace: `TaskListPane` + `ArtifactPane` (5 states:
+  empty / task-focus / streaming / done / failed)
+- [x] `ArtifactPane` code viewer: Shiki server-side highlighting via
+  `GET /api/workspace/[projectId]/files`, `sanitizeShikiHtml` defense
+- [x] Vercel deploy pipeline: `vercel-deploy.ts` (6-step REST API:
+  ensure project → hash-upload → deploy → poll → domain → alias),
+  `guarded-deploy-call.ts` (kill switch + 3-tier ceilings + slug
+  denylist), `deployment-log.ts` (fire-and-forget Postgres audit)
+- [x] `DeployStrip` component: deploying (pulsing dot + "Going live")
+  → deployed ("It's live" + URL + "Open your app ↗" + "Copy link")
+  → failed (human-language error + retry)
+- [x] Starter files scaffold: 9-file Next.js 16 + Panda + Park UI
+  skeleton with exact-pinned deps, seeded on project creation
+- [x] Slug generator: `slugForProjectId(uuid)` → `quiet-forest-4721`
+  style memorable slugs (36M collision space)
+- [x] Conversational onboarding: `OnboardingChat` replaces
+  `TemplatePicker` as default empty state. 3-question loop with Haiku,
+  micro-affirmations, recap checkpoint, plan generation. Template
+  chips inline as autocomplete. `TemplatePickerFallback` as escape
+  hatch via `?skip-onboarding=1`.
+- [x] Teaching layer Phase B: `PromptEditor` (editable prompt textarea
+  from build #2 onward, auto-enhance via Haiku, "you wrote / we sent"
+  diff), `AnatomyStrip` (5 dots: Who / Background / The ask / Limits
+  / Shape, no score)
+- [x] Teaching layer Phase C: `DecisionsCard` ("3 things I decided for
+  you") with Haiku post-build analysis, project-specific decisions,
+  client-side cache by buildId, collapses after build #3
+- [x] Migration `0012_deployment_log.sql` — applied to Neon
+- [x] Reducer extended: `buildsCompleted`, `lastBuildId`,
+  `DeploymentPhase` state machine, `writtenFiles` tracking
+- [x] `LOCKED_STARTER_PATHS` enforced in orchestrator engine (TDD, 4
+  tests)
+- [x] Copy cleanup: "Untitled build" → template name, "You'll learn"
+  → "What you'll add", "Your build plan" → "Your plan", banned-word
+  sweep
+
+**What shipped (infrastructure):**
+- [x] Spend ceilings fail-closed when Redis null (P0 security fix)
+- [x] `reserveAllCeilings` GET-before-INCR (no more lost rate-limit
+  slots, TDD 2 tests)
+- [x] `sleep()` abort listener cleanup (TDD 2 tests)
+- [x] `triggerFirstBuildEmail` TOCTOU fix (WHERE IS NULL + rowCount,
+  TDD 2 tests)
+- [x] Global test setup (`test-setup.ts`) mocks spend-ceiling so
+  tests don't depend on Redis availability
+- [x] Semantic color tokens: `success`, `error`, `errorMuted`,
+  `errorBg`, `errorBorder` in panda.config.ts
+- [x] `aria-live` regions on chat, errors, deploy status
+- [x] `_focusVisible` on interactive buttons
+- [x] DecisionsCard loading skeleton (no layout shift)
+- [x] Shiki output sanitizer (strips scripts, event handlers,
+  javascript: URLs)
+
+**What shipped (docs):**
+- [x] `docs/v3/template-strategy.md` — 6 viable app categories, 6
+  explicit refusals, chip-to-category mapping
+
+**Review cycle (2 iterations, 17 agents total):**
+- Iteration 1: 13 agents (code reviewer, security, frontend, backend,
+  architect, UX architect, UX researcher, cost optimizer, Bezos,
+  Altman, unit economics, virality, clean-code). Found 20 issues.
+- All 20 addressed: 15 fixed in code (10 with TDD tests), 4 deferred
+  with TODOs, 1 accepted risk.
+- Iteration 2: 4 agents (code reviewer, security, frontend, cost).
+  Verified all 20 fixes correct. 7 Low-severity new findings logged.
+- Final gate: 740 web tests + 522 orchestrator tests + 6 E2E + TS +
+  biome + build all green.
+
+**Strategic insights from agents (not code — product decisions):**
+- Bezos: chip click should skip chat → straight to plan (S1)
+- Virality: inject "Made with Meldar" badge in deployed apps (S2),
+  generate OG images for share links (S3)
+- Altman: DecisionsCard needs memory across builds (S6), "you wrote /
+  we sent" diff is the strongest teaching piece (S7)
+- Unit economics: 97% gross margin at €9.99/mo, teaching layer costs
+  $0.006/user/month — economically invisible
+- Altman: cut 2 of 3 onboarding Haiku calls → template Q2/Q3 (S5)
+- Bezos: teaching layer premature, but keeping it since it's
+  non-blocking and costs nothing (resolved)
 
 ### Not started (ship after first users)
 - [ ] Billing re-integration / Stripe checkout (§24)
@@ -1693,21 +1880,29 @@ have safe defaults, none are required for Phase 0 to function:**
 - [ ] Product analytics events (§27)
 - [ ] Founder cost monitoring dashboard (§26)
 - [ ] All inline explainers copywriting (§29)
+- [ ] "Made with Meldar" badge in deployed apps (S2 — triples K-factor)
+- [ ] OG images for deployed URLs (S3 — rich link previews)
+- [ ] Chip click skips chat → straight to plan generation (S1)
+- [ ] Route 4 API routes through `guardedAnthropicCall` (#7)
+- [ ] DecisionsCard memory across builds (S6)
+- [ ] Daily Recap Reel auto-export (Wave 2)
+- [ ] "Tricks" drawer (Phase D — skill discovery)
 
 ---
 
 ## What's NOT Done Until It's Done
 
-The old v2 backlog is deprecated. ~~The old landing page copy is outdated.~~ **Landing page is DONE** (editorial architecture, 2026-04-09).
+The old v2 backlog is deprecated. **Landing page is DONE** (editorial
+architecture, 2026-04-09). **Workspace is DONE** (two-column layout +
+onboarding chat + teaching layer + deploy pipeline, 2026-04-10).
 
 **Remaining blockers before founding-member launch:**
-1. **Sandbox worker: `startProcess` hangs** — worker deployed and all
-   contract endpoints 1-5 verified except the dev-server launch
-   itself. See 2026-04-09 late-evening section for current state +
-   next experiments. Orchestrator already degrades gracefully when
-   `CF_SANDBOX_WORKER_URL` is unset. Not a release blocker *if* we
-   ship without live preview iframe; IS a blocker for the hero UX.
-2. **R2 bucket setup** — content-addressed blob storage for builds
-3. **Pricing reconciliation** — landing page says EUR 9.99/mo, original spec EUR 19/mo. Decide.
-4. **§JARVIS Phase 2 (Chat MVP)** — real chat with prompt enhancement, wires into `runBuildForUser`
-5. **Env vars on Vercel** — see checklist above (Upstash, Neon, Anthropic, R2, JWT, etc.)
+1. **Vercel Pro + DNS setup** — upgrade to Pro ($20/mo), delegate
+   `apps.meldar.ai` NS to Vercel, generate deploy token, file
+   project-ceiling support ticket. ~15 min of founder work.
+2. **R2 bucket setup** — content-addressed blob storage for builds.
+   Without R2, builds succeed but files aren't persisted to storage.
+3. **Pricing reconciliation** — landing page says EUR 9.99/mo, original
+   spec EUR 19/mo. Decide.
+4. **Env vars on Vercel** — see checklist above (Upstash, Neon,
+   Anthropic, R2, JWT, VERCEL_DEPLOY_TOKEN, VERCEL_TEAM_ID, etc.)

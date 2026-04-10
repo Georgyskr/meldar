@@ -17,12 +17,24 @@ export {
 	buildUserMessage,
 } from './prompts'
 export {
+	generateSafeSlug,
+	generateSlug,
+	isReservedSlug,
+	isValidSlug,
+	slugForProjectId,
+} from './slug-generator'
+export {
 	consumeSseStream,
 	formatSseDone,
 	formatSseEvent,
 	parseSseRecord,
 	SSE_DONE_SENTINEL,
 } from './sse'
+export {
+	getStarterFileContent,
+	LOCKED_STARTER_PATHS,
+	STARTER_FILES,
+} from './starter-files'
 export { TEMPLATE_PLANS, type TemplatePlan } from './template-plans'
 export { TEMPLATE_SUMMARIES, type TemplateSummary } from './template-plans/summaries'
 export {
@@ -33,3 +45,14 @@ export {
 	type OrchestratorResult,
 	WRITE_FILE_TOOL,
 } from './types'
+export {
+	ALLOWED_PACKAGES,
+	type FileInput,
+	type ValidationError,
+	type ValidationResult,
+	validateBuildFiles,
+	validateFileImports,
+	validateFilePath,
+	validatePandaCss,
+	validateStructure,
+} from './validate-files'

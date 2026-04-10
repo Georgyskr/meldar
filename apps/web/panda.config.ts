@@ -76,6 +76,11 @@ export default defineConfig({
 					inverseSurface: { value: '#2f312f' },
 					inverseOnSurface: { value: '#f1f1ee' },
 					inversePrimary: { value: '#f5b3dc' },
+					success: { value: '#22c55e' },
+					error: { value: '#ef4444' },
+					errorMuted: { value: '#991b1b' },
+					errorBg: { value: '#fef2f2' },
+					errorBorder: { value: '#fecaca' },
 				},
 			},
 			textStyles: {

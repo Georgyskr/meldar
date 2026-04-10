@@ -30,6 +30,14 @@ export type OrchestratorEvent =
 			cacheReadTokens?: number
 			cacheWriteTokens?: number
 	  }
+	| { type: 'deploying'; slug: string; hostname: string }
+	| { type: 'deployed'; url: string; vercelDeploymentId: string; buildDurationMs: number }
+	| {
+			type: 'deploy_failed'
+			reason: string
+			code: string
+			rejected: boolean
+	  }
 	| { type: 'failed'; reason: string; buildId?: string; code?: string; kanbanCardId?: string }
 
 export type OrchestratorResult =

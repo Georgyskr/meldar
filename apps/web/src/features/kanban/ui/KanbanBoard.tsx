@@ -30,7 +30,7 @@ export function KanbanBoard({ cards, onAddMilestone, onAddSubtask }: KanbanBoard
 	return (
 		<VStack alignItems="stretch" gap={2} padding={3}>
 			<Heading textStyle="secondary.xs" color="onSurfaceVariant" paddingInline={1}>
-				Your build plan
+				Your plan
 			</Heading>
 
 			{milestones.map((milestone) => (

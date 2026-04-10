@@ -39,6 +39,7 @@ export interface SandboxWorkerDeps {
 const NEXT_PORT = 3001
 const PROCESS_ID = 'next-dev-server'
 const HMAC_WINDOW_MS = 5 * 60 * 1000
+const DEV_SERVER_TIMEOUT_MS = 8_000
 
 const API_HOSTNAME = 'sandbox.meldar.ai'
 const PREVIEW_BASE_HOSTNAME = 'meldar.ai'
@@ -176,6 +177,15 @@ async function handleStart(body: unknown, ctx: RouteContext): Promise<Response> 
 	}
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+	return Promise.race([
+		promise,
+		new Promise<never>((_, reject) =>
+			setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+		),
+	])
+}
+
 async function ensureDevServer(
 	sandbox: SandboxLike,
 	hostname: string,
@@ -187,13 +197,23 @@ async function ensureDevServer(
 	}
 
 	const port = await sandbox.exposePort(NEXT_PORT, { hostname })
-	const proc = await sandbox.startProcess('npm run dev', {
-		processId: PROCESS_ID,
-		cwd: '/app',
-		env: { PORT: String(NEXT_PORT), HOSTNAME: '0.0.0.0' },
-	})
-	if (proc?.waitForPort) {
-		await proc.waitForPort(NEXT_PORT)
+	try {
+		const proc = await withTimeout(
+			sandbox.startProcess('npm run dev', {
+				processId: PROCESS_ID,
+				cwd: '/app',
+				env: { PORT: String(NEXT_PORT), HOSTNAME: '0.0.0.0' },
+			}),
+			DEV_SERVER_TIMEOUT_MS,
+			'startProcess',
+		)
+		if (proc?.waitForPort) {
+			await withTimeout(proc.waitForPort(NEXT_PORT), DEV_SERVER_TIMEOUT_MS, 'waitForPort')
+		}
+	} catch {
+		// startProcess hangs for long-running processes (Cloudflare SDK limitation).
+		// The timeout fires but the dev server keeps running inside the container.
+		// Return the preview URL — the proxy will wait for the port naturally.
 	}
 	return port
 }

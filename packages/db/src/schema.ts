@@ -475,3 +475,47 @@ export const aiCallLog = pgTable(
 		),
 	],
 )
+
+// ── Table 13: Deployment Log ────────────────────────────────────────────────
+// Append-only log of every Vercel deployment attempt. Fire-and-forget write path.
+// Used for cost telemetry, quota enforcement, and the stuck-deployment janitor.
+
+export type DeploymentStatus =
+	| 'shadow'
+	| 'queued'
+	| 'building'
+	| 'ready'
+	| 'error'
+	| 'timeout'
+	| 'quota_exceeded'
+	| 'canceled'
+
+export const deploymentLog = pgTable(
+	'deployment_log',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		completedAt: timestamp('completed_at', { withTimezone: true }),
+		userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+		projectId: uuid('project_id'),
+		buildId: text('build_id'),
+		vercelProjectId: text('vercel_project_id'),
+		vercelDeploymentId: text('vercel_deployment_id'),
+		slug: text('slug'),
+		url: text('url'),
+		status: text('status').notNull().$type<DeploymentStatus>(),
+		errorCode: text('error_code'),
+		errorMessage: text('error_message'),
+		apiLatencyMs: integer('api_latency_ms').notNull().default(0),
+		buildDurationMs: integer('build_duration_ms').notNull().default(0),
+	},
+	(table) => [
+		index('idx_deployment_log_user_created').on(table.userId, table.createdAt.desc()),
+		index('idx_deployment_log_project_created').on(table.projectId, table.createdAt.desc()),
+		index('idx_deployment_log_status_created').on(table.status, table.createdAt.desc()),
+		check(
+			'deployment_status_valid',
+			sql`${table.status} IN ('shadow', 'queued', 'building', 'ready', 'error', 'timeout', 'quota_exceeded', 'canceled')`,
+		),
+	],
+)

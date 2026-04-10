@@ -10,24 +10,32 @@ vi.mock('@/server/identity/jwt', () => ({
 
 vi.mock('@/server/lib/rate-limit', () => ({
 	mustHaveRateLimit: (limiter: unknown, _name: string) => limiter,
-	projectsCreateLimit: null,
+	templateApplyLimit: null,
 	checkRateLimit: async () => ({ success: true }),
 }))
 
-const { mockDbSelect, mockDbInsert } = vi.hoisted(() => ({
+const { mockDbSelect, mockDbInsert, mockDbUpdate } = vi.hoisted(() => ({
 	mockDbSelect: vi.fn(),
 	mockDbInsert: vi.fn(),
+	mockDbUpdate: vi.fn(),
 }))
 
 vi.mock('@meldar/db/client', () => ({
 	getDb: vi.fn(() => ({
 		select: mockDbSelect,
 		insert: mockDbInsert,
+		update: mockDbUpdate,
 	})),
 }))
 
 vi.mock('@meldar/db/schema', () => ({
-	kanbanCards: { projectId: 'project_id', parentId: 'parent_id', position: 'position' },
+	kanbanCards: {
+		id: 'id',
+		projectId: 'project_id',
+		parentId: 'parent_id',
+		position: 'position',
+		state: 'state',
+	},
 	projects: { id: 'id', userId: 'user_id', deletedAt: 'deleted_at' },
 }))
 
@@ -69,12 +77,25 @@ function makeRequest(opts: { body: unknown; cookie?: string; projectId?: string 
 }
 
 function setupDbMocks() {
-	mockVerifyProjectOwnership.mockResolvedValue({ id: VALID_PROJECT_ID })
+	mockVerifyProjectOwnership.mockResolvedValue({ id: VALID_PROJECT_ID, name: 'My project' })
 
-	mockDbSelect.mockReturnValue({
-		from: vi.fn().mockReturnValue({
-			where: vi.fn().mockResolvedValue([{ maxPosition: -1 }]),
-		}),
+	let selectCallCount = 0
+	mockDbSelect.mockImplementation(() => {
+		selectCallCount++
+		if (selectCallCount === 1) {
+			return {
+				from: vi.fn().mockReturnValue({
+					where: vi.fn().mockReturnValue({
+						limit: vi.fn().mockResolvedValue([]),
+					}),
+				}),
+			}
+		}
+		return {
+			from: vi.fn().mockReturnValue({
+				where: vi.fn().mockResolvedValue([{ maxPosition: -1 }]),
+			}),
+		}
 	})
 
 	let cardId = 0
@@ -90,6 +111,12 @@ function setupDbMocks() {
 					},
 				]),
 			),
+		}),
+	})
+
+	mockDbUpdate.mockReturnValue({
+		set: vi.fn().mockReturnValue({
+			where: vi.fn().mockResolvedValue([]),
 		}),
 	})
 }

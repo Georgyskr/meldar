@@ -1,3 +1,4 @@
+// TODO: Route through guardedAnthropicCall for unified spend ceilings (architecture review #7)
 import { getDb } from '@meldar/db/client'
 import { debitTokens, getTokenBalance, usageToCents } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'

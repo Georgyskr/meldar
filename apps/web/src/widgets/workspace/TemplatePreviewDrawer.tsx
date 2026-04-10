@@ -306,7 +306,7 @@ export function TemplatePreviewDrawer({
 															{milestone.title}
 														</Text>
 														<Text textStyle="italic.sm" color="primary">
-															You'll learn: {milestone.whatYouLearn.toLowerCase()}
+															What you'll add: {milestone.whatYouLearn.toLowerCase()}
 														</Text>
 														{!expanded && (
 															<Text textStyle="tertiary.sm" color="onSurfaceVariant/60">

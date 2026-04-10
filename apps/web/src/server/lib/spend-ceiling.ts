@@ -78,7 +78,7 @@ export async function checkGlobalSpendCeiling(): Promise<SpendCeilingCheck> {
 	}
 
 	if (!redis) {
-		return { allowed: true, spentToday: 0, ceiling }
+		return { allowed: false, reason: 'ceiling_exceeded', spentToday: 0, ceiling }
 	}
 
 	const spent = ((await redis.get<number>(todayKey())) ?? 0) as number
@@ -110,7 +110,7 @@ export type UserHourlySpendCheck =
 
 export async function checkUserHourlySpend(userId: string): Promise<UserHourlySpendCheck> {
 	const ceiling = userHourlyCeiling()
-	if (!redis) return { allowed: true, spentThisHour: 0, ceiling }
+	if (!redis) return { allowed: false, spentThisHour: 0, ceiling }
 	const spent = ((await redis.get<number>(userHourKey(userId))) ?? 0) as number
 	if (spent >= ceiling) {
 		return { allowed: false, spentThisHour: spent, ceiling }
@@ -132,7 +132,7 @@ export async function checkUserDailySpend(
 	| { allowed: false; spentToday: number; ceiling: number }
 > {
 	const ceiling = userDailyCeiling()
-	if (!redis) return { allowed: true, spentToday: 0, ceiling }
+	if (!redis) return { allowed: false, spentToday: 0, ceiling }
 	const spent = ((await redis.get<number>(userDayKey(userId))) ?? 0) as number
 	if (spent >= ceiling) {
 		return { allowed: false, spentToday: spent, ceiling }

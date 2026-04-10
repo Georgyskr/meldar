@@ -98,12 +98,14 @@ describe('POST /api/workspace/projects', () => {
 		expect(project.name).toBeTruthy()
 	})
 
-	it('seeds the project with a stub README so it has at least one file', async () => {
+	it('seeds the project with the Next.js + Panda starter so it is always buildable', async () => {
 		const res = await POST(makeRequest({ body: { name: 'With seed' }, cookie: 'valid_token' }))
 		const json = (await res.json()) as { projectId: string }
 		const files = await storage.getCurrentFiles(json.projectId)
-		expect(files.length).toBeGreaterThanOrEqual(1)
-		expect(files.some((f) => f.path === 'README.md')).toBe(true)
+		expect(files.some((f) => f.path === 'package.json')).toBe(true)
+		expect(files.some((f) => f.path === 'src/app/layout.tsx')).toBe(true)
+		expect(files.some((f) => f.path === 'panda.config.ts')).toBe(true)
+		expect(files.length).toBeGreaterThanOrEqual(9)
 	})
 })
 

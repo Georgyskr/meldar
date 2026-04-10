@@ -1,9 +1,3 @@
-/**
- * neon-http does NOT support interactive transactions (only `db.batch([...])`),
- * so all multi-statement operations compute their full plan up front and use
- * client-generated UUIDs threaded through the batch.
- */
-
 import * as schema from '@meldar/db/schema'
 import { assertSafeSandboxPath } from '@meldar/sandbox'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
@@ -86,14 +80,8 @@ export class PostgresProjectStorage implements ProjectStorage {
 			})
 		}
 
-		// Blobs FIRST: content-addressed puts are idempotent so a partial
-		// failure is recoverable by retrying createProject.
-		for (const p of prepared) {
-			await this.blob.put(projectId, p.contentHash, p.content)
-		}
+		await Promise.all(prepared.map((p) => this.blob.put(projectId, p.contentHash, p.content)))
 
-		// DB writes in one batch; the DEFERRABLE FK on projects.current_build_id
-		// lets us insert with NULL HEAD and flip it inside the same transaction.
 		const insertProject = this.db.insert(schema.projects).values({
 			id: projectId,
 			userId: options.userId,
@@ -752,9 +740,6 @@ class PostgresBuildContext implements BuildContext {
 		const contentHash = await sha256Hex(file.content)
 		const r2Key = `projects/${this.projectId}/content/${contentHash}`
 
-		// MUST NOT touch project_files mid-build: that's the live HEAD set
-		// and would leak partial state via getCurrentFiles. build_files is
-		// the staging area; commit() flushes it atomically with the HEAD flip.
 		await this.blob.put(this.projectId, contentHash, file.content)
 
 		await this.db
@@ -805,9 +790,6 @@ class PostgresBuildContext implements BuildContext {
 			})
 			.where(and(eq(schema.builds.id, this.buildId), eq(schema.builds.status, 'streaming')))
 
-		// Conflict target is the partial unique index
-		// `ux_project_files_project_path WHERE deleted_at IS NULL`, so a
-		// re-write of the same path bumps `version` instead of duplicating.
 		const upsertProjectFiles = stagedFiles.map((staged) =>
 			this.db
 				.insert(schema.projectFiles)

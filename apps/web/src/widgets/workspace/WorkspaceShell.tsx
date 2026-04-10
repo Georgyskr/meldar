@@ -1,13 +1,15 @@
 'use client'
 
-import { Box, Flex } from '@styled-system/jsx'
-import { useCallback, useMemo, useState } from 'react'
+import { consumeSseStream } from '@meldar/orchestrator'
+import { Flex } from '@styled-system/jsx'
+import { useCallback, useState } from 'react'
 import type { ProjectStep } from '@/entities/project-step'
-import { GalaxyView, kanbanToGalaxy } from '@/features/galaxy'
 import type { KanbanCard } from '@/features/kanban'
 import { FirstBuildCelebration } from '@/features/kanban'
 import { PricingDrawer, TokenNudgeBanner } from '@/features/token-economy'
 import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace'
+import { ArtifactPane } from './ArtifactPane'
+import { TaskListPane } from './TaskListPane'
 import { WorkspaceBottomBar } from './WorkspaceBottomBar'
 import { WorkspaceEmptyState } from './WorkspaceEmptyState'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
@@ -49,9 +51,9 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 
 				<TokenNudgeBanner balance={props.tokenBalance} onSeePlans={() => setPricingOpen(true)} />
 
-				<Box flex="1" minHeight={0} position="relative" bg="surfaceContainerLowest">
-					<GalaxySurface projectId={props.projectId} />
-				</Box>
+				<Flex flex="1" minHeight={0} position="relative" bg="surfaceContainerLowest">
+					<WorkspaceBody projectId={props.projectId} />
+				</Flex>
 
 				<WorkspaceBottomBar tier={props.tier} />
 			</Flex>
@@ -63,74 +65,98 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 	)
 }
 
-function GalaxySurface({ projectId }: { projectId: string }) {
-	const { cards, previewUrl, selectedTaskId, mode, selectTask, clearSelection } =
-		useWorkspaceBuild()
-	const milestones = useMemo(() => kanbanToGalaxy(cards), [cards])
+function WorkspaceBody({ projectId }: { readonly projectId: string }) {
+	const {
+		cards,
+		selectedTaskId,
+		activeBuildCardId,
+		writtenFiles,
+		lastBuildReceipt,
+		failureMessage,
+		deployment,
+		buildsCompleted,
+		lastBuildId,
+		selectTask,
+		publish,
+	} = useWorkspaceBuild()
 
-	const handleTaskSelect = useCallback((task: { id: string }) => selectTask(task.id), [selectTask])
-
-	const handleTaskDeselect = useCallback(() => clearSelection(), [clearSelection])
-
-	const handleBuildTask = useCallback(
-		(task: { id: string }) => {
-			void triggerBuildForTask(projectId, task.id)
+	const handleMakeThis = useCallback(
+		(cardId: string, prompt: string) => {
+			void runBuild(projectId, cardId, prompt, publish)
 		},
-		[projectId],
+		[projectId, publish],
 	)
 
 	if (cards.length === 0) {
 		return <WorkspaceEmptyState projectId={projectId} />
 	}
 
-	const fallbackMode: 'plan' | 'taskFocus' | 'building' | 'review' =
-		mode.type === 'taskFocus'
-			? 'taskFocus'
-			: mode.type === 'building'
-				? 'building'
-				: mode.type === 'review'
-					? 'review'
-					: 'plan'
+	const selectedCard = selectedTaskId ? (cards.find((c) => c.id === selectedTaskId) ?? null) : null
 
 	return (
-		<GalaxyView
-			milestones={milestones}
-			previewUrl={previewUrl}
-			selectedTaskId={selectedTaskId}
-			fallbackMode={fallbackMode}
-			onTaskSelect={handleTaskSelect}
-			onTaskDeselect={handleTaskDeselect}
-			onBuildTask={handleBuildTask}
-		/>
+		<Flex width="100%" height="100%">
+			<TaskListPane
+				cards={cards}
+				selectedTaskId={selectedTaskId}
+				activeBuildCardId={activeBuildCardId}
+				onSelect={selectTask}
+			/>
+			<ArtifactPane
+				projectId={projectId}
+				selectedCard={selectedCard}
+				activeBuildCardId={activeBuildCardId}
+				writtenFiles={writtenFiles}
+				lastBuildReceipt={lastBuildReceipt}
+				failureMessage={failureMessage}
+				deployment={deployment}
+				buildsCompleted={buildsCompleted}
+				lastBuildId={lastBuildId}
+				onMakeThis={handleMakeThis}
+			/>
+		</Flex>
 	)
 }
 
-async function triggerBuildForTask(projectId: string, cardId: string): Promise<void> {
+async function runBuild(
+	projectId: string,
+	cardId: string,
+	prompt: string,
+	publish: ReturnType<typeof useWorkspaceBuild>['publish'],
+): Promise<void> {
 	try {
 		const response = await fetch(`/api/workspace/${projectId}/build`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
 				kanbanCardId: cardId,
-				prompt: 'Build this task.',
+				prompt,
 			}),
 		})
+
 		if (!response.ok) {
 			const body = (await response.json().catch(() => ({}))) as {
 				error?: { message?: string }
 			}
-			console.error(
-				`[WorkspaceShell] build request returned ${response.status}:`,
-				body.error?.message ?? 'unknown',
-			)
+			const message = body.error?.message ?? `Request failed (${response.status})`
+			publish({ type: 'failed', reason: message, kanbanCardId: cardId })
 			return
 		}
-		// Drain the SSE stream so the reducer sees events via the build context.
-		// The context subscribes to /api/.../build separately — here we just want
-		// the side effect of kicking off the build. See Phase 3 plan: chat-triggered
-		// builds will pipe events through the chat stream instead.
+
+		if (!response.body) {
+			publish({
+				type: 'failed',
+				reason: 'Server returned no stream.',
+				kanbanCardId: cardId,
+			})
+			return
+		}
+
+		for await (const event of consumeSseStream(response.body)) {
+			publish(event)
+		}
 	} catch (err) {
-		console.error('[WorkspaceShell] build trigger failed:', err)
+		const message = err instanceof Error ? err.message : 'Network error'
+		publish({ type: 'failed', reason: message, kanbanCardId: cardId })
 	}
 }
 

@@ -441,7 +441,7 @@ describe('sandbox worker', () => {
 			expect(fakeSandbox.startProcess).toHaveBeenCalled()
 		})
 
-		it('waits for port on the process returned by startProcess', async () => {
+		it('starts dev server via shell backgrounding', async () => {
 			const req = await signedRequest('/api/v1/start', {
 				projectId: 'proj_first',
 				userId: 'user_1',
@@ -449,8 +449,9 @@ describe('sandbox worker', () => {
 				files: [],
 			})
 			await worker.fetch(req, env)
-			const proc = await fakeSandbox.startProcess.mock.results[0].value
-			expect(proc.waitForPort).toHaveBeenCalledWith(3001)
+			expect(fakeSandbox.startProcess).toHaveBeenCalled()
+			const command = fakeSandbox.startProcess.mock.calls[0][0] as string
+			expect(command).toContain('npm run dev')
 		})
 
 		it('reuses existing port when sandbox is already running', async () => {

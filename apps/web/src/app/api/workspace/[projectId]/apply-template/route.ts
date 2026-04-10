@@ -1,12 +1,12 @@
 import { getDb } from '@meldar/db/client'
-import { kanbanCards } from '@meldar/db/schema'
+import { kanbanCards, projects } from '@meldar/db/schema'
 import { TEMPLATE_PLANS } from '@meldar/orchestrator'
 import { and, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifyToken } from '@/server/identity/jwt'
 import { insertPlanCards } from '@/server/lib/insert-plan-cards'
-import { checkRateLimit, mustHaveRateLimit, projectsCreateLimit } from '@/server/lib/rate-limit'
+import { checkRateLimit, mustHaveRateLimit, templateApplyLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
@@ -15,7 +15,9 @@ export const dynamic = 'force-dynamic'
 const projectIdSchema = z.string().uuid()
 const bodySchema = z.object({ templateId: z.string().min(1) })
 
-const limiter = mustHaveRateLimit(projectsCreateLimit, 'apply-template')
+const DEFAULT_PROJECT_NAMES = ['My project', 'Untitled project']
+
+const limiter = mustHaveRateLimit(templateApplyLimit, 'apply-template')
 
 type RouteContext = { params: Promise<{ projectId: string }> }
 
@@ -86,18 +88,39 @@ export async function POST(request: NextRequest, context: RouteContext) {
 	}
 
 	try {
+		const db = getDb()
+		const existingCards = await db
+			.select({ id: kanbanCards.id })
+			.from(kanbanCards)
+			.where(eq(kanbanCards.projectId, projectId))
+			.limit(1)
+
+		if (existingCards.length > 0) {
+			const allCards = await db
+				.select()
+				.from(kanbanCards)
+				.where(eq(kanbanCards.projectId, projectId))
+			return NextResponse.json({ cards: allCards }, { status: 200 })
+		}
+
 		const cards = await insertPlanCards(projectId, template.milestones, 'template')
 
 		const firstMilestone = cards.find((c) => c.parentId === null)
 		if (firstMilestone) {
 			const firstSubtask = cards.find((c) => c.parentId === firstMilestone.id)
 			if (firstSubtask) {
-				const db = getDb()
 				await db
 					.update(kanbanCards)
 					.set({ state: 'ready', updatedAt: new Date() })
 					.where(and(eq(kanbanCards.id, firstSubtask.id), eq(kanbanCards.projectId, projectId)))
 			}
+		}
+
+		if (DEFAULT_PROJECT_NAMES.includes(project.name)) {
+			await db
+				.update(projects)
+				.set({ name: template.name, updatedAt: new Date() })
+				.where(eq(projects.id, projectId))
 		}
 
 		return NextResponse.json({ cards }, { status: 201 })
