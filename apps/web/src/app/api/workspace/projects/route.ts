@@ -14,6 +14,20 @@ import { listUserProjects } from '@/server/projects/list-user-projects'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function serializeError(err: unknown): Record<string, unknown> {
+	if (!(err instanceof Error)) return { message: String(err) }
+	const out: Record<string, unknown> = {
+		name: err.name,
+		message: err.message,
+	}
+	for (const key of ['code', 'operation', 'projectId', 'buildId', 'path'] as const) {
+		if (key in err) out[key] = (err as unknown as Record<string, unknown>)[key]
+	}
+	if (err.stack) out.stack = err.stack.split('\n').slice(0, 6).join('\n')
+	if (err.cause) out.cause = serializeError(err.cause)
+	return out
+}
+
 const createProjectSchema = z.object({
 	name: z
 		.string()
@@ -53,7 +67,7 @@ export async function GET(request: NextRequest) {
 		const projects = await listUserProjects(session.userId)
 		return NextResponse.json({ projects })
 	} catch (err) {
-		console.error('[api/workspace/projects] list query failed', err)
+		console.error('[api/workspace/projects] list query failed:', JSON.stringify(serializeError(err)))
 		return NextResponse.json(
 			{ error: { code: 'INTERNAL_ERROR', message: 'Failed to load projects' } },
 			{ status: 500 },
@@ -129,15 +143,28 @@ export async function POST(request: NextRequest) {
 	}
 
 	try {
-		const created = await storage.createProject({
+		const projectOpts = {
 			userId: session.userId,
 			name,
 			templateId: 'next-landing-v1',
 			initialFiles: hasR2 ? STARTER_INITIAL_FILES : [],
-		})
+		} as const
+		let created: Awaited<ReturnType<typeof storage.createProject>>
+		try {
+			created = await storage.createProject(projectOpts)
+		} catch (firstErr) {
+			console.warn(
+				'[api/workspace/projects] first attempt failed, retrying once:',
+				JSON.stringify(serializeError(firstErr)),
+			)
+			created = await storage.createProject(projectOpts)
+		}
 		return NextResponse.json({ projectId: created.project.id }, { status: 200 })
 	} catch (err) {
-		console.error('[api/workspace/projects] createProject failed', err)
+		console.error(
+			'[api/workspace/projects] createProject failed after retry:',
+			JSON.stringify(serializeError(err)),
+		)
 		return NextResponse.json(
 			{ error: { code: 'INTERNAL_ERROR', message: 'Failed to create project' } },
 			{ status: 500 },

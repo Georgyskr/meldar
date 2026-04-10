@@ -56,6 +56,10 @@ export default defineConfig({
 					'0%': { opacity: '0', transform: 'scale(0.8)' },
 					'100%': { opacity: '1', transform: 'scale(1)' },
 				},
+				toastSlideIn: {
+					'0%': { opacity: '0', transform: 'translateX(16px)' },
+					'100%': { opacity: '1', transform: 'translateX(0)' },
+				},
 			},
 			tokens: {
 				fonts: {
@@ -93,6 +97,8 @@ export default defineConfig({
 					errorMuted: { value: '#991b1b' },
 					errorBg: { value: '#fef2f2' },
 					errorBorder: { value: '#fecaca' },
+					warning: { value: '#f59e0b' },
+					info: { value: '#3b82f6' },
 				},
 			},
 			textStyles: {

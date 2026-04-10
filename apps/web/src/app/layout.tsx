@@ -1,4 +1,5 @@
 import { Bricolage_Grotesque, Inter } from 'next/font/google'
+import { Toaster } from '@/shared/ui'
 import '@/shared/styles/globals.css'
 
 const headline = Bricolage_Grotesque({
@@ -17,7 +18,10 @@ const body = Inter({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" className={`${headline.variable} ${body.variable}`}>
-			<body>{children}</body>
+			<body>
+				{children}
+				<Toaster />
+			</body>
 		</html>
 	)
 }
