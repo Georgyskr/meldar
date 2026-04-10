@@ -555,10 +555,10 @@ describe('SSE stream round-trip preserves all event data', () => {
 
 	it('file_written events have monotonically increasing fileIndex', async () => {
 		const { client: anthropic } = makeToolUseMock([
-			{ path: 'a.ts', content: 'a' },
-			{ path: 'b.ts', content: 'b' },
-			{ path: 'c.ts', content: 'c' },
-			{ path: 'd.ts', content: 'd' },
+			{ path: 'src/a.ts', content: 'export const a = 1' },
+			{ path: 'src/b.ts', content: 'export const b = 2' },
+			{ path: 'src/c.ts', content: 'export const c = 3' },
+			{ path: 'src/d.ts', content: 'export const d = 4' },
 		])
 
 		const events = await collectEvents(

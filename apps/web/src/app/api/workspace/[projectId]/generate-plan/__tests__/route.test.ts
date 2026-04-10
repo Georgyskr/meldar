@@ -197,10 +197,10 @@ describe('POST /api/workspace/[projectId]/generate-plan', () => {
 		expect(json.error.code).toBe('VALIDATION_ERROR')
 	})
 
-	it('returns 400 when messages array is too short', async () => {
+	it('returns 400 when messages array is empty', async () => {
 		mockVerifyProjectOwnership.mockResolvedValue({ id: VALID_PROJECT_ID })
 		const { request, context } = makeRequest({
-			body: { messages: [{ role: 'user', content: 'hi' }] },
+			body: { messages: [] },
 			cookie: 'valid_token',
 		})
 		const res = await POST(request, context)

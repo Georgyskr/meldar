@@ -13,7 +13,7 @@ export const onboardingMessageSchema = z.object({
 export type OnboardingMessage = z.infer<typeof onboardingMessageSchema>
 
 export const generatePlanRequestSchema = z.object({
-	messages: z.array(onboardingMessageSchema).min(2).max(12),
+	messages: z.array(onboardingMessageSchema).min(1).max(12),
 })
 export type GeneratePlanRequest = z.infer<typeof generatePlanRequestSchema>
 

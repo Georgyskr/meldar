@@ -23,11 +23,11 @@ const bodySchema = z.object({
 })
 
 const proposalSchema = z.object({
-	appType: z.string().max(40),
-	style: z.string().max(30),
-	palette: z.string().max(30),
-	sections: z.array(z.string().max(30)).min(2).max(8),
-	tone: z.string().max(30),
+	appType: z.string().max(80),
+	style: z.string().max(60),
+	palette: z.string().max(60),
+	sections: z.array(z.string().max(60)).min(2).max(8),
+	tone: z.string().max(60),
 })
 
 const SYSTEM_PROMPT = `You generate app proposals. Given a user's description, output a JSON object with exactly these fields:

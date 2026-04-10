@@ -226,6 +226,7 @@ export function workspaceBuildReducer(
 				},
 			}
 		case 'deploy_failed':
+			console.error(`[deploy] failed: code=${action.code} reason=${action.reason}`)
 			return {
 				...state,
 				deployment: {

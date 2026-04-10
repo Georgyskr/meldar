@@ -17,10 +17,15 @@ describe('generatePlanRequestSchema', () => {
 		expect(result.success).toBe(true)
 	})
 
-	it('rejects messages array with fewer than 2 items', () => {
+	it('accepts messages array with 1 item (new propose-and-go flow)', () => {
 		const result = generatePlanRequestSchema.safeParse({
 			messages: [{ role: 'user', content: 'hi' }],
 		})
+		expect(result.success).toBe(true)
+	})
+
+	it('rejects empty messages array', () => {
+		const result = generatePlanRequestSchema.safeParse({ messages: [] })
 		expect(result.success).toBe(false)
 	})
 

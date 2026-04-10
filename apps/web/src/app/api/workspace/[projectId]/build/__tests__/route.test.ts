@@ -94,7 +94,7 @@ describe('sseStreamFromGenerator', () => {
 
 		expect(wire).toContain('event: started')
 		expect(wire).toContain('event: failed')
-		expect(wire).toContain('"reason":"route streaming error: boom"')
+		expect(wire).toContain('"reason":"Something went wrong. Try the step again."')
 		expect(wire).toContain('"code":"route_stream_error"')
 		expect(wire.endsWith(formatSseDone())).toBe(true)
 	})

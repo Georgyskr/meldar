@@ -60,7 +60,7 @@ export const resetLimit = redis
 export const projectsCreateLimit = redis
 	? new Ratelimit({
 			redis,
-			limiter: Ratelimit.slidingWindow(10, '1 h'),
+			limiter: Ratelimit.slidingWindow(30, '1 h'),
 			prefix: 'rl:projects:create',
 		})
 	: null
@@ -92,7 +92,7 @@ export const resendVerifyLimit = redis
 export const workspaceBuildLimit = redis
 	? new Ratelimit({
 			redis,
-			limiter: Ratelimit.slidingWindow(5, '10 m'),
+			limiter: Ratelimit.slidingWindow(30, '10 m'),
 			prefix: 'rl:workspace-build',
 		})
 	: null
@@ -100,7 +100,7 @@ export const workspaceBuildLimit = redis
 export const improvePromptLimit = redis
 	? new Ratelimit({
 			redis,
-			limiter: Ratelimit.slidingWindow(10, '5 m'),
+			limiter: Ratelimit.slidingWindow(30, '5 m'),
 			prefix: 'rl:improve-prompt',
 		})
 	: null
