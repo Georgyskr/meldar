@@ -10,7 +10,7 @@ styled-system/
 
 # build
 dist/
-build/
+/build/
 
 # env
 .env
