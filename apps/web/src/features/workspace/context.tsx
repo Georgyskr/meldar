@@ -327,7 +327,10 @@ export function WorkspaceBuildProvider({
 		for (const card of state.cards) {
 			const prevCard = prevCards.find((c) => c.id === card.id)
 			if (!prevCard) continue
-			if (prevCard.state !== card.state && (card.state === 'built' || card.state === 'failed')) {
+			if (
+				prevCard.state !== card.state &&
+				(card.state === 'building' || card.state === 'built' || card.state === 'failed')
+			) {
 				const updates: Record<string, unknown> = { state: card.state }
 				if (card.tokenCostActual !== prevCard.tokenCostActual)
 					updates.tokenCostActual = card.tokenCostActual

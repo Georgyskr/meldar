@@ -1,11 +1,11 @@
 import type { KanbanCardState } from '@/entities/kanban-card'
 
 const VALID_TRANSITIONS: Record<KanbanCardState, readonly KanbanCardState[]> = {
-	draft: ['ready', 'building'],
-	ready: ['queued', 'building'],
-	queued: ['building'],
+	draft: ['ready', 'building', 'built', 'failed'],
+	ready: ['queued', 'building', 'built', 'failed'],
+	queued: ['building', 'built', 'failed'],
 	building: ['built', 'failed'],
-	built: ['building'],
+	built: ['building', 'built'],
 	failed: ['needs_rework', 'ready', 'building'],
 	needs_rework: ['ready', 'building'],
 }
