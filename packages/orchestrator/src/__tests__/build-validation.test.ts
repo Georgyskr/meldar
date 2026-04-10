@@ -62,7 +62,10 @@ async function setupFixture(): Promise<{
 		name: 'Test project',
 		templateId: 'next-landing-v1',
 		initialFiles: [
-			{ path: 'src/app/page.tsx', content: 'export default function Page() { return <div>hi</div> }' },
+			{
+				path: 'src/app/page.tsx',
+				content: 'export default function Page() { return <div>hi</div> }',
+			},
 		],
 	})
 

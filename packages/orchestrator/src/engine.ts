@@ -163,7 +163,7 @@ export async function* orchestrateBuild(
 		}
 
 		const projectFilesBlock = buildProjectFilesBlock(projectFiles)
-		const userPromptBlock = buildUserPromptBlock(request.prompt)
+		const userPromptBlock = buildUserPromptBlock(request.prompt, request.wishes)
 
 		const anthropicStartedAt = Date.now()
 		const stream = deps.anthropic.messages.stream(

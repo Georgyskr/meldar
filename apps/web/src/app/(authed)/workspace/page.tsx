@@ -17,7 +17,6 @@ import { Heading, Text } from '@/shared/ui'
 import {
 	ContinueBanner,
 	EmailVerificationBanner,
-	FirstTimeWelcome,
 	NewProjectButton,
 } from '@/widgets/workspace'
 
@@ -118,7 +117,7 @@ export default async function WorkspaceDashboardPage() {
 						</Text>
 					</Box>
 				) : projectsList.length === 0 ? (
-					<FirstTimeWelcome email={session.email} tokenBalance={tokenBalance} />
+					<NewProjectButton />
 				) : (
 					<>
 						{activeProject && (

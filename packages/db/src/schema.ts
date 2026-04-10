@@ -191,6 +191,7 @@ export const projects = pgTable(
 		lastBuildAt: timestamp('last_build_at', { withTimezone: true }),
 		previewUrl: text('preview_url'),
 		previewUrlUpdatedAt: timestamp('preview_url_updated_at', { withTimezone: true }),
+		wishes: jsonb('wishes'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 		deletedAt: timestamp('deleted_at', { withTimezone: true }),

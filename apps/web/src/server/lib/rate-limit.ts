@@ -125,6 +125,22 @@ export const cardsLimit = redis
 		})
 	: null
 
+export const generateProposalLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(10, '5 m'),
+			prefix: 'rl:generate-proposal',
+		})
+	: null
+
+export const wishesLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(30, '1 m'),
+			prefix: 'rl:wishes',
+		})
+	: null
+
 export type RateLimitResult = { success: boolean; serviceError?: boolean }
 
 export async function checkRateLimit(

@@ -6,6 +6,8 @@ import {
 	formatSseEvent,
 	type OrchestratorEvent,
 	orchestrateBuild,
+	type ResolvedWishes,
+	resolveWishes,
 	routeModel,
 	slugForProjectId,
 } from '@meldar/orchestrator'
@@ -33,7 +35,11 @@ export type RunBuildResult =
 	  }
 	| {
 			ok: false
-			code: 'CARD_NOT_FOUND_IN_PROJECT' | 'BUILD_IN_PROGRESS' | 'INSUFFICIENT_BALANCE' | 'INTERNAL_ERROR'
+			code:
+				| 'CARD_NOT_FOUND_IN_PROJECT'
+				| 'BUILD_IN_PROGRESS'
+				| 'INSUFFICIENT_BALANCE'
+				| 'INTERNAL_ERROR'
 			message: string
 			status: number
 			activeBuildId?: string
@@ -120,6 +126,18 @@ export async function runBuildForUser(input: RunBuildInput): Promise<RunBuildRes
 		throw err
 	}
 
+	let resolvedWishes: ResolvedWishes | undefined
+	try {
+		const [proj] = await db
+			.select({ wishes: projects.wishes })
+			.from(projects)
+			.where(eq(projects.id, input.projectId))
+			.limit(1)
+		resolvedWishes = resolveWishes(proj?.wishes as Record<string, unknown> | null)
+	} catch (err) {
+		console.error('[run-build] wishes lookup failed', err instanceof Error ? err.message : err)
+	}
+
 	const rawGenerator = orchestrateBuild(
 		{
 			projectId: input.projectId,
@@ -128,20 +146,18 @@ export async function runBuildForUser(input: RunBuildInput): Promise<RunBuildRes
 			kanbanCardId: input.kanbanCardId,
 			model: routedModel,
 			signal: input.signal,
+			wishes: resolvedWishes,
 		},
 		deps,
 	)
 
 	const generator = withTokenRefund(
-		withVercelDeploy(
-			withFirstBuildEmail(rawGenerator, input.userId, input.projectId),
-			{
-				userId: input.userId,
-				projectId: input.projectId,
-				storage: deps.storage,
-				signal: input.signal,
-			},
-		),
+		withVercelDeploy(withFirstBuildEmail(rawGenerator, input.userId, input.projectId), {
+			userId: input.userId,
+			projectId: input.projectId,
+			storage: deps.storage,
+			signal: input.signal,
+		}),
 		input.userId,
 		estimatedCost,
 		input.kanbanCardId,
@@ -252,9 +268,7 @@ async function* withVercelDeploy(
 	}
 }
 
-function formatDeployErrorMessage(
-	err: { kind: string; [k: string]: unknown },
-): string {
+function formatDeployErrorMessage(err: { kind: string; [k: string]: unknown }): string {
 	if (err.kind === 'deployment_timeout') {
 		return 'The deploy is taking longer than expected. It may still finish — refresh in a minute.'
 	}
@@ -276,10 +290,7 @@ async function* withFirstBuildEmail(
 		yield event
 		if (event.type === 'committed') {
 			triggerFirstBuildEmail(userId, projectId).catch((err) => {
-				console.error(
-					'First build email failed:',
-					err instanceof Error ? err.message : 'Unknown',
-				)
+				console.error('First build email failed:', err instanceof Error ? err.message : 'Unknown')
 			})
 		}
 	}

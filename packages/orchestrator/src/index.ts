@@ -15,7 +15,10 @@ export { routeModel } from './model-routing'
 export {
 	BUILD_SYSTEM_PROMPT,
 	buildUserMessage,
+	buildUserPromptBlock,
+	type ResolvedWishes,
 } from './prompts'
+export { resolveWishes } from './resolve-wishes'
 export {
 	generateSafeSlug,
 	generateSlug,

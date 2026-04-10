@@ -117,15 +117,25 @@ export function buildProjectFilesBlock(
 ${fileBlocks || '(empty project — this is a fresh genesis build)'}`
 }
 
-export function buildUserPromptBlock(userPrompt: string): string {
-	return `# User request
+export type ResolvedWishes = {
+	appType: string
+	style: string
+	palette: string
+	sections: string[]
+	tone: string
+}
 
-${userPrompt}`
+export function buildUserPromptBlock(userPrompt: string, wishes?: ResolvedWishes): string {
+	const wishBlock = wishes
+		? `# Project creative direction (user-approved)\nApp: ${wishes.appType}\nStyle: ${wishes.style}\nPalette: ${wishes.palette}\nSections: ${wishes.sections.join(', ')}\nTone: ${wishes.tone}\n\n`
+		: ''
+	return `${wishBlock}# User request\n\n${userPrompt}`
 }
 
 export function buildUserMessage(args: {
 	projectFiles: ReadonlyArray<{ path: string; content: string }>
 	userPrompt: string
+	wishes?: ResolvedWishes
 }): string {
-	return `${buildProjectFilesBlock(args.projectFiles)}\n\n${buildUserPromptBlock(args.userPrompt)}`
+	return `${buildProjectFilesBlock(args.projectFiles)}\n\n${buildUserPromptBlock(args.userPrompt, args.wishes)}`
 }

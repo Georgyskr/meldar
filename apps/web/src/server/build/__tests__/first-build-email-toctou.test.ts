@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockSelect = vi.fn()
 const mockUpdate = vi.fn()
@@ -24,7 +24,12 @@ vi.mock('@meldar/db/client', () => ({
 vi.mock('@meldar/db/schema', () => ({
 	users: { id: 'id', email: 'email', name: 'name', firstBuildEmailSentAt: 'firstBuildEmailSentAt' },
 	projects: { id: 'id', name: 'name', userId: 'userId' },
-	kanbanCards: { id: 'id', projectId: 'projectId', taskType: 'taskType', tokenCostEstimateMin: 'tokenCostEstimateMin' },
+	kanbanCards: {
+		id: 'id',
+		projectId: 'projectId',
+		taskType: 'taskType',
+		tokenCostEstimateMin: 'tokenCostEstimateMin',
+	},
 }))
 
 vi.mock('drizzle-orm', () => ({
@@ -75,9 +80,7 @@ describe('triggerFirstBuildEmail TOCTOU fix', () => {
 			{ email: 'user@example.com', name: 'Test', firstBuildEmailSentAt: null },
 		])
 
-		mockSelect.mockResolvedValueOnce([
-			{ name: 'My Project' },
-		])
+		mockSelect.mockResolvedValueOnce([{ name: 'My Project' }])
 
 		mockUpdate.mockResolvedValueOnce({ rowCount: 0 })
 
@@ -96,9 +99,7 @@ describe('triggerFirstBuildEmail TOCTOU fix', () => {
 			{ email: 'user@example.com', name: 'Test', firstBuildEmailSentAt: null },
 		])
 
-		mockSelect.mockResolvedValueOnce([
-			{ name: 'My Project' },
-		])
+		mockSelect.mockResolvedValueOnce([{ name: 'My Project' }])
 
 		mockUpdate.mockResolvedValueOnce({ rowCount: 1 })
 

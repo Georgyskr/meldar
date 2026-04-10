@@ -221,4 +221,45 @@ describe('workspaceBuildReducer', () => {
 		})
 		expect(next.cards).toBe(before.cards)
 	})
+
+	it('card_started sets currentCardIndex, totalCards and marks pipeline active', () => {
+		const before = seed()
+		const next = workspaceBuildReducer(before, {
+			type: 'card_started',
+			cardId: 'c1',
+			cardIndex: 0,
+			totalCards: 3,
+		})
+		expect(next.currentCardIndex).toBe(0)
+		expect(next.totalCards).toBe(3)
+		expect(next.pipelineActive).toBe(true)
+	})
+
+	it('pipeline_complete clears pipeline state', () => {
+		const before = seed({
+			currentCardIndex: 2,
+			totalCards: 3,
+			pipelineActive: true,
+		} as Partial<WorkspaceBuildState>)
+		const next = workspaceBuildReducer(before, {
+			type: 'pipeline_complete',
+			totalBuilt: 3,
+			totalCards: 3,
+		})
+		expect(next.pipelineActive).toBe(false)
+		expect(next.currentCardIndex).toBeNull()
+		expect(next.totalCards).toBeNull()
+	})
+
+	it('card_started marks the referenced card as building', () => {
+		const c = makeCard({ id: 'c1', state: 'ready' })
+		const before = seed({ cards: [c] })
+		const next = workspaceBuildReducer(before, {
+			type: 'card_started',
+			cardId: 'c1',
+			cardIndex: 0,
+			totalCards: 1,
+		})
+		expect(next.cards[0].state).toBe('building')
+	})
 })

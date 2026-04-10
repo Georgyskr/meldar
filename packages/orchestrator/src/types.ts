@@ -1,4 +1,5 @@
 import type { ModelId } from '@meldar/tokens'
+import type { ResolvedWishes } from './prompts'
 
 export type OrchestrateBuildRequest = {
 	readonly projectId: string
@@ -7,6 +8,7 @@ export type OrchestrateBuildRequest = {
 	readonly prompt: string
 	readonly model?: ModelId
 	readonly signal?: AbortSignal
+	readonly wishes?: ResolvedWishes
 }
 
 export type OrchestratorEvent =
@@ -39,6 +41,9 @@ export type OrchestratorEvent =
 			rejected: boolean
 	  }
 	| { type: 'failed'; reason: string; buildId?: string; code?: string; kanbanCardId?: string }
+	| { type: 'card_started'; cardId: string; cardIndex: number; totalCards: number }
+	| { type: 'pipeline_complete'; totalBuilt: number; totalCards: number }
+	| { type: 'pipeline_failed'; cardId: string; reason: string }
 
 export type OrchestratorResult =
 	| { ok: true; buildId: string; fileCount: number; tokenCost: number; centsCharged: number }

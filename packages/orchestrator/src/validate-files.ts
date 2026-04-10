@@ -325,7 +325,10 @@ function hasDefaultExport(content: string): boolean {
 }
 
 function isAppPageFile(filePath: string): boolean {
-	return (filePath.startsWith('app/') || filePath.startsWith('src/app/')) && filePath.endsWith('/page.tsx')
+	return (
+		(filePath.startsWith('app/') || filePath.startsWith('src/app/')) &&
+		filePath.endsWith('/page.tsx')
+	)
 }
 
 export function validateStructure(files: readonly FileInput[]): ValidationResult {

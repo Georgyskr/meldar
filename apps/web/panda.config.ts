@@ -44,6 +44,18 @@ export default defineConfig({
 					'0%, 100%': { opacity: '1' },
 					'50%': { opacity: '0' },
 				},
+				glassShimmer: {
+					'0%': { backgroundPosition: '-200% 0' },
+					'100%': { backgroundPosition: '200% 0' },
+				},
+				softPulse: {
+					'0%, 100%': { opacity: '0.6', boxShadow: '0 0 0 0 rgba(98,49,83,0)' },
+					'50%': { opacity: '1', boxShadow: '0 0 8px 2px rgba(98,49,83,0.15)' },
+				},
+				checkIn: {
+					'0%': { opacity: '0', transform: 'scale(0.8)' },
+					'100%': { opacity: '1', transform: 'scale(1)' },
+				},
 			},
 			tokens: {
 				fonts: {

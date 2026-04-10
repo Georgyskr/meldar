@@ -19,6 +19,7 @@ import { checkRateLimit, mustHaveRateLimit, workspaceBuildLimit } from '@/server
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const maxDuration = 300
 
 const projectIdSchema = z.string().uuid()
 

@@ -1,9 +1,10 @@
 'use client'
 
-import { consumeSseStream } from '@meldar/orchestrator'
+import { consumeSseStream, type OrchestratorEvent } from '@meldar/orchestrator'
 import { Flex } from '@styled-system/jsx'
 import { useCallback, useState } from 'react'
 import type { ProjectStep } from '@/entities/project-step'
+import { GlassPlanView } from '@/features/glass-plan'
 import type { KanbanCard } from '@/features/kanban'
 import { FirstBuildCelebration } from '@/features/kanban'
 import { PricingDrawer, TokenNudgeBanner } from '@/features/token-economy'
@@ -68,6 +69,7 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 	const {
 		cards,
+		mode,
 		selectedTaskId,
 		activeBuildCardId,
 		writtenFiles,
@@ -87,8 +89,16 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 		[projectId, publish],
 	)
 
+	const handleStartAutoBuild = useCallback(() => {
+		void triggerAutoBuild(projectId, publish)
+	}, [projectId, publish])
+
 	if (cards.length === 0) {
 		return <WorkspaceEmptyState projectId={projectId} />
+	}
+
+	if (mode.type === 'plan') {
+		return <GlassPlanView onSelectCard={selectTask} onStartBuild={handleStartAutoBuild} />
 	}
 
 	const selectedCard = selectedTaskId ? (cards.find((c) => c.id === selectedTaskId) ?? null) : null
@@ -157,6 +167,41 @@ async function runBuild(
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Network error'
 		publish({ type: 'failed', reason: message, kanbanCardId: cardId })
+	}
+}
+
+async function triggerAutoBuild(
+	projectId: string,
+	publish: (event: OrchestratorEvent) => void,
+): Promise<void> {
+	try {
+		const response = await fetch(`/api/workspace/${projectId}/auto-build`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+		})
+
+		if (!response.ok) {
+			const body = (await response.json().catch(() => ({}))) as {
+				error?: { message?: string }
+			}
+			publish({
+				type: 'failed',
+				reason: body.error?.message ?? `Auto-build failed (${response.status})`,
+			})
+			return
+		}
+
+		if (!response.body) {
+			publish({ type: 'failed', reason: 'Server returned no stream.' })
+			return
+		}
+
+		for await (const event of consumeSseStream(response.body)) {
+			publish(event)
+		}
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Network error'
+		publish({ type: 'failed', reason: message })
 	}
 }
 

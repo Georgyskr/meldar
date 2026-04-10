@@ -165,15 +165,11 @@ describe('WorkspaceDashboardPage', () => {
 		await expect(WorkspaceDashboardPage()).rejects.toThrow(/layout should have redirected/)
 	})
 
-	it('renders the first-time welcome when the user has zero projects', async () => {
+	it('renders new project button when the user has zero projects', async () => {
 		mockListUserProjects.mockResolvedValue([])
 		const tree = (await WorkspaceDashboardPage()) as ReactElement
 		const text = findAllText(tree).join(' ')
 		expect(text).toContain('Your projects')
-		expect(text).toContain('user@example.com')
-		expect(findByTestId(tree, 'first-time-welcome')).toBe(true)
-		expect(text).toContain('Welcome user@example.com')
-		expect(text).toContain('200 tokens')
 		expect(findByTestId(tree, 'sign-out')).toBe(true)
 		expect(mockListUserProjects).toHaveBeenCalledWith('user_1')
 	})

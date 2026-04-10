@@ -55,6 +55,9 @@ export type WorkspaceBuildState = {
 	readonly deployment: DeploymentPhase
 	readonly buildsCompleted: number
 	readonly lastBuildId: string | null
+	readonly currentCardIndex: number | null
+	readonly totalCards: number | null
+	readonly pipelineActive: boolean
 }
 
 export type WorkspaceUiAction =
@@ -86,6 +89,9 @@ export function workspaceBuildInitialState(init: WorkspaceBuildInit): WorkspaceB
 			(c) => c.state === 'built' && c.parentId !== null,
 		).length,
 		lastBuildId: null,
+		currentCardIndex: null,
+		totalCards: null,
+		pipelineActive: false,
 	}
 }
 
@@ -227,6 +233,33 @@ export function workspaceBuildReducer(
 					reason: action.reason,
 					code: action.code,
 				},
+			}
+		case 'card_started':
+			return {
+				...state,
+				currentCardIndex: action.cardIndex,
+				totalCards: action.totalCards,
+				pipelineActive: true,
+				cards: updateCardState(state.cards, action.cardId, 'building'),
+			}
+		case 'pipeline_complete':
+			return {
+				...state,
+				currentCardIndex: null,
+				totalCards: null,
+				pipelineActive: false,
+			}
+		case 'pipeline_failed':
+			return {
+				...state,
+				cards: updateCardState(state.cards, action.cardId, 'failed', {
+					blockedReason: action.reason,
+				}),
+				activeBuildCardId: null,
+				currentCardIndex: null,
+				totalCards: null,
+				pipelineActive: false,
+				failureMessage: action.reason,
 			}
 		default:
 			return state

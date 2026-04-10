@@ -176,7 +176,12 @@ describe('orchestrateBuild', () => {
 		})
 
 		it('debits the token ledger by the actual cost', async () => {
-			const { client: anthropic } = makeToolUseMock([{ path: 'src/app/page.tsx', content: 'export default function Page() { return <div>hi</div> }' }])
+			const { client: anthropic } = makeToolUseMock([
+				{
+					path: 'src/app/page.tsx',
+					content: 'export default function Page() { return <div>hi</div> }',
+				},
+			])
 			const before = await fixture.ledger.getSnapshot(fixture.userId)
 
 			await collectEvents(
@@ -203,7 +208,10 @@ describe('orchestrateBuild', () => {
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
-				{ path: 'src/app/page.tsx', content: 'export default function Page() { return <div>hi</div> }' },
+				{
+					path: 'src/app/page.tsx',
+					content: 'export default function Page() { return <div>hi</div> }',
+				},
 				{ path: 'src/lib/util.ts', content: 'export function util() { return 1 }' },
 			])
 
