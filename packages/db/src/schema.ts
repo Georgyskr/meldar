@@ -439,6 +439,7 @@ export type AiCallKind =
 	| 'discovery_analyze'
 	| 'discovery_adaptive'
 	| 'discovery_insights'
+	| 'generate_proposal'
 export type AiCallStatus = 'ok' | 'error' | 'truncated' | 'aborted' | 'refused'
 
 export const aiCallLog = pgTable(
