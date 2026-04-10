@@ -3,9 +3,9 @@ import { Redis } from '@upstash/redis'
 import { recordDeployment } from './deployment-log'
 import { type DeployInput, type DeployResult, deployToVercel } from './vercel-deploy'
 
-const DEFAULT_USER_HOURLY_CAP = 3
-const DEFAULT_USER_DAILY_CAP = 10
-const DEFAULT_GLOBAL_DAILY_CAP = 200
+const DEFAULT_USER_HOURLY_CAP = 15
+const DEFAULT_USER_DAILY_CAP = 50
+const DEFAULT_GLOBAL_DAILY_CAP = 500
 
 function getRedis(): Redis | null {
 	if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
