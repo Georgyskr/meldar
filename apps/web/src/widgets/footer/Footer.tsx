@@ -3,7 +3,6 @@
 import { Box, Flex, Grid, styled, VStack } from '@styled-system/jsx'
 import Link from 'next/link'
 import { requestConsentReopen } from '@/features/cookie-consent'
-import { requestDataTermsReopen } from '@/features/discovery-flow/lib/data-terms'
 import { Heading, Text } from '@/shared/ui'
 
 const StyledLink = styled(Link)
@@ -75,7 +74,6 @@ export function Footer() {
 					<FooterLink href="/privacy-policy">Privacy</FooterLink>
 					<FooterLink href="/terms">Terms</FooterLink>
 					<FooterButton onClick={() => requestConsentReopen()}>Cookies</FooterButton>
-					<FooterButton onClick={() => requestDataTermsReopen()}>Data terms</FooterButton>
 				</FooterColumn>
 
 				<FooterColumn number="III" title="Company">
