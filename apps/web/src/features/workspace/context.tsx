@@ -271,9 +271,21 @@ function persistCardState(projectId: string, cardId: string, updates: Record<str
 		method: 'PATCH',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(updates),
-	}).catch((err) => {
-		console.error('Failed to persist card state:', err instanceof Error ? err.message : 'Unknown')
 	})
+		.then(async (res) => {
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}))
+				console.error(
+					`[persistCardState] PATCH ${res.status} for card=${cardId}:`,
+					JSON.stringify(body),
+					'sent:',
+					JSON.stringify(updates),
+				)
+			}
+		})
+		.catch((err) => {
+			console.error('[persistCardState] network error:', err instanceof Error ? err.message : err)
+		})
 }
 
 type WorkspaceBuildContextValue = WorkspaceBuildState & {
