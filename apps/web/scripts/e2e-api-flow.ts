@@ -31,7 +31,7 @@ async function api(
 	if (authCookie) headers.Cookie = `meldar-auth=${authCookie}`
 
 	const controller = new AbortController()
-	const timer = setTimeout(() => controller.abort(), opts?.timeout ?? 30000)
+	const timer = setTimeout(() => controller.abort(), opts?.timeout ?? 10000)
 
 	try {
 		const res = await fetch(url, {

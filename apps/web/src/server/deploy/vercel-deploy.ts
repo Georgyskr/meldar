@@ -336,8 +336,7 @@ function createVercelClient(
 						installCommand: 'npm install --ignore-scripts',
 						buildCommand: 'npx panda codegen --silent && npx next build',
 					},
-					gitSource: null,
-				}),
+					}),
 			})
 			if (!res.ok) {
 				const text = await res.text()

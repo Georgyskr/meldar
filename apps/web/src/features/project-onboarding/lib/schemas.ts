@@ -22,8 +22,12 @@ export const subtaskOutputSchema = z.object({
 	description: z.string().max(300),
 	whatYouLearn: z.string().max(300),
 	taskType: z.enum(['feature', 'page', 'integration', 'data', 'fix', 'polish']),
-	componentType: z.enum(COMPONENT_TYPE_IDS),
-	acceptanceCriteria: z.array(z.string()).min(1).max(3),
+	componentType: z.string().min(1).max(40).transform((val) => {
+		const ids = COMPONENT_VOCABULARY.map((c) => c.id)
+		if (ids.includes(val as ComponentTypeId)) return val
+		return 'page'
+	}),
+	acceptanceCriteria: z.array(z.string()).min(1).max(5),
 })
 export type SubtaskOutput = z.infer<typeof subtaskOutputSchema>
 

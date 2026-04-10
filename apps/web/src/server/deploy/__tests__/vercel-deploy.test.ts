@@ -5,7 +5,7 @@ describe('deployToVercel', () => {
 	const ORIGINAL_ENV = { ...process.env }
 
 	beforeEach(() => {
-		process.env.VERCEL_DEPLOY_TOKEN = 'test-token'
+		process.env.MELDAR_DEPLOY_TOKEN = 'test-token'
 		process.env.VERCEL_TEAM_ID = 'team_xxx'
 		process.env.VERCEL_APPS_DOMAIN = 'apps.meldar.ai'
 	})
@@ -24,8 +24,8 @@ describe('deployToVercel', () => {
 		}) as unknown as typeof fetch
 	}
 
-	it('returns not_configured when VERCEL_DEPLOY_TOKEN is missing', async () => {
-		delete process.env.VERCEL_DEPLOY_TOKEN
+	it('returns not_configured when MELDAR_DEPLOY_TOKEN is missing', async () => {
+		delete process.env.MELDAR_DEPLOY_TOKEN
 		const result = await deployToVercel({
 			slug: 'quiet-forest-4721',
 			files: [{ path: 'package.json', content: '{}' }],
@@ -34,7 +34,7 @@ describe('deployToVercel', () => {
 		if (!result.ok) {
 			expect(result.error.kind).toBe('not_configured')
 			if (result.error.kind === 'not_configured') {
-				expect(result.error.missing).toContain('VERCEL_DEPLOY_TOKEN')
+				expect(result.error.missing).toContain('MELDAR_DEPLOY_TOKEN')
 			}
 		}
 	})
