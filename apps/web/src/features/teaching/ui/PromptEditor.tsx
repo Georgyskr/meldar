@@ -169,6 +169,11 @@ export function PromptEditor({ projectId, card, buildsCompleted, onMake }: Props
 							background="transparent"
 							border="none"
 							cursor="pointer"
+							minHeight="44px"
+							minWidth="44px"
+							display="inline-flex"
+							alignItems="center"
+							justifyContent="center"
 							padding={0}
 							_focusVisible={{
 								outline: '2px solid',

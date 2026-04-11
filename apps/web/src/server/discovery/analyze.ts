@@ -267,7 +267,8 @@ function buildDataContext(input: AnalysisInput): string {
 
 	if (input.screenTime) {
 		const st = input.screenTime
-		const appList = st.apps
+		const appList = [...st.apps]
+			.sort((a, b) => b.usageMinutes - a.usageMinutes)
 			.slice(0, 10)
 			.map((a) => `- ${a.name}: ${a.usageMinutes} min (${a.category})`)
 			.join('\n')
@@ -419,37 +420,43 @@ export async function runCrossAnalysis(input: AnalysisInput): Promise<DiscoveryA
 
 	const analysisToolOutputSchema = z.object({
 		recommendedApp: z.object({
-			name: z.string(),
-			description: z.string(),
-			whyThisUser: z.string(),
+			name: z.string().min(1).max(200),
+			description: z.string().min(1).max(2000),
+			whyThisUser: z.string().min(1).max(2000),
 			complexity: z.enum(['beginner', 'intermediate']),
-			estimatedBuildTime: z.string(),
+			estimatedBuildTime: z.string().min(1).max(100),
 		}),
-		additionalApps: z.array(
-			z.object({
-				name: z.string(),
-				description: z.string(),
-				whyThisUser: z.string(),
-			}),
-		),
-		personalizedModules: z.array(
-			z.object({
-				id: z.string(),
-				title: z.string(),
-				description: z.string(),
-			}),
-		),
-		keyInsights: z.array(
-			z.object({
-				headline: z.string(),
-				detail: z.string(),
-				source: z.string(),
-			}),
-		),
+		additionalApps: z
+			.array(
+				z.object({
+					name: z.string().min(1).max(200),
+					description: z.string().min(1).max(2000),
+					whyThisUser: z.string().min(1).max(2000),
+				}),
+			)
+			.max(10),
+		personalizedModules: z
+			.array(
+				z.object({
+					id: z.string().min(1).max(100),
+					title: z.string().min(1).max(200),
+					description: z.string().min(1).max(2000),
+				}),
+			)
+			.max(10),
+		keyInsights: z
+			.array(
+				z.object({
+					headline: z.string().min(1).max(500),
+					detail: z.string().min(1).max(1000),
+					source: z.string().min(1).max(100),
+				}),
+			)
+			.max(20),
 		dataProfile: z.object({
-			totalSourcesAnalyzed: z.number(),
-			topProblemAreas: z.array(z.string()),
-			aiUsageLevel: z.string(),
+			totalSourcesAnalyzed: z.number().nonnegative(),
+			topProblemAreas: z.array(z.string().min(1).max(200)).max(10),
+			aiUsageLevel: z.string().min(1).max(100),
 		}),
 	})
 

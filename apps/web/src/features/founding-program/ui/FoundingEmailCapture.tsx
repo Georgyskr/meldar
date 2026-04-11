@@ -12,7 +12,10 @@ export function FoundingEmailCapture() {
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
 		const ok = await subscribe({ founding: true })
-		if (ok) trackEvent({ name: 'founding_signup' })
+		if (ok) {
+			trackEvent({ name: 'email_captured', source: 'founding' })
+			trackEvent({ name: 'founding_signup' })
+		}
 	}
 
 	if (status === 'success') {

@@ -152,12 +152,7 @@ export async function runBuildForUser(input: RunBuildInput): Promise<RunBuildRes
 	)
 
 	const generator = withTokenRefund(
-		withVercelDeploy(withFirstBuildEmail(rawGenerator, input.userId, input.projectId), {
-			userId: input.userId,
-			projectId: input.projectId,
-			storage: deps.storage,
-			signal: input.signal,
-		}),
+		withFirstBuildEmail(rawGenerator, input.userId, input.projectId),
 		input.userId,
 		estimatedCost,
 		input.kanbanCardId,

@@ -1,9 +1,9 @@
 import { styled, VStack } from '@styled-system/jsx'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { TrackedEmailCapture } from '@/features/analytics'
 import { SITE_CONFIG } from '@/shared/config/seo'
 import { Heading, Text } from '@/shared/ui'
-import { EmailCapture } from '@/shared/ui/EmailCapture'
 
 const StyledLink = styled(Link)
 
@@ -27,7 +27,7 @@ export default function ComingSoonPage() {
 					when they launch.
 				</Text>
 
-				<EmailCapture />
+				<TrackedEmailCapture source="waitlist" />
 
 				<VStack gap={3} paddingBlockStart={4}>
 					<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">

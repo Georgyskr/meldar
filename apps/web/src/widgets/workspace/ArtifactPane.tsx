@@ -1,7 +1,7 @@
 'use client'
 
 import { Box, Flex, HStack, styled, VStack } from '@styled-system/jsx'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KanbanCard } from '@/entities/kanban-card'
 import { DecisionsCard, PromptEditor } from '@/features/teaching'
 import type { BuildReceipt, DeploymentPhase, WrittenFile } from '@/features/workspace'
@@ -40,6 +40,7 @@ export function ArtifactPane({
 }: Props) {
 	const isBuilding = activeBuildCardId !== null
 	const hasReceipt = lastBuildReceipt !== null && writtenFiles.length > 0 && !isBuilding
+	const doneRef = useRef<HTMLDivElement>(null)
 
 	let state: 'empty' | 'task-focus' | 'streaming' | 'done' | 'failed'
 	if (failureMessage && !isBuilding) state = 'failed'
@@ -47,6 +48,15 @@ export function ArtifactPane({
 	else if (hasReceipt) state = 'done'
 	else if (selectedCard) state = 'task-focus'
 	else state = 'empty'
+
+	const prevStateRef = useRef(state)
+	useEffect(() => {
+		const prev = prevStateRef.current
+		prevStateRef.current = state
+		if (prev === 'streaming' && (state === 'done' || state === 'failed')) {
+			doneRef.current?.focus()
+		}
+	}, [state])
 
 	return (
 		<Flex
@@ -116,7 +126,7 @@ export function ArtifactPane({
 				)}
 
 				{state === 'streaming' && (
-					<VStack alignItems="stretch" gap={4} maxWidth="640px">
+					<VStack alignItems="stretch" gap={4} maxWidth="640px" aria-live="polite">
 						<VStack alignItems="stretch" gap={2}>
 							<Text textStyle="label.sm" color="onSurfaceVariant">
 								Making now
@@ -165,18 +175,28 @@ export function ArtifactPane({
 				)}
 
 				{state === 'done' && lastBuildReceipt && (
-					<DonePanel
-						projectId={projectId}
-						receipt={lastBuildReceipt}
-						writtenFiles={writtenFiles}
-						deployment={deployment}
-						buildsCompleted={buildsCompleted}
-						lastBuildId={lastBuildId}
-					/>
+					<Box ref={doneRef} tabIndex={-1} outline="none">
+						<DonePanel
+							projectId={projectId}
+							receipt={lastBuildReceipt}
+							writtenFiles={writtenFiles}
+							deployment={deployment}
+							buildsCompleted={buildsCompleted}
+							lastBuildId={lastBuildId}
+						/>
+					</Box>
 				)}
 
 				{state === 'failed' && (
-					<VStack alignItems="stretch" gap={3} maxWidth="560px">
+					<VStack
+						ref={doneRef}
+						tabIndex={-1}
+						alignItems="stretch"
+						gap={3}
+						maxWidth="560px"
+						outline="none"
+						aria-live="assertive"
+					>
 						<VStack alignItems="stretch" gap={2}>
 							<Text textStyle="label.sm" color="error">
 								Something went wrong
@@ -404,6 +424,7 @@ function DeployStrip({ deployment }: { readonly deployment: DeploymentPhase }) {
 							display="inline-flex"
 							alignItems="center"
 							gap={2}
+							minHeight="44px"
 							paddingBlock={3}
 							paddingInline={5}
 							background="primary"
@@ -476,6 +497,9 @@ function CopyLinkButton({ url }: { readonly url: string }) {
 		<styled.button
 			type="button"
 			onClick={handleCopy}
+			aria-label={copied ? 'Link copied' : 'Copy link to clipboard'}
+			minHeight="44px"
+			minWidth="44px"
 			paddingBlock={3}
 			paddingInline={5}
 			background="transparent"

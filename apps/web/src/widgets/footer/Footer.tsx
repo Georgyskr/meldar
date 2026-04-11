@@ -60,7 +60,7 @@ export function Footer() {
 							Learn to fish or fall behind.
 						</Text>
 					</Text>
-					<Text textStyle="tertiary.sm" color="white/30">
+					<Text textStyle="tertiary.sm" color="white/60">
 						Est. Helsinki · 2026
 					</Text>
 				</VStack>
@@ -78,10 +78,10 @@ export function Footer() {
 
 				<FooterColumn number="III" title="Company">
 					<FooterLink href="mailto:gosha.skryuchenkov@gmail.com">Contact</FooterLink>
-					<Text textStyle="italic.sm" color="white/30">
+					<Text textStyle="italic.sm" color="white/60">
 						ClickTheRoadFi Oy
 					</Text>
-					<Text textStyle="italic.sm" color="white/30">
+					<Text textStyle="italic.sm" color="white/60">
 						Helsinki, Finland
 					</Text>
 				</FooterColumn>
@@ -101,7 +101,7 @@ export function Footer() {
 					flexDir={{ base: 'column', md: 'row' }}
 					gap={4}
 				>
-					<Text textStyle="tertiary.sm" color="white/30">
+					<Text textStyle="tertiary.sm" color="white/60">
 						&copy; {new Date().getFullYear()} ClickTheRoadFi Oy · Y-tunnus 3362511-1
 					</Text>
 					<Text textStyle="italic.md" color="white/50">

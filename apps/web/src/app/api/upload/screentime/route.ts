@@ -86,7 +86,8 @@ export async function POST(request: NextRequest) {
 
 		const id = nanoid(12)
 		const totalHours = Math.round((extraction.totalScreenTimeMinutes / 60) * 10) / 10
-		const topApp = extraction.apps[0]?.name || 'Unknown'
+		const sortedApps = [...extraction.apps].sort((a, b) => b.usageMinutes - a.usageMinutes)
+		const topApp = sortedApps[0]?.name || 'Unknown'
 		const insightText = insights[0]?.headline || `${totalHours} hours of screen time`
 
 		const db = getDb()

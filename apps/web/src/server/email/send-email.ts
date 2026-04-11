@@ -85,6 +85,9 @@ export async function sendWelcomeEmail(to: string, name: string | null): Promise
 			<p style="font-size: 14px; color: #81737a; margin-top: 24px;">
 				If you didn't sign up for Meldar, you can ignore this email.
 			</p>
+			<p style="font-size: 12px; color: #a0949a; margin-top: 32px; text-align: center;">
+				<a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(to)}" style="color: #a0949a; text-decoration: underline;">Unsubscribe</a>
+			</p>
 		`),
 	})
 }
@@ -102,6 +105,9 @@ export async function sendFirstBuildEmail(to: string, projectName: string): Prom
 				Your ${escapeHtml(projectName)} just got its first code. Come see it.
 			</p>
 			${ctaButton(`${baseUrl}/workspace`, 'See your preview')}
+			<p style="font-size: 12px; color: #a0949a; margin-top: 32px; text-align: center;">
+				<a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(to)}" style="color: #a0949a; text-decoration: underline;">Unsubscribe</a>
+			</p>
 		`),
 	})
 }
@@ -125,8 +131,8 @@ export async function sendNudgeEmail(
 					${greeting} you signed up yesterday but haven't started building yet. It takes 2 minutes.
 				</p>
 				${ctaButton(`${baseUrl}/workspace`, 'Start building')}
-				<p style="font-size: 14px; color: #81737a; margin-top: 24px;">
-					If you no longer wish to receive these emails, simply ignore this message.
+				<p style="font-size: 12px; color: #a0949a; margin-top: 32px; text-align: center;">
+					<a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(to)}" style="color: #a0949a; text-decoration: underline;">Unsubscribe</a>
 				</p>
 			`),
 		})
@@ -142,8 +148,8 @@ export async function sendNudgeEmail(
 					${greeting} been a week since you joined. Ready to build something?
 				</p>
 				${ctaButton(`${baseUrl}/workspace`, 'Start building')}
-				<p style="font-size: 14px; color: #81737a; margin-top: 24px;">
-					If you no longer wish to receive these emails, simply ignore this message.
+				<p style="font-size: 12px; color: #a0949a; margin-top: 32px; text-align: center;">
+					<a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(to)}" style="color: #a0949a; text-decoration: underline;">Unsubscribe</a>
 				</p>
 			`),
 		})

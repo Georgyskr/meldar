@@ -4,12 +4,21 @@ import { Flex, styled } from '@styled-system/jsx'
 import { useEmailSubscribe } from '@/shared/lib/use-email-subscribe'
 import { Text } from '@/shared/ui'
 
-export function EmailCapture({ id, dark }: { id?: string; dark?: boolean }) {
+export function EmailCapture({
+	id,
+	dark,
+	onSuccess,
+}: {
+	id?: string
+	dark?: boolean
+	onSuccess?: () => void
+}) {
 	const { email, setEmail, status, subscribe } = useEmailSubscribe()
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		await subscribe()
+		const ok = await subscribe()
+		if (ok) onSuccess?.()
 	}
 
 	if (status === 'success') {

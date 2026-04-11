@@ -19,6 +19,8 @@ export function RoadmapButton() {
 				border="1px solid"
 				borderColor="outlineVariant/40"
 				borderRadius="full"
+				minHeight="44px"
+				minWidth="44px"
 				paddingBlock={1}
 				paddingInline={3}
 				cursor="pointer"

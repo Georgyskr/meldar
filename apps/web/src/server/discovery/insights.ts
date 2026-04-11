@@ -225,7 +225,8 @@ export function generateInsights(
 	const platform = extraction.platform
 	const { focusMode } = options
 
-	const topApp = extraction.apps[0]
+	const sortedApps = [...extraction.apps].sort((a, b) => b.usageMinutes - a.usageMinutes)
+	const topApp = sortedApps[0]
 	if (topApp) {
 		const hours = (topApp.usageMinutes / 60).toFixed(1)
 		const weeklyHours = Math.round((topApp.usageMinutes / 60) * 7)

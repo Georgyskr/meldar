@@ -1,17 +1,20 @@
 import { getDb } from '@meldar/db/client'
 import { subscribers } from '@meldar/db/schema'
+import { count, eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { z } from 'zod'
 import { checkRateLimit, subscribeLimit } from '@/server/lib/rate-limit'
 
+const FOUNDING_MEMBER_CAP = 15
+
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const subscribeSchema = z.object({
-	email: z.string().email(),
+	email: z.string().min(5).max(254).email(),
 	founding: z.boolean().optional(),
-	xrayId: z.string().optional(),
-	source: z.string().optional(),
+	xrayId: z.string().min(1).max(32).optional(),
+	source: z.string().min(1).max(64).optional(),
 })
 
 function escapeHtml(str: string) {
@@ -46,13 +49,23 @@ export async function POST(request: NextRequest) {
 		const { email, founding, xrayId, source } = parsed.data
 
 		const db = getDb()
+
+		let isFoundingMember = false
+		if (founding) {
+			const [result] = await db
+				.select({ count: count() })
+				.from(subscribers)
+				.where(eq(subscribers.foundingMember, true))
+			isFoundingMember = (result?.count ?? 0) < FOUNDING_MEMBER_CAP
+		}
+
 		await db
 			.insert(subscribers)
 			.values({
 				email,
-				source: source || (xrayId ? 'xray' : founding ? 'founding' : 'landing'),
+				source: source || (xrayId ? 'xray' : isFoundingMember ? 'founding' : 'landing'),
 				xrayId: xrayId || null,
-				foundingMember: !!founding,
+				foundingMember: isFoundingMember,
 			})
 			.onConflictDoNothing()
 
@@ -78,6 +91,9 @@ export async function POST(request: NextRequest) {
 					<p style="font-size: 14px; color: #81737a; margin-top: 32px;">
 						Questions? Just reply to this email. A human reads it.<br/>
 						— The Meldar team
+					</p>
+					<p style="font-size: 12px; color: #a0949a; margin-top: 32px; text-align: center;">
+						<a href="https://meldar.ai/unsubscribe?email=${encodeURIComponent(email)}" style="color: #a0949a; text-decoration: underline;">Unsubscribe</a>
 					</p>
 				</div>
 			`,

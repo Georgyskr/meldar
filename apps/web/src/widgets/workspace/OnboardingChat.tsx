@@ -221,7 +221,12 @@ export function OnboardingChat({ projectId }: { readonly projectId: string }) {
 			)}
 
 			{phase === 'proposing' && (
-				<Text textStyle="secondary.sm" color="onSurfaceVariant" textAlign="center">
+				<Text
+					textStyle="secondary.sm"
+					color="onSurfaceVariant"
+					textAlign="center"
+					aria-live="polite"
+				>
 					Thinking about your app...
 				</Text>
 			)}
@@ -231,7 +236,12 @@ export function OnboardingChat({ projectId }: { readonly projectId: string }) {
 			)}
 
 			{phase === 'generating' && (
-				<Text textStyle="secondary.sm" color="onSurfaceVariant" textAlign="center">
+				<Text
+					textStyle="secondary.sm"
+					color="onSurfaceVariant"
+					textAlign="center"
+					aria-live="polite"
+				>
 					Setting up your plan...
 				</Text>
 			)}
