@@ -1,10 +1,33 @@
 const BASE_DOMAIN = 'meldar.ai'
 
 const RESERVED_SLUGS = new Set([
-	'api', 'admin', 'www', 'mail', 'app', 'workspace', 'ns1', 'ns2',
-	'localhost', 'ftp', 'smtp', 'staging', 'dev', 'test', 'status',
-	'help', 'support', 'billing', 'dashboard', 'login', 'signup',
-	'onboarding', 'settings', 'account', 'cdn', 'assets', 'static',
+	'api',
+	'admin',
+	'www',
+	'mail',
+	'app',
+	'workspace',
+	'ns1',
+	'ns2',
+	'localhost',
+	'ftp',
+	'smtp',
+	'staging',
+	'dev',
+	'test',
+	'status',
+	'help',
+	'support',
+	'billing',
+	'dashboard',
+	'login',
+	'signup',
+	'onboarding',
+	'settings',
+	'account',
+	'cdn',
+	'assets',
+	'static',
 ])
 
 export function generateSlug(name: string): string {

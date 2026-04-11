@@ -1,7 +1,7 @@
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
 import { getDb } from '@meldar/db/client'
 import { projects } from '@meldar/db/schema'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -52,7 +52,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		const { success } = await bookingLimiter.limit(ip)
 		if (!success) {
 			return NextResponse.json(
-				{ error: { code: 'RATE_LIMITED', message: 'Too many booking requests. Try again in a minute.' } },
+				{
+					error: {
+						code: 'RATE_LIMITED',
+						message: 'Too many booking requests. Try again in a minute.',
+					},
+				},
 				{ status: 429 },
 			)
 		}
