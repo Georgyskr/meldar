@@ -57,6 +57,7 @@ CEU score: 7.7 PURSUE. Unit economics 8.3, technical 8.2, problem validation 8.1
 **Subdomain provisioning:**
 - [x] Slug generation + collision handling — done, `generateSlug()` + `provisionSubdomain()` with 5-retry collision resolution. 17 tests.
 - [x] Integrated into project creation + onboarding routes — both return `subdomain` in response.
+- [ ] Re-add ALL cron jobs to vercel.json — removed to deploy on Hobby plan. Needs Vercel Pro ($20/mo) or external cron (e.g., cron-job.org, Upstash QStash). Routes: `/api/cron/agent-tick` (every 1min), `/api/cron/purge` (daily 3am), `/api/cron/email-touchpoints` (daily 9am), `/api/cron/spend-alert` (daily 9am).
 - [ ] Wildcard DNS: `*.meldar.ai` CNAME → `cname.vercel-dns.com` — needs Cloudflare config (manual, one-time)
 - [ ] SSL automatic via Vercel/Let's Encrypt. Zero config. (Works once wildcard DNS is set)
 
