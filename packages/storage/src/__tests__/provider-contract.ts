@@ -1,22 +1,3 @@
-/**
- * Reusable contract tests for ProjectStorage implementations.
- *
- * Every ProjectStorage implementation (InMemory, Postgres) must satisfy
- * these tests. The Postgres impl will import `runProjectStorageContract` and
- * run it against a real Neon dev branch in an integration test harness.
- *
- * Tests cover the critical path plus the invariants the 3 engineering reviews
- * flagged as non-negotiable:
- *   - Genesis project atomicity (all 4 tables populated or none)
- *   - Build streaming dedup by path within a single build
- *   - Commit flips HEAD + updates last_build_at
- *   - Fail leaves HEAD alone
- *   - Rollback creates a new event + restores file set + flips HEAD
- *   - Content addressing dedups identical files across builds
- *   - Path safety is enforced at the storage boundary
- *   - File count + size caps are enforced
- */
-
 import { SandboxUnsafePathError } from '@meldar/sandbox'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { BlobStorage } from '../blob'
@@ -31,22 +12,6 @@ import {
 import type { ProjectStorage } from '../provider'
 import { MAX_FILES_PER_BUILD } from '../types'
 
-/**
- * Contract test runner. Call from an implementation's own test file like:
- *
- *   runProjectStorageContract('InMemory', () => {
- *     const blob = new InMemoryBlobStorage()
- *     return { storage: new InMemoryProjectStorage(blob), blob }
- *   })
- *
- * Each test gets a fresh storage instance.
- *
- * `softDeleteProject` is a test-only escape hatch: there is no public
- * `deleteProject` API, but several contract behaviors must be pinned against
- * a soft-deleted project. Implementations supply a callback that flips the
- * project's `deleted_at` directly (in-memory: mutate the map; postgres:
- * UPDATE the row).
- */
 export type ProjectStorageContractFactory = () => {
 	storage: ProjectStorage
 	blob: BlobStorage
@@ -69,8 +34,6 @@ export function runProjectStorageContract(
 			softDeleteProject = f.softDeleteProject
 		})
 
-		// ── createProject ─────────────────────────────────────────────────
-
 		describe('createProject', () => {
 			it('creates a project with a genesis build and initial files', async () => {
 				const result = await storage.createProject({
@@ -87,7 +50,7 @@ export function runProjectStorageContract(
 				expect(result.project.userId).toBe('user_1')
 				expect(result.project.name).toBe('Test project')
 				expect(result.project.templateId).toBe('next-landing-v1')
-				expect(result.project.tier).toBe('builder') // default
+				expect(result.project.tier).toBe('builder')
 				expect(result.project.currentBuildId).toBe(result.genesisBuild.id)
 				expect(result.project.deletedAt).toBeNull()
 				expect(result.project.lastBuildAt).not.toBeNull()
@@ -166,8 +129,6 @@ export function runProjectStorageContract(
 			})
 		})
 
-		// ── getProject / getCurrentFiles ──────────────────────────────────
-
 		describe('getProject + getCurrentFiles', () => {
 			it('fetches a created project', async () => {
 				const created = await storage.createProject({
@@ -225,8 +186,6 @@ export function runProjectStorageContract(
 			})
 		})
 
-		// ── beginBuild / writeFile / commit / fail ────────────────────────
-
 		describe('build streaming', () => {
 			it('writes files into a new build and commits HEAD', async () => {
 				const created = await storage.createProject({
@@ -254,11 +213,9 @@ export function runProjectStorageContract(
 				expect(committed.tokenCost).toBe(1234)
 				expect(committed.triggeredBy).toBe('kanban_card')
 
-				// HEAD flipped
 				const project = await storage.getProject(created.project.id, 'user_1')
 				expect(project.currentBuildId).toBe(committed.id)
 
-				// Live files reflect the new build
 				const files = await storage.getCurrentFiles(created.project.id)
 				expect(files).toHaveLength(2)
 				const page = files.find((f) => f.path === 'src/app/page.tsx')
@@ -283,7 +240,6 @@ export function runProjectStorageContract(
 				expect(failed.status).toBe('failed')
 				expect(failed.errorMessage).toBe('Sonnet crashed')
 
-				// HEAD still on genesis
 				const project = await storage.getProject(created.project.id, 'user_1')
 				expect(project.currentBuildId).toBe(genesisId)
 			})
@@ -358,11 +314,6 @@ export function runProjectStorageContract(
 			})
 
 			it('does not leak mid-build writes to getCurrentFiles before commit', async () => {
-				// Atomicity invariant: a Build is the unit of truth. Writes inside
-				// a streaming build MUST NOT be visible via getCurrentFiles or
-				// readFile until commit() flips HEAD. Without this, a failure
-				// after the 5th writeFile leaves the live working set in a
-				// half-mutated state that doesn't match any committed build.
 				const created = await storage.createProject({
 					userId: 'user_1',
 					name: 'X',
@@ -377,20 +328,13 @@ export function runProjectStorageContract(
 				await ctx.writeFile({ path: 'page.tsx', content: 'WIP-not-committed' })
 				await ctx.writeFile({ path: 'new.tsx', content: 'also-not-committed' })
 
-				// Mid-build: live files must still be the genesis set.
 				const liveFiles = await storage.getCurrentFiles(created.project.id)
 				expect(liveFiles.map((f) => f.path).sort()).toEqual(['page.tsx'])
 
-				// And the live content must still be the genesis content.
 				expect(await storage.readFile(created.project.id, 'page.tsx')).toBe('genesis')
 			})
 
 			it('reverts mid-build writes if the build fails (live files unchanged)', async () => {
-				// Companion to the previous test: if the build fails after some
-				// writeFile calls, fail() must leave the live working set
-				// untouched. The blob store may retain orphaned content (a GC
-				// reaper handles that), but project_files MUST equal the
-				// genesis set.
 				const created = await storage.createProject({
 					userId: 'user_1',
 					name: 'X',
@@ -424,7 +368,6 @@ export function runProjectStorageContract(
 				})
 				const hash = created.files[0].contentHash
 
-				// New build that writes the exact same content
 				const ctx = await storage.beginBuild({
 					projectId: created.project.id,
 					triggeredBy: 'kanban_card',
@@ -432,7 +375,6 @@ export function runProjectStorageContract(
 				await ctx.writeFile({ path: 'b.ts', content: 'x' }) // same bytes, different path
 				await ctx.commit()
 
-				// Same contentHash → same blob key → one blob in store
 				const files = await storage.getCurrentFiles(created.project.id)
 				const a = files.find((f) => f.path === 'a.ts')
 				const b = files.find((f) => f.path === 'b.ts')
@@ -441,16 +383,6 @@ export function runProjectStorageContract(
 			})
 
 			it('idempotent same-hash rewrite of an existing path bumps version but preserves content', async () => {
-				// Edge case from the data engineer review: a Build that writes
-				// the SAME content to an EXISTING path (Sonnet emits a no-op
-				// "edit"). The blob put is content-addressed and dedup'd, the
-				// build_files row is staged, and on commit the project_files
-				// upsert bumps `version` — every committed Build is a distinct
-				// event in the history even if its file delta is empty in
-				// content terms. The thing this test is really guarding against
-				// is a regression where the upsert on conflict path silently
-				// drops the staged row, leaves project_files unchanged, and
-				// makes the Build invisible in the DAG.
 				const created = await storage.createProject({
 					userId: 'user_1',
 					name: 'X',
@@ -470,9 +402,6 @@ export function runProjectStorageContract(
 				expect(ctx.fileCount).toBe(1)
 				await ctx.commit()
 
-				// Content is unchanged, hash is unchanged, but version has been
-				// bumped because each commit is a new event. The content-
-				// addressed blob layer dedup'd the put, so storage didn't grow.
 				const liveAfter = await storage.getCurrentFiles(created.project.id)
 				const page = liveAfter.find((f) => f.path === 'page.tsx')
 				expect(page?.contentHash).toBe(originalHash)
@@ -481,13 +410,6 @@ export function runProjectStorageContract(
 			})
 
 			it('rejects writeFile that would exceed MAX_FILES_PER_BUILD distinct paths', async () => {
-				// Edge case from the data engineer review: a runaway Sonnet
-				// session emitting hundreds of write_file tool_uses must be
-				// stopped at the contract boundary, not after the build
-				// trashes the staging area. Both providers count distinct
-				// paths in the build (re-writes of the same path don't count),
-				// so this test forces MAX_FILES_PER_BUILD distinct paths to
-				// land cleanly and then asserts the (N+1)-th throws.
 				const created = await storage.createProject({
 					userId: 'user_1',
 					name: 'X',
@@ -498,21 +420,18 @@ export function runProjectStorageContract(
 					projectId: created.project.id,
 					triggeredBy: 'kanban_card',
 				})
-				// Fill exactly to the cap.
 				for (let i = 0; i < MAX_FILES_PER_BUILD; i += 1) {
 					await ctx.writeFile({ path: `f${i}.ts`, content: String(i) })
 				}
 				expect(ctx.fileCount).toBe(MAX_FILES_PER_BUILD)
-				// One more distinct path is the violation.
+
 				await expect(
 					ctx.writeFile({ path: 'overflow.ts', content: 'one too many' }),
 				).rejects.toThrow(BuildFileLimitError)
-				// And the failing write must NOT have been counted.
+
 				expect(ctx.fileCount).toBe(MAX_FILES_PER_BUILD)
 			})
 		})
-
-		// ── rollback ──────────────────────────────────────────────────────
 
 		describe('rollback', () => {
 			it('restores the file set to a prior build and records a rollback event', async () => {
@@ -524,7 +443,6 @@ export function runProjectStorageContract(
 				})
 				const genesisId = created.genesisBuild.id
 
-				// Build 2: modify page.tsx + add button.tsx
 				const ctx = await storage.beginBuild({
 					projectId: created.project.id,
 					triggeredBy: 'kanban_card',
@@ -533,17 +451,14 @@ export function runProjectStorageContract(
 				await ctx.writeFile({ path: 'button.tsx', content: 'btn' })
 				const build2 = await ctx.commit()
 
-				// Rollback to genesis
 				const rollback = await storage.rollback(created.project.id, genesisId)
 				expect(rollback.triggeredBy).toBe('rollback')
 				expect(rollback.status).toBe('completed')
 				expect(rollback.parentBuildId).toBe(build2.id)
 
-				// HEAD now points at rollback build
 				const project = await storage.getProject(created.project.id, 'user_1')
 				expect(project.currentBuildId).toBe(rollback.id)
 
-				// page.tsx restored to genesis, button.tsx soft-deleted
 				const files = await storage.getCurrentFiles(created.project.id)
 				expect(files.map((f) => f.path)).toEqual(['page.tsx'])
 				const content = await storage.readFile(created.project.id, 'page.tsx')
@@ -597,8 +512,6 @@ export function runProjectStorageContract(
 				)
 			})
 		})
-
-		// ── getBuild ──────────────────────────────────────────────────────
 
 		describe('getBuild', () => {
 			it('fetches a build by id', async () => {

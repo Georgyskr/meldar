@@ -13,7 +13,7 @@ type Status = 'idle' | 'submitting'
 export function SignUpForm() {
 	const router = useRouter()
 	const searchParams = useSearchParams()
-	const safeNext = sanitizeNextParam(searchParams.get('next'))
+	const safeNext = sanitizeNextParam(searchParams.get('next'), { fallback: '/onboarding' })
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [status, setStatus] = useState<Status>('idle')

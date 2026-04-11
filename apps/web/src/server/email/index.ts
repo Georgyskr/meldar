@@ -1,5 +1,7 @@
 export {
 	getBaseUrl,
+	sendBookingNotification,
+	sendBookingNudge,
 	sendFirstBuildEmail,
 	sendFounderAlertEmail,
 	sendNudgeEmail,

@@ -331,13 +331,14 @@ export async function* orchestrateBuild(
 					'validation_failed',
 				)
 			}
-			console.log(`[orchestrator] [project=${request.projectId} build=${buildId}] self-repair succeeded`)
+			console.log(
+				`[orchestrator] [project=${request.projectId} build=${buildId}] self-repair succeeded`,
+			)
 		}
 
 		const repairUsage = repairResponse?.usage
 		const cacheReadTokens =
-			(response.usage.cache_read_input_tokens ?? 0) +
-			(repairUsage?.cache_read_input_tokens ?? 0)
+			(response.usage.cache_read_input_tokens ?? 0) + (repairUsage?.cache_read_input_tokens ?? 0)
 		const cacheWriteTokens =
 			(response.usage.cache_creation_input_tokens ?? 0) +
 			(repairUsage?.cache_creation_input_tokens ?? 0)

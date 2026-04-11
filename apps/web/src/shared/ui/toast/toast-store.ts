@@ -46,15 +46,12 @@ export function getSnapshot(): readonly ToastItem[] {
 	return items
 }
 
-export const toast = Object.assign(
-	(opts: Omit<ToastItem, 'id'>) => addToast(opts),
-	{
-		error: (title: string, description?: string) => addToast({ type: 'error', title, description }),
-		success: (title: string, description?: string) =>
-			addToast({ type: 'success', title, description }),
-		warning: (title: string, description?: string) =>
-			addToast({ type: 'warning', title, description }),
-		info: (title: string, description?: string) => addToast({ type: 'info', title, description }),
-		dismiss: dismissToast,
-	},
-)
+export const toast = Object.assign((opts: Omit<ToastItem, 'id'>) => addToast(opts), {
+	error: (title: string, description?: string) => addToast({ type: 'error', title, description }),
+	success: (title: string, description?: string) =>
+		addToast({ type: 'success', title, description }),
+	warning: (title: string, description?: string) =>
+		addToast({ type: 'warning', title, description }),
+	info: (title: string, description?: string) => addToast({ type: 'info', title, description }),
+	dismiss: dismissToast,
+})

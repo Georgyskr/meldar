@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { SignOutButton } from '@/features/auth'
 import { StreakBadge } from '@/features/token-economy'
 import { verifyToken } from '@/server/identity/jwt'
@@ -14,11 +15,7 @@ import {
 } from '@/server/projects/list-user-projects'
 import { formatRelative } from '@/shared/lib/format-relative'
 import { Heading, Text } from '@/shared/ui'
-import {
-	ContinueBanner,
-	EmailVerificationBanner,
-	NewProjectButton,
-} from '@/widgets/workspace'
+import { ContinueBanner, NewProjectButton } from '@/widgets/workspace'
 
 export const metadata: Metadata = {
 	title: 'Workspace — Meldar',
@@ -67,6 +64,10 @@ export default async function WorkspaceDashboardPage() {
 		projectsList = projectsResult
 	}
 
+	if (!loadFailed && projectsList.length === 0) {
+		redirect('/onboarding')
+	}
+
 	const activeProject = projectsList.find(
 		(p) => p.builtSubtasks > 0 && p.builtSubtasks < p.totalSubtasks,
 	)
@@ -74,8 +75,6 @@ export default async function WorkspaceDashboardPage() {
 	return (
 		<styled.main minHeight="100vh" bg="surface" paddingBlock={{ base: 12, md: 16 }}>
 			<Box maxWidth="breakpoint-lg" marginInline="auto" paddingInline={{ base: 6, md: 10 }}>
-				<EmailVerificationBanner email={session.email} verified={session.emailVerified} />
-
 				<Box
 					borderBottom="2px solid"
 					borderColor="onSurface"

@@ -20,11 +20,13 @@ export const dynamic = 'force-dynamic'
 
 const projectIdSchema = z.string().uuid()
 
-const improveRequestSchema = z.object({
-	description: z.string().min(1).max(500).optional(),
-	prompt: z.string().min(1).max(500).optional(),
-	acceptanceCriteria: z.array(z.string().max(200)).max(5).optional(),
-}).refine((d) => d.description || d.prompt, 'Either description or prompt is required')
+const improveRequestSchema = z
+	.object({
+		description: z.string().min(1).max(500).optional(),
+		prompt: z.string().min(1).max(500).optional(),
+		acceptanceCriteria: z.array(z.string().max(200)).max(5).optional(),
+	})
+	.refine((d) => d.description || d.prompt, 'Either description or prompt is required')
 	.transform((d) => ({ ...d, description: d.description ?? d.prompt ?? '' }))
 
 const improveOutputSchema = z.object({

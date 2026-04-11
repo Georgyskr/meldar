@@ -1,0 +1,1 @@
+export { MeldarBadge } from './MeldarBadge'

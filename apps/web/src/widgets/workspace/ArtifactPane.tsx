@@ -4,6 +4,7 @@ import { Box, Flex, HStack, styled, VStack } from '@styled-system/jsx'
 import { useEffect, useRef, useState } from 'react'
 import type { KanbanCard } from '@/entities/kanban-card'
 import { DecisionsCard, PromptEditor } from '@/features/teaching'
+import { TeachingHint } from '@/features/teaching-hints'
 import type { BuildReceipt, DeploymentPhase, WrittenFile } from '@/features/workspace'
 import { Heading, Text } from '@/shared/ui'
 
@@ -184,6 +185,9 @@ export function ArtifactPane({
 							buildsCompleted={buildsCompleted}
 							lastBuildId={lastBuildId}
 						/>
+						<Box marginBlockStart={4}>
+							<TeachingHint hintId="click-to-change" />
+						</Box>
 					</Box>
 				)}
 

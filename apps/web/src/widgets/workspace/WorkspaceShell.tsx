@@ -1,18 +1,15 @@
 'use client'
 
-import { consumeSseStream, type OrchestratorEvent } from '@meldar/orchestrator'
-import { Flex } from '@styled-system/jsx'
-import { useCallback, useState } from 'react'
+import { consumeSseStream } from '@meldar/orchestrator'
+import { Box, Flex } from '@styled-system/jsx'
+import { useCallback } from 'react'
 import type { ProjectStep } from '@/entities/project-step'
-import { GlassPlanView } from '@/features/glass-plan'
 import type { KanbanCard } from '@/features/kanban'
 import { FirstBuildCelebration } from '@/features/kanban'
-import { PricingDrawer, TokenNudgeBanner } from '@/features/token-economy'
+import type { FeedbackRequest } from '@/features/visual-feedback'
+import { FeedbackBar } from '@/features/visual-feedback'
 import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace'
-import { ArtifactPane } from './ArtifactPane'
-import { TaskListPane } from './TaskListPane'
-import { WorkspaceBottomBar } from './WorkspaceBottomBar'
-import { WorkspaceEmptyState } from './WorkspaceEmptyState'
+import { PreviewPane } from './PreviewPane'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
 
 export type WorkspaceShellProps = {
@@ -23,10 +20,10 @@ export type WorkspaceShellProps = {
 	readonly initialPreviewUrl: string | null
 	readonly step: ProjectStep
 	readonly initialKanbanCards: readonly KanbanCard[]
+	readonly subdomain: string | null
 }
 
 export function WorkspaceShell(props: WorkspaceShellProps) {
-	const [pricingOpen, setPricingOpen] = useState(false)
 	const providerKey = props.initialKanbanCards.length === 0 ? 'empty' : 'loaded'
 
 	return (
@@ -45,21 +42,13 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 				color="onSurface"
 			>
 				<WorkspaceTopBar
+					projectId={props.projectId}
 					projectName={props.projectName}
-					step={props.step}
-					tokenBalance={props.tokenBalance}
+					subdomain={props.subdomain}
 				/>
 
-				<TokenNudgeBanner balance={props.tokenBalance} onSeePlans={() => setPricingOpen(true)} />
-
-				<Flex flex="1" minHeight={0} position="relative" bg="surfaceContainerLowest">
-					<WorkspaceBody projectId={props.projectId} />
-				</Flex>
-
-				<WorkspaceBottomBar tier={props.tier} />
+				<WorkspaceBody projectId={props.projectId} />
 			</Flex>
-
-			<PricingDrawer open={pricingOpen} onClose={() => setPricingOpen(false)} />
 
 			<FirstBuildCelebrationBridge projectId={props.projectId} />
 		</WorkspaceBuildProvider>
@@ -67,63 +56,27 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 }
 
 function WorkspaceBody({ projectId }: { readonly projectId: string }) {
-	const {
-		cards,
-		mode,
-		selectedTaskId,
-		activeBuildCardId,
-		writtenFiles,
-		lastBuildReceipt,
-		failureMessage,
-		deployment,
-		buildsCompleted,
-		lastBuildId,
-		selectTask,
-		publish,
-	} = useWorkspaceBuild()
+	const { activeBuildCardId, failureMessage, publish, previewUrl } = useWorkspaceBuild()
 
-	const handleMakeThis = useCallback(
-		(cardId: string, prompt: string) => {
-			void runBuild(projectId, cardId, prompt, publish)
+	const handleFeedbackSubmit = useCallback(
+		async (feedback: FeedbackRequest) => {
+			const cardId = activeBuildCardId ?? 'feedback'
+			await runBuild(projectId, cardId, feedback.instruction, publish)
 		},
-		[projectId, publish],
+		[projectId, activeBuildCardId, publish],
 	)
 
-	const handleStartAutoBuild = useCallback(() => {
-		void triggerAutoBuild(projectId, publish)
-	}, [projectId, publish])
-
-	if (cards.length === 0) {
-		return <WorkspaceEmptyState projectId={projectId} />
-	}
-
-	if (mode.type === 'plan') {
-		return <GlassPlanView onSelectCard={selectTask} onStartBuild={handleStartAutoBuild} />
-	}
-
-	const selectedCard = selectedTaskId ? (cards.find((c) => c.id === selectedTaskId) ?? null) : null
-
 	return (
-		<Flex width="100%" height="100%">
-			<TaskListPane
-				cards={cards}
-				selectedTaskId={selectedTaskId}
-				activeBuildCardId={activeBuildCardId}
-				onSelect={selectTask}
-			/>
-			<ArtifactPane
-				projectId={projectId}
-				selectedCard={selectedCard}
-				activeBuildCardId={activeBuildCardId}
-				writtenFiles={writtenFiles}
-				lastBuildReceipt={lastBuildReceipt}
-				failureMessage={failureMessage}
-				deployment={deployment}
-				buildsCompleted={buildsCompleted}
-				lastBuildId={lastBuildId}
-				onMakeThis={handleMakeThis}
-			/>
-		</Flex>
+		<>
+			<Box flex="1" position="relative" minHeight={0}>
+				<PreviewPane
+					previewUrl={previewUrl}
+					activeBuildCardId={activeBuildCardId}
+					failureMessage={failureMessage}
+				/>
+			</Box>
+			<FeedbackBar onSubmit={handleFeedbackSubmit} />
+		</>
 	)
 }
 
@@ -167,41 +120,6 @@ async function runBuild(
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Network error'
 		publish({ type: 'failed', reason: message, kanbanCardId: cardId })
-	}
-}
-
-async function triggerAutoBuild(
-	projectId: string,
-	publish: (event: OrchestratorEvent) => void,
-): Promise<void> {
-	try {
-		const response = await fetch(`/api/workspace/${projectId}/auto-build`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-		})
-
-		if (!response.ok) {
-			const body = (await response.json().catch(() => ({}))) as {
-				error?: { message?: string }
-			}
-			publish({
-				type: 'failed',
-				reason: body.error?.message ?? `Auto-build failed (${response.status})`,
-			})
-			return
-		}
-
-		if (!response.body) {
-			publish({ type: 'failed', reason: 'Server returned no stream.' })
-			return
-		}
-
-		for await (const event of consumeSseStream(response.body)) {
-			publish(event)
-		}
-	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Network error'
-		publish({ type: 'failed', reason: message })
 	}
 }
 

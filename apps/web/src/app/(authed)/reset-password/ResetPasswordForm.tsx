@@ -3,7 +3,7 @@
 import { Flex, styled } from '@styled-system/jsx'
 import { useRouter } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
-import { Text } from '@/shared/ui'
+import { Text, toast } from '@/shared/ui'
 
 type Status = 'idle' | 'submitting'
 
@@ -53,6 +53,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 					return
 				}
 
+				toast.success('Password reset', 'Sign in with your new password')
 				router.push('/sign-in')
 			} catch {
 				setError('Network error. Please try again.')

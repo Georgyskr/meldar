@@ -184,3 +184,65 @@ export async function sendFounderAlertEmail(args: {
 		`),
 	})
 }
+
+export async function sendBookingNotification(
+	ownerEmail: string,
+	booking: {
+		bookerName: string
+		bookerEmail: string
+		service: string
+		date: string
+		time: string
+		businessName: string
+	},
+): Promise<void> {
+	const baseUrl = getBaseUrl()
+	await resend.emails.send({
+		from: `Meldar <hello@meldar.ai>`,
+		to: ownerEmail,
+		subject: `New booking: ${escapeHtml(booking.bookerName)} wants ${escapeHtml(booking.service)}`,
+		html: emailWrapper(`
+			<h1 style="font-size: 24px; color: #623153;">New booking</h1>
+			<p style="font-size: 16px; color: #4f434a; line-height: 1.6;">
+				<strong>${escapeHtml(booking.bookerName)}</strong> booked <strong>${escapeHtml(booking.service)}</strong> on ${escapeHtml(booking.date)} at ${escapeHtml(booking.time)}.
+			</p>
+			<p style="font-size: 14px; color: #81737a;">
+				Their email: ${escapeHtml(booking.bookerEmail)}
+			</p>
+			${ctaButton(`${baseUrl}/workspace`, 'View in your dashboard')}
+			<p style="font-size: 11px; color: #81737a; margin-top: 32px;">
+				Powered by AI · <a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(ownerEmail)}">Unsubscribe</a>
+			</p>
+		`),
+	})
+}
+
+export async function sendBookingNudge(
+	ownerEmail: string,
+	businessName: string,
+	subdomain: string,
+): Promise<void> {
+	await resend.emails.send({
+		from: 'Meldar <hello@meldar.ai>',
+		to: ownerEmail,
+		subject: 'Your page is live — share it with your next client',
+		html: emailWrapper(`
+			<h1 style="font-size: 24px; color: #623153;">No bookings yet</h1>
+			<p style="font-size: 16px; color: #4f434a; line-height: 1.6;">
+				Your booking page for <strong>${escapeHtml(businessName)}</strong> is live, but nobody has found it yet.
+			</p>
+			<p style="font-size: 16px; color: #4f434a; line-height: 1.6;">
+				Share this link with your next client:
+			</p>
+			<p style="font-size: 18px; font-weight: 600; color: #623153;">
+				${escapeHtml(subdomain)}
+			</p>
+			<p style="font-size: 14px; color: #81737a;">
+				Send it via WhatsApp, add it to your Instagram bio, or text it to a regular client.
+			</p>
+			<p style="font-size: 11px; color: #81737a; margin-top: 32px;">
+				Powered by AI · <a href="${getBaseUrl()}/unsubscribe?email=${encodeURIComponent(ownerEmail)}">Unsubscribe</a>
+			</p>
+		`),
+	})
+}

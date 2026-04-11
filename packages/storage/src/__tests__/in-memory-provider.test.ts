@@ -1,10 +1,3 @@
-/**
- * Runs the ProjectStorage contract against the in-memory implementation.
- *
- * When the Postgres implementation lands, a parallel test file will run the
- * SAME contract against a real Neon dev branch.
- */
-
 import { InMemoryBlobStorage } from '../in-memory-blob'
 import { InMemoryProjectStorage } from '../in-memory-provider'
 import { runProjectStorageContract } from './provider-contract'

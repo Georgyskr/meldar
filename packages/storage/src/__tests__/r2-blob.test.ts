@@ -1,14 +1,3 @@
-/**
- * Unit tests for R2BlobStorage.
- *
- * The HTTP client (`aws4fetch`) is exercised against a mocked global fetch
- * so we can verify URL construction, method, body, and integrity headers
- * without hitting real R2.
- *
- * For end-to-end verification against real R2, see the staging integration
- * test (not yet wired up — Sprint 1.5).
- */
-
 import { type FetchMockHandler, makeFetchMock } from '@meldar/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { sha256Hex } from '../blob'
@@ -107,7 +96,6 @@ describe('R2BlobStorage', () => {
 			const blob = new R2BlobStorage(config)
 			await blob.put('proj_1', VALID_HASH, 'hello')
 
-			// Second call is the actual PUT
 			const putCall = fetchMock.mock.calls[1]
 			expect(getCallUrl(putCall)).toBe(
 				`https://acct_test.r2.cloudflarestorage.com/meldar-test/projects/proj_1/content/${VALID_HASH}`,
@@ -122,7 +110,6 @@ describe('R2BlobStorage', () => {
 			const blob = new R2BlobStorage(config)
 			await blob.put('proj_1', VALID_HASH, 'hello')
 
-			// Only the HEAD call happened, no PUT
 			expect(fetchMock).toHaveBeenCalledTimes(1)
 			expect(getCallMethod(fetchMock.mock.calls[0])).toBe('HEAD')
 		})
@@ -137,7 +124,6 @@ describe('R2BlobStorage', () => {
 
 			const putCall = fetchMock.mock.calls[1]
 			expect(getCallHeader(putCall, 'x-amz-checksum-algorithm')).toBe('SHA256')
-			// base64 of the sha256 of 'hello'
 			expect(getCallHeader(putCall, 'x-amz-checksum-sha256')).toBe(
 				'LPJNul+wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ=',
 			)
@@ -178,7 +164,6 @@ describe('R2BlobStorage', () => {
 		})
 
 		it("throws BlobIntegrityError when verify: true and content doesn't match hash", async () => {
-			// R2 returns 'tampered' content but we asked for the hash of 'hello'
 			fetchMock.mockResolvedValueOnce(new Response('tampered', { status: 200 }))
 
 			const blob = new R2BlobStorage(config)
@@ -273,8 +258,6 @@ describe('R2BlobStorage', () => {
 	})
 
 	it('sha256Hex sanity check (hello → expected hash)', async () => {
-		// Sanity-check the test fixture so a future change to sha256Hex doesn't
-		// silently break R2 tests by changing the expected hash.
 		expect(await sha256Hex('hello')).toBe(VALID_HASH)
 	})
 })

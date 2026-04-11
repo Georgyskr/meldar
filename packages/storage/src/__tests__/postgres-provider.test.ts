@@ -1,8 +1,3 @@
-// Query-shape tests for PostgresProjectStorage against a recording fake `db`.
-// Behavioral parity with InMemoryProjectStorage is verified by the shared
-// contract in `provider-contract.ts`; this file catches regressions only the
-// Postgres impl can introduce (build-atomicity, batch ordering, etc.).
-
 import * as schema from '@meldar/db/schema'
 import type { BatchItem } from 'drizzle-orm/batch'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,8 +5,6 @@ import { BuildFileLimitError } from '../errors'
 import { InMemoryBlobStorage } from '../in-memory-blob'
 import { assertNonEmptyBatch, PostgresProjectStorage } from '../postgres-provider'
 import { MAX_FILES_PER_BUILD } from '../types'
-
-// ── Fake Drizzle db ────────────────────────────────────────────────────────
 
 type Op = 'insert' | 'update' | 'select'
 
@@ -25,8 +18,6 @@ type Recorder = {
 	clear(): void
 }
 
-// Shared heterogeneous queue type. Per-push generics on pushSelectResult / pushReturningResult
-// carry the Drizzle row shape at the call site.
 type AnyRow = object
 
 function makeFakeDb(): {
@@ -122,8 +113,6 @@ function makeFakeDb(): {
 	}
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
-
 describe('PostgresProjectStorage — query shape', () => {
 	let blob: InMemoryBlobStorage
 	let recorder: Recorder
@@ -143,7 +132,6 @@ describe('PostgresProjectStorage — query shape', () => {
 		storage = new PostgresProjectStorage(db, blob)
 	})
 
-	// Queue the two SELECTs beginBuild + writeFile read: current HEAD and build status.
 	function queueBeginBuildAndWrite(): void {
 		pushSelectResult<Pick<typeof schema.projects.$inferSelect, 'currentBuildId'>>([
 			{ currentBuildId: null },
@@ -152,7 +140,6 @@ describe('PostgresProjectStorage — query shape', () => {
 	}
 
 	describe('writeFile (build atomicity)', () => {
-		// writeFile must stage changes in build_files only; project_files flips at commit().
 		it('does NOT touch project_files during writeFile (only build_files)', async () => {
 			queueBeginBuildAndWrite()
 			const ctx = await storage.beginBuild({
@@ -182,7 +169,6 @@ describe('PostgresProjectStorage — query shape', () => {
 			await ctx.writeFile({ path: 'src/b.tsx', content: 'b' })
 			recorder.clear()
 
-			// commit() reads the staged manifest, then reads back the committed build row.
 			pushSelectResult<
 				Pick<typeof schema.buildFiles.$inferSelect, 'path' | 'r2Key' | 'contentHash' | 'sizeBytes'>
 			>([
@@ -296,7 +282,6 @@ describe('PostgresProjectStorage — query shape', () => {
 
 	describe('writeFile (file count cap)', () => {
 		it('rejects the overflow write before any DB ops are issued', async () => {
-			// The cap lives in JS (`seenPaths.size >= MAX_FILES_PER_BUILD`) before any SELECT/INSERT.
 			queueBeginBuildAndWrite()
 			const ctx = await storage.beginBuild({
 				projectId: '44444444-4444-4444-8444-444444444444',

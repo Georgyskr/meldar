@@ -165,12 +165,9 @@ describe('WorkspaceDashboardPage', () => {
 		await expect(WorkspaceDashboardPage()).rejects.toThrow(/layout should have redirected/)
 	})
 
-	it('renders new project button when the user has zero projects', async () => {
+	it('redirects to onboarding when the user has zero projects', async () => {
 		mockListUserProjects.mockResolvedValue([])
-		const tree = (await WorkspaceDashboardPage()) as ReactElement
-		const text = findAllText(tree).join(' ')
-		expect(text).toContain('Your projects')
-		expect(findByTestId(tree, 'sign-out')).toBe(true)
+		await expect(WorkspaceDashboardPage()).rejects.toThrow('REDIRECT:/onboarding')
 		expect(mockListUserProjects).toHaveBeenCalledWith('user_1')
 	})
 

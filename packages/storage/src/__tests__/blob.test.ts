@@ -98,17 +98,9 @@ describe('InMemoryBlobStorage', () => {
 		const fakeHash = await sha256Hex('different')
 		await blob.put('proj_1', realHash, 'original')
 
-		// Fetch the blob under the REAL hash — verifies fine
 		expect(await blob.get('proj_1', realHash, { verify: true })).toBe('original')
 
-		// Manually tamper: stuff mismatched content under a hash that doesn't match
-		// (simulates corruption in the backing store)
-		// The in-memory impl doesn't have a direct tamper hook, so we test via
-		// storing content whose bytes don't match the provided hash label.
-		// Since put() uses blobKey(hash), we use a different hash as the "claim".
-		// We'll store content under hash A but pretend to fetch under hash B.
-		await blob.put('proj_1', fakeHash, 'original') // stores 'original' under fakeHash
-		// Now fetching with verify will mismatch because sha256('original') ≠ fakeHash
+		await blob.put('proj_1', fakeHash, 'original')
 		await expect(blob.get('proj_1', fakeHash, { verify: true })).rejects.toThrow(BlobIntegrityError)
 	})
 

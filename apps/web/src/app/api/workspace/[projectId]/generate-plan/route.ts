@@ -99,7 +99,10 @@ function parseAndValidatePlan(raw: string): PlanOutput | null {
 		const parsed = JSON.parse(clean)
 		const result = planOutputSchema.safeParse(parsed)
 		if (!result.success) {
-			console.error('[generate-plan] validation:', JSON.stringify(result.error.issues).slice(0, 300))
+			console.error(
+				'[generate-plan] validation:',
+				JSON.stringify(result.error.issues).slice(0, 300),
+			)
 		}
 		return result.success ? result.data : null
 	} catch {

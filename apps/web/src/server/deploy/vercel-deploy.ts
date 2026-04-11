@@ -336,7 +336,7 @@ function createVercelClient(
 						installCommand: 'npm install --ignore-scripts',
 						buildCommand: 'npx panda codegen --silent && npx next build',
 					},
-					}),
+				}),
 			})
 			if (!res.ok) {
 				const text = await res.text()
@@ -378,11 +378,9 @@ function createVercelClient(
 			})
 			if (!res.ok) {
 				const text = await res.text()
-				const isCertPending =
-					res.status === 400 && text.includes('cert_missing')
+				const isCertPending = res.status === 400 && text.includes('cert_missing')
 				const isAlreadyAliased =
-					res.status === 409 ||
-					(res.status === 400 && text.includes('not_modified'))
+					res.status === 409 || (res.status === 400 && text.includes('not_modified'))
 				if (isCertPending || isAlreadyAliased) return
 				throw new VercelApiError(res.status, text)
 			}

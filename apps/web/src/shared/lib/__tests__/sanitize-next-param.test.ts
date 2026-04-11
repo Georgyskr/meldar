@@ -96,6 +96,26 @@ describe('sanitizeNextParam', () => {
 		})
 	})
 
+	describe('fallback option', () => {
+		it('returns custom fallback for null', () => {
+			expect(sanitizeNextParam(null, { fallback: '/onboarding' })).toBe('/onboarding')
+		})
+
+		it('returns custom fallback for empty string', () => {
+			expect(sanitizeNextParam('', { fallback: '/onboarding' })).toBe('/onboarding')
+		})
+
+		it('returns custom fallback for rejected input', () => {
+			expect(sanitizeNextParam('//evil.com', { fallback: '/onboarding' })).toBe('/onboarding')
+		})
+
+		it('passes through valid path even with custom fallback', () => {
+			expect(sanitizeNextParam('/workspace/abc', { fallback: '/onboarding' })).toBe(
+				'/workspace/abc',
+			)
+		})
+	})
+
 	describe('mustStartWith option', () => {
 		it('passes through /workspace/abc when mustStartWith is /workspace', () => {
 			expect(sanitizeNextParam('/workspace/abc', { mustStartWith: '/workspace' })).toBe(

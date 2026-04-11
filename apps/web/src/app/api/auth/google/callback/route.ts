@@ -88,6 +88,7 @@ export async function GET(request: NextRequest) {
 
 		let userId: string
 		let tokenVersion: number
+		let isNewUser = false
 
 		if (existingUser) {
 			if (existingUser.authProvider !== 'google') {
@@ -99,6 +100,7 @@ export async function GET(request: NextRequest) {
 				await db.update(users).set({ emailVerified: true }).where(eq(users.id, existingUser.id))
 			}
 		} else {
+			isNewUser = true
 			const placeholderHash = await hashPassword(crypto.randomUUID())
 
 			const [newUser] = await db
@@ -126,7 +128,7 @@ export async function GET(request: NextRequest) {
 
 		const token = signToken({ userId, email, emailVerified: true, tokenVersion })
 
-		const response = NextResponse.redirect(`${baseUrl}/workspace`)
+		const response = NextResponse.redirect(`${baseUrl}${isNewUser ? '/onboarding' : '/workspace'}`)
 		response.cookies.set('meldar-auth', token, {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',

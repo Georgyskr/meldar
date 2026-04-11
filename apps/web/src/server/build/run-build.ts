@@ -255,7 +255,10 @@ async function* withVercelDeploy(
 		return
 	}
 
-	const errDetail = 'body' in result.deploy.error ? String((result.deploy.error as { body?: string }).body).slice(0, 200) : ''
+	const errDetail =
+		'body' in result.deploy.error
+			? String((result.deploy.error as { body?: string }).body).slice(0, 200)
+			: ''
 	console.error(`[deploy] Vercel API error: ${result.deploy.error.kind} ${errDetail}`)
 	yield {
 		type: 'deploy_failed',

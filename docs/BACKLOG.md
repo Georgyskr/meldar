@@ -10,84 +10,87 @@ CEU score: 7.7 PURSUE. Unit economics 8.3, technical 8.2, problem validation 8.1
 ### Week 1-2: Foundation
 
 **DB changes:**
-- [ ] `agent_events` table (id, project_id, user_id, event_type, payload JSONB, created_at). Indexes: (project_id, created_at DESC), (user_id, created_at DESC). Append-only audit trail.
-- [ ] `agent_tasks` table (id, project_id, agent_type, status [proposed|approved|rejected|executing|verifying|done|failed|escalated], payload JSONB, result JSONB, proposed_at, approved_at, executed_at, verified_at, auto_approved BOOLEAN DEFAULT false)
-- [ ] `project_domains` table (id, project_id, type [subdomain|custom], domain UNIQUE, state, registrar_id, expires_at, created_at, updated_at). Every project gets one free subdomain row on creation.
+- [x] `agent_events` table — done, schema + types + test in agent-tables.test.ts
+- [x] `agent_tasks` table — done, schema + types + test, status state machine + agent type enums
+- [x] `project_domains` table — done, schema + types + test, domain lifecycle state machine
 
 **Booking template — public face:**
-- [ ] Template skeleton: `/templates/booking/public/` — booking form, service list, calendar view, confirmation page
-- [ ] Each template ships paired: `plan.ts` generates kanban cards for BOTH public + admin projects
-- [ ] Public routes: `/` (booking form), `/book` (time slot picker), `/confirm` (confirmation)
+- [x] BookingPage, ServiceCard, BookingForm, BookingConfirmation — done in `features/booking/`. Service selection → form → confirmation flow. MeldarBadge included.
+- [x] Template plan already exists in orchestrator (`booking-page` with 4 milestones).
+- [ ] Each template ships paired: `plan.ts` generates kanban cards for BOTH public + admin projects — needs wiring
 
 **Booking template — admin panel:**
-- [ ] Admin routes: `/admin` (dashboard: stats, recent bookings), `/admin/inbox` (agent proposals pending approval), `/admin/settings` (services, hours, prices, agent config), `/admin/history` (audit trail)
-- [ ] Admin reads agent events from central Meldar DB via API proxy (`/api/workspace/[projectId]/agent/events`) with signed JWT. User apps have NO database of their own.
-- [ ] Real-time updates via SSE (`EventSource` to `/api/agents/[id]/events`), polling as fallback
+- [x] AdminDashboard (overview + stats + recent bookings), ApprovalInbox (propose/approve/reject cards), BookingsList (table), SettingsPanel (services, hours, business name) — done in `features/booking-admin/`.
+- [x] API routes done: `agent/tasks` (GET/POST), `agent/events` (GET JSON + SSE), `agent/auto-approve` (GET/POST).
+- [x] SSE streaming for real-time events — done in agent events route.
+- [ ] Admin panel page wiring — need actual `/admin` route pages that compose these components
 
 **Onboarding:**
-- [ ] Sign-up → "What's your business?" one-tap (Hair/Beauty, PT/Wellness, Tattoo/Piercing, Consulting, Other) → Meldar proposes pre-filled booking page → user says "Go" → live in 5 minutes
-- [ ] No template picker, no blank canvas. Meldar proposes vertical-specific defaults (3 services with local-market pricing, typical hours), user approves or overrides
-- [ ] Each vertical option pre-fills different services/pricing/hours — same template, different config
+- [x] Onboarding page + flow — done, `(authed)/onboarding/page.tsx` + `OnboardingFlow.tsx`. Two steps: vertical cards grid → "Go — make this mine" → loading → redirect to workspace.
+- [x] 5 vertical cards (Hair/Beauty, PT/Wellness, Tattoo/Piercing, Consulting, Other) with icons, responsive grid (2col mobile, 3col desktop).
+- [x] Each vertical pre-fills different services/pricing/hours from `BOOKING_VERTICALS` entity. Optional business name input.
 
 **Security:**
-- [ ] Global auth middleware on `/api/workspace/*` — reject unauthenticated requests before route handler (highest-leverage security fix, stops relying on per-route `verifyToken`)
-- [ ] CSRF: `SameSite=Strict` on `meldar-auth` cookie + verify `HttpOnly` and `Secure` flags
-- [ ] Per-action authorization gate: agent can ONLY act within its project's scope (e.g., booking agent can only email people who booked)
-- [ ] Structured Zod-validated tool output on every agent action — LLM produces typed tool calls, code validates and executes. LLM never gets raw API access.
+- [x] Global auth middleware on `/api/workspace/*` — done, `middleware.ts` rejects unauthenticated before route handler. 5 tests.
+- [x] CSRF: cookie flags verified — `httpOnly: true`, `secure` in prod, `sameSite: 'lax'` (lax > strict because strict breaks Google OAuth redirect). All 5 cookie-setting locations consistent.
+- [x] Per-action authorization gate — done, agent-task-service enforces project scope on all operations. 20 tests.
+- [x] Structured Zod-validated tool output — done, booking-confirmation executor uses typed BookingConfirmationPayload schema.
 
 ### Week 2-3: Agent + Managed Services
 
 **Agent runtime (v1 — plain API, not Claude Managed Agents):**
-- [ ] Vercel Cron route (`/api/cron/agent-tick`), runs every 1 min
-- [ ] Picks `agent_tasks` rows with status `proposed`, calls Haiku with structured output schema
-- [ ] Agent NEVER acts autonomously. Every action is a proposal first.
-- [ ] Model routing: Haiku default (85% of tasks — confirmations, reminders, data extraction). Sonnet escalation only when Haiku confidence < 0.7 or novel free-text generation > 200 tokens.
-- [ ] Per-agent-session spend cap: 15 cents/invocation hard ceiling
+- [x] Vercel Cron route (`/api/cron/agent-tick`) — done, 11 tests. Processes approved tasks, dispatches to executors.
+- [x] Agent task service — done, 20 tests. State machine: propose/approve/reject/execute/complete/escalate.
+- [x] Booking confirmation executor — done, sends branded confirmation email via Resend.
+- [x] Per-invocation spend cap: 15 cents hard ceiling — done, enforced in cron route.
+- [ ] Agent NEVER acts autonomously. Every action is a proposal first. (UI enforcement needed — see approval loop)
+- [ ] Model routing: Haiku default. Sonnet escalation on low confidence. (Deferred until Haiku integration)
 
 **Approval loop (the A-grade flow):**
-- [ ] Agent proposes action → shown in admin panel with full preview (exact text, exact recipient)
-- [ ] Human approves / rejects / edits
-- [ ] System executes (sends email via Resend)
-- [ ] System verifies (Resend delivery webhook: delivered / bounced / failed)
-- [ ] If verification fails → retry once → if still fails → status `escalated`, red badge in admin: "Needs your attention"
-- [ ] After N successful human-approved actions, admin panel offers: "Auto-approve confirmations?" toggle. Graduated autonomy, not assumed.
+- [x] Agent tasks API route — done, GET (pending tasks) + POST (approve/reject) with full auth + project ownership. 18 tests.
+- [x] Agent events API route — done, GET (JSON) + GET (SSE stream). 12 tests.
+- [x] System executes via cron route → booking confirmation executor → Resend email. 11 tests.
+- [x] Human approves / rejects / edits — done, ApprovalInbox component with full email preview + Approve/Reject buttons.
+- [x] Resend delivery webhook — done, `/api/webhooks/resend` with svix signature verification. delivered→done, bounced→failed, failed→escalated. 15 tests. Needs `RESEND_WEBHOOK_SECRET` env var.
+- [x] Graduated autonomy API — done, `GET/POST /api/workspace/[projectId]/agent/auto-approve`. Checks: 10+ successful approvals with zero rejections before eligible. UI toggle still needed (NEEDS_HUMAN for placement decision).
 
 **Subdomain provisioning:**
-- [ ] Wildcard DNS: `*.meldar.ai` CNAME → `cname.vercel-dns.com` (on Cloudflare, already manage meldar.ai zone)
-- [ ] On project creation: generate slug (e.g., `elif-studio`), call Vercel API `POST /v10/projects/{projectId}/domains` with `elif-studio.meldar.ai`
-- [ ] SSL automatic via Vercel/Let's Encrypt. Zero config.
+- [x] Slug generation + collision handling — done, `generateSlug()` + `provisionSubdomain()` with 5-retry collision resolution. 17 tests.
+- [x] Integrated into project creation + onboarding routes — both return `subdomain` in response.
+- [ ] Wildcard DNS: `*.meldar.ai` CNAME → `cname.vercel-dns.com` — needs Cloudflare config (manual, one-time)
+- [ ] SSL automatic via Vercel/Let's Encrypt. Zero config. (Works once wildcard DNS is set)
 
 **Email isolation:**
-- [ ] Per-customer Resend sending identity — at minimum, unique `from` address per user (e.g., `elif-studio@send.meldar.ai`) so one user's spam reports don't tank deliverability for all
-- [ ] Audit log: every email sent with userId, recipient, timestamp, and the prompt that triggered it
+- [x] Per-customer email isolation — done, `sendIsolatedEmail()` in `server/agents/email-sender.ts`. Each user gets `{slug}@send.meldar.ai` as sender. Needs Resend domain verification for `send.meldar.ai` (NEEDS_HUMAN).
+- [x] Audit log — done, `logEmailSent()` in `server/agents/email-audit.ts`. Logs to agent_events table with recipient, subject, resendId, taskId.
 
 ### Week 3-4: Polish + Ship
 
 **Visual feedback (v1 — text + colors only):**
-- [ ] Click element in preview iframe → element highlighted → text input slides up: "What do you want to change?"
-- [ ] User types "make it pink" → structured modification request → Haiku applies change → iframe hot-reloads
-- [ ] No layout changes, no section reordering in v1. Text content and colors only.
-- [ ] Undo button persists for 30 seconds after each change
+- [x] VisualFeedbackPanel component — done, 4-step state machine (idle → selecting → describing → submitting). Bottom-anchored input panel. 4 tests.
+- [x] ModificationRequest type (elementSelector, elementDescription, instruction) — done.
+- [ ] Iframe click-to-select integration — **NEEDS BROWSER TESTING**. The panel exists but iframe element selection (postMessage bridge) needs real browser testing.
+- [ ] Undo button — deferred to post-browser-testing iteration
 
 **Teaching (v1 — minimal):**
-- [ ] 5-6 contextual micro-copy hints at point of action, shown once per user, then gone forever
-- [ ] First hint (minute 3 of onboarding): "You can change anything by clicking on it"
-- [ ] Never say "agent", "prompt", "customization", "admin panel". Say "automatic reminder", "tell Meldar what you want", "change anything by clicking it", "your dashboard"
+- [x] 6 contextual hints — done, `TeachingHint` component + `useHintDismissal` hook (localStorage, shown once per user). 6 tests including forbidden-word check.
+- [x] First hint: "You can change anything by clicking on it" — included.
+- [x] Forbidden words enforced by test — no "agent", "prompt", "customization", "admin panel" in any hint text.
 
 **Distribution mechanics:**
-- [ ] "Made with Meldar" badge on every user's public booking page — architectural virality. Do NOT offer badge removal on paid plans.
-- [ ] Share flow: copy link button, WhatsApp share, Instagram bio link format
-- [ ] Booking page itself IS distribution — every client who visits sees Meldar
+- [x] "Made with Meldar" badge — done, `MeldarBadge` component in shared/ui. Fixed position bottom-right, brand gradient, links to meldar.ai/?ref=badge.
+- [x] Share flow — done, `SharePanel` component with copy link (clipboard), WhatsApp share, Instagram tooltip. 7 tests. 44px tap targets, aria-labels.
+- [x] Booking page IS distribution — badge + share flow ensure every visitor sees Meldar.
 
 **Notifications:**
-- [ ] New booking → push/email to business owner: "Maija wants a haircut on Thursday at 14:00"
-- [ ] If no booking in 48h → nudge: "Share your link with your next client"
+- [x] New booking → email to business owner — done, `sendBookingNotification()` in send-email.ts
+- [x] No booking 48h nudge — done, `sendBookingNudge()` with share link copy in send-email.ts
 
 ### Pre-First-User Checklist
 - [ ] DPIA document (internal, 2-3 pages — show to Finnish DPA if asked. Required before AI agents handle real customer data)
-- [ ] "Powered by AI" disclosure on every agent-sent message (EU AI Act, August 2 2026 deadline)
+- [x] "Powered by AI" disclosure — done, booking-confirmation executor includes "Powered by AI" in email footer.
 - [ ] Rotate all secrets (DB, Stripe, Anthropic keys exposed in prior conversations)
-- [ ] Add GitHub Actions CI: `biome check` + `tsc --noEmit` (add `pnpm build` only if type-check misses build failures)
+- [x] Add GitHub Actions CI — done, `.github/workflows/ci.yml`: biome check + typecheck + storage tests + web tests. Cancels in-progress runs.
 
 ---
 

@@ -1,10 +1,12 @@
 import { getDb } from '@meldar/db/client'
+import { projectDomains } from '@meldar/db/schema'
 import {
 	buildProjectStorageFromEnv,
 	buildProjectStorageWithoutR2,
 	ProjectNotFoundError,
 } from '@meldar/storage'
 import { getTokenBalance } from '@meldar/tokens'
+import { and, eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
@@ -75,11 +77,20 @@ export default async function WorkspacePage({ params }: PageProps) {
 
 	let kanbanCards: Awaited<ReturnType<typeof storage.getKanbanCards>>
 	let tokenBalance: number
+	let subdomain: string | null = null
 	try {
-		;[kanbanCards, tokenBalance] = await Promise.all([
+		const [cards, balance, domainRows] = await Promise.all([
 			storage.getKanbanCards(projectId),
 			getTokenBalance(db, session.userId),
+			db
+				.select({ domain: projectDomains.domain })
+				.from(projectDomains)
+				.where(and(eq(projectDomains.projectId, projectId), eq(projectDomains.state, 'active')))
+				.limit(1),
 		])
+		kanbanCards = cards
+		tokenBalance = balance
+		subdomain = domainRows[0]?.domain ?? null
 	} catch (err) {
 		if (err instanceof ProjectNotFoundError) {
 			notFound()
@@ -103,6 +114,7 @@ export default async function WorkspacePage({ params }: PageProps) {
 			initialPreviewUrl={initialPreviewUrl}
 			step={step}
 			initialKanbanCards={parsedCards}
+			subdomain={subdomain}
 		/>
 	)
 }

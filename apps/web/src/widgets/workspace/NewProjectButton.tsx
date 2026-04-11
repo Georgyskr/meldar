@@ -45,7 +45,10 @@ export function NewProjectButton() {
 			}
 			router.push(`/workspace/${json.data.projectId}`)
 		} catch (err) {
-			toast.error('Network error', err instanceof Error ? err.message : 'Please check your connection')
+			toast.error(
+				'Network error',
+				err instanceof Error ? err.message : 'Please check your connection',
+			)
 			setStatus('idle')
 		} finally {
 			inFlight.current = false

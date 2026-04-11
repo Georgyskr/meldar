@@ -1,0 +1,5 @@
+export type { FeedbackRequest } from './ui/FeedbackBar'
+export { FeedbackBar } from './ui/FeedbackBar'
+export { PromptDiffDisplay } from './ui/PromptDiffDisplay'
+export type { ModificationRequest } from './ui/VisualFeedbackPanel'
+export { VisualFeedbackPanel } from './ui/VisualFeedbackPanel'

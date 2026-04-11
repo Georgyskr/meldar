@@ -17,6 +17,8 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
 	'google-no-email': "Your Google account doesn't have an email. Use email sign-up instead.",
 	'google-account-exists':
 		'An account with this email already exists. Sign in with your password instead.',
+	'google-email-not-verified':
+		'Your Google account email is not verified. Please verify it with Google first.',
 	'session-expired': 'Your session has expired. Please sign in again.',
 }
 

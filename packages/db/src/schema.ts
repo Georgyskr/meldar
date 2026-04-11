@@ -482,6 +482,143 @@ export const aiCallLog = pgTable(
 // Append-only log of every Vercel deployment attempt. Fire-and-forget write path.
 // Used for cost telemetry, quota enforcement, and the stuck-deployment janitor.
 
+// ── Table 14: Agent Events ────────────────────────────────────────────────
+// Append-only audit trail of every agent action. Each event is a record of
+// what the agent proposed, what the human approved, and what the system
+// executed. Used for the admin panel activity feed and compliance audit.
+
+export type AgentEventType =
+	| 'proposal'
+	| 'approval'
+	| 'rejection'
+	| 'execution'
+	| 'verification'
+	| 'escalation'
+	| 'error'
+
+export const agentEvents = pgTable(
+	'agent_events',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		projectId: uuid('project_id')
+			.notNull()
+			.references(() => projects.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		eventType: text('event_type').notNull().$type<AgentEventType>(),
+		payload: jsonb('payload').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		index('idx_agent_events_project_created').on(table.projectId, table.createdAt.desc()),
+		index('idx_agent_events_user_created').on(table.userId, table.createdAt.desc()),
+		check(
+			'agent_event_type_valid',
+			sql`${table.eventType} IN ('proposal', 'approval', 'rejection', 'execution', 'verification', 'escalation', 'error')`,
+		),
+	],
+)
+
+// ── Table 15: Agent Tasks ─────────────────────────────────────────────────
+// The agent's work queue. Each row is a proposed action that flows through
+// the approval loop: proposed → approved → executing → verifying → done.
+// The admin panel shows filtered views of this table by status.
+
+export type AgentTaskStatus =
+	| 'proposed'
+	| 'approved'
+	| 'rejected'
+	| 'executing'
+	| 'verifying'
+	| 'done'
+	| 'failed'
+	| 'escalated'
+
+export type AgentType = 'booking_confirmation' | 'booking_reminder' | 'lead_research' | 'email_drip'
+
+export const agentTasks = pgTable(
+	'agent_tasks',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		projectId: uuid('project_id')
+			.notNull()
+			.references(() => projects.id, { onDelete: 'cascade' }),
+		agentType: text('agent_type').notNull().$type<AgentType>(),
+		status: text('status').notNull().default('proposed').$type<AgentTaskStatus>(),
+		payload: jsonb('payload').notNull(),
+		result: jsonb('result'),
+		autoApproved: boolean('auto_approved').notNull().default(false),
+		proposedAt: timestamp('proposed_at', { withTimezone: true }).notNull().defaultNow(),
+		approvedAt: timestamp('approved_at', { withTimezone: true }),
+		executedAt: timestamp('executed_at', { withTimezone: true }),
+		verifiedAt: timestamp('verified_at', { withTimezone: true }),
+	},
+	(table) => [
+		index('idx_agent_tasks_project_status').on(table.projectId, table.status),
+		index('idx_agent_tasks_project_proposed').on(table.projectId, table.proposedAt.desc()),
+		check(
+			'agent_task_status_valid',
+			sql`${table.status} IN ('proposed', 'approved', 'rejected', 'executing', 'verifying', 'done', 'failed', 'escalated')`,
+		),
+		check(
+			'agent_task_type_valid',
+			sql`${table.agentType} IN ('booking_confirmation', 'booking_reminder', 'lead_research', 'email_drip')`,
+		),
+	],
+)
+
+// ── Table 16: Project Domains ─────────────────────────────────────────────
+// Every project gets one free subdomain row on creation. A custom domain is
+// a second row added when the user upgrades. Both coexist — the subdomain
+// is a permanent fallback if the custom domain lapses.
+
+export type DomainType = 'subdomain' | 'custom'
+export type DomainState =
+	| 'searching'
+	| 'available'
+	| 'purchasing'
+	| 'registered'
+	| 'dns_configuring'
+	| 'ssl_provisioning'
+	| 'active'
+	| 'expiring'
+	| 'expired'
+	| 'transferred_out'
+	| 'failed'
+
+export const projectDomains = pgTable(
+	'project_domains',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		projectId: uuid('project_id')
+			.notNull()
+			.references(() => projects.id, { onDelete: 'cascade' }),
+		type: text('type').notNull().$type<DomainType>(),
+		domain: text('domain').notNull().unique(),
+		state: text('state').notNull().default('active').$type<DomainState>(),
+		registrarId: text('registrar_id'),
+		failureReason: text('failure_reason'),
+		retryCount: integer('retry_count').notNull().default(0),
+		expiresAt: timestamp('expires_at', { withTimezone: true }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		index('idx_project_domains_project').on(table.projectId),
+		index('idx_project_domains_state')
+			.on(table.state)
+			.where(sql`${table.state} NOT IN ('active', 'expired')`),
+		check('project_domain_type_valid', sql`${table.type} IN ('subdomain', 'custom')`),
+		check(
+			'project_domain_state_valid',
+			sql`${table.state} IN ('searching', 'available', 'purchasing', 'registered', 'dns_configuring', 'ssl_provisioning', 'active', 'expiring', 'expired', 'transferred_out', 'failed')`,
+		),
+	],
+)
+
+// ── Table 13: Deployment Log ────────────────────────────────────────────────
+
 export type DeploymentStatus =
 	| 'shadow'
 	| 'queued'

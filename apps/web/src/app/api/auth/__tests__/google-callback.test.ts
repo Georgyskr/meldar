@@ -202,7 +202,7 @@ describe('GET /api/auth/google/callback', () => {
 		const res = await GET(makeCallbackRequest({ code: 'valid-code' }))
 
 		expect(res.status).toBe(307)
-		expect(res.headers.get('location')).toBe('http://localhost:3000/workspace')
+		expect(res.headers.get('location')).toBe('http://localhost:3000/onboarding')
 
 		const setCookie = res.headers.get('set-cookie')
 		expect(setCookie).toContain('meldar-auth=mock-jwt-token')

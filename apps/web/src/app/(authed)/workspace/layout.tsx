@@ -5,6 +5,7 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyToken } from '@/server/identity/jwt'
 import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
+import { EmailVerificationBanner } from '@/widgets/workspace'
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
 	const cookieStore = await cookies()
@@ -28,7 +29,12 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 		redirect('/sign-in?error=session-expired')
 	}
 
-	return <>{children}</>
+	return (
+		<>
+			<EmailVerificationBanner email={session.email} verified={session.emailVerified} />
+			{children}
+		</>
+	)
 }
 
 function extractPathnameFromReferer(referer: string | null): string | null {

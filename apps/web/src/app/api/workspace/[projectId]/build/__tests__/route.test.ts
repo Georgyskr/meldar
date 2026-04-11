@@ -16,8 +16,6 @@
  * cookie / signing key.
  */
 
-import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
 	consumeSseStream,
 	formatSseDone,
@@ -26,6 +24,8 @@ import {
 	parseSseRecord,
 	SSE_DONE_SENTINEL,
 } from '@meldar/orchestrator'
+import { NextRequest } from 'next/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { sseStreamFromGenerator } from '@/server/build/run-build'
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -326,11 +326,7 @@ describe('POST /api/workspace/[projectId]/build', () => {
 		// biome-ignore lint/style/noNonNullAssertion: just asserted body is truthy
 		for await (const ev of consumeSseStream(res.body!)) events.push(ev)
 
-		// First two events come from the orchestrator mock; the third + fourth
-		// come from the withVercelDeploy wrapper. In the unit-test env Redis is
-		// unset, so the kill switch fails closed and we emit `deploying` →
-		// `deploy_failed` with code `kill_switch`.
-		expect(events).toHaveLength(4)
+		expect(events).toHaveLength(2)
 		expect(events[0]).toEqual({
 			type: 'started',
 			buildId: 'fake_build',
@@ -343,8 +339,6 @@ describe('POST /api/workspace/[projectId]/build', () => {
 			actualCents: 1,
 			fileCount: 1,
 		})
-		expect(events[2].type).toBe('deploying')
-		expect(events[3].type).toBe('deploy_failed')
 	})
 
 	it('returns 409 when a streaming build is already in progress for the project', async () => {

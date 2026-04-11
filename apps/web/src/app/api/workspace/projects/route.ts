@@ -2,6 +2,7 @@ import { STARTER_FILES } from '@meldar/orchestrator'
 import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@meldar/storage'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { provisionSubdomain } from '@/server/domains'
 import { verifyToken } from '@/server/identity/jwt'
 import {
 	checkRateLimit,
@@ -67,7 +68,10 @@ export async function GET(request: NextRequest) {
 		const projects = await listUserProjects(session.userId)
 		return NextResponse.json({ projects })
 	} catch (err) {
-		console.error('[api/workspace/projects] list query failed:', JSON.stringify(serializeError(err)))
+		console.error(
+			'[api/workspace/projects] list query failed:',
+			JSON.stringify(serializeError(err)),
+		)
 		return NextResponse.json(
 			{ error: { code: 'INTERNAL_ERROR', message: 'Failed to load projects' } },
 			{ status: 500 },
@@ -159,7 +163,16 @@ export async function POST(request: NextRequest) {
 			)
 			created = await storage.createProject(projectOpts)
 		}
-		return NextResponse.json({ projectId: created.project.id }, { status: 200 })
+		let subdomain: string | undefined
+		try {
+			subdomain = await provisionSubdomain(created.project.id, name)
+		} catch (subErr) {
+			console.error(
+				'[api/workspace/projects] subdomain provisioning failed:',
+				JSON.stringify(serializeError(subErr)),
+			)
+		}
+		return NextResponse.json({ projectId: created.project.id, subdomain }, { status: 200 })
 	} catch (err) {
 		console.error(
 			'[api/workspace/projects] createProject failed after retry:',

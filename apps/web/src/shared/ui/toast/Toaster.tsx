@@ -4,7 +4,7 @@ import { Box, Flex, styled } from '@styled-system/jsx'
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
 import { Text } from '../typography'
-import { type ToastType, getSnapshot, subscribe, toast } from './toast-store'
+import { getSnapshot, subscribe, type ToastType, toast } from './toast-store'
 
 const ICONS: Record<ToastType, typeof AlertCircle> = {
 	error: AlertCircle,
