@@ -1,0 +1,340 @@
+{
+  "nodes": [
+    {
+      "id": "editorial-plate-06-skills",
+      "label": "Editorial Plate 06 — Skills Section",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "skills-section",
+      "label": "Skills Landing Page Section (6 automations)",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "six-pyramids-motif",
+      "label": "Six Pyramid Shapes (represent 6 skill automations)",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "connecting-wire-motif",
+      "label": "Flowing Peach Wire Loop (orchestration/connection)",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "central-sphere",
+      "label": "Half-Cream Half-Peach Sphere (user/hub)",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "diagonal-split-bg",
+      "label": "Diagonal Split Background (mauve / cream)",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "brand-color-primary",
+      "label": "Primary Brand Color #623153 (deep mauve)",
+      "file_type": "design_token",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "brand-color-surface",
+      "label": "Surface Color #faf9f6 (warm cream)",
+      "file_type": "design_token",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "brand-accent-peach",
+      "label": "Peach/Coral Accent (gradient endpoint #FFB876)",
+      "file_type": "design_token",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "editorial-design-style",
+      "label": "Editorial Swiss-Inspired Architectural Style",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "skill-meal-planner",
+      "label": "Skill: Meal Planner",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "skill-grade-watcher",
+      "label": "Skill: Grade Watcher",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "skill-price-watcher",
+      "label": "Skill: Price Watcher",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "skill-email-triage",
+      "label": "Skill: Email Triage",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "skill-expense-sorter",
+      "label": "Skill: Expense Sorter",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "skill-social-poster",
+      "label": "Skill: Social Poster",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    }
+  ],
+  "edges": [
+    {
+      "source": "editorial-plate-06-skills",
+      "target": "skills-section",
+      "relation": "ILLUSTRATES",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-06-skills",
+      "target": "six-pyramids-motif",
+      "relation": "CONTAINS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-06-skills",
+      "target": "connecting-wire-motif",
+      "relation": "CONTAINS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-06-skills",
+      "target": "central-sphere",
+      "relation": "CONTAINS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-06-skills",
+      "target": "diagonal-split-bg",
+      "relation": "CONTAINS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "six-pyramids-motif",
+      "target": "skills-section",
+      "relation": "SYMBOLIZES",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.85
+    },
+    {
+      "source": "connecting-wire-motif",
+      "target": "skills-section",
+      "relation": "SYMBOLIZES_ORCHESTRATION_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.8
+    },
+    {
+      "source": "central-sphere",
+      "target": "six-pyramids-motif",
+      "relation": "HUB_FOR",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.7
+    },
+    {
+      "source": "diagonal-split-bg",
+      "target": "brand-color-primary",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "diagonal-split-bg",
+      "target": "brand-color-surface",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "connecting-wire-motif",
+      "target": "brand-accent-peach",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-06-skills",
+      "target": "editorial-design-style",
+      "relation": "FOLLOWS_STYLE",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "skills-section",
+      "target": "skill-meal-planner",
+      "relation": "INCLUDES_SKILL",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "skills-section",
+      "target": "skill-grade-watcher",
+      "relation": "INCLUDES_SKILL",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "skills-section",
+      "target": "skill-price-watcher",
+      "relation": "INCLUDES_SKILL",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "skills-section",
+      "target": "skill-email-triage",
+      "relation": "INCLUDES_SKILL",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "skills-section",
+      "target": "skill-expense-sorter",
+      "relation": "INCLUDES_SKILL",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "skills-section",
+      "target": "skill-social-poster",
+      "relation": "INCLUDES_SKILL",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "six-pyramids-motif",
+      "target": "skill-meal-planner",
+      "relation": "REPRESENTS",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.7
+    },
+    {
+      "source": "six-pyramids-motif",
+      "target": "skill-grade-watcher",
+      "relation": "REPRESENTS",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.7
+    },
+    {
+      "source": "six-pyramids-motif",
+      "target": "skill-price-watcher",
+      "relation": "REPRESENTS",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.7
+    },
+    {
+      "source": "six-pyramids-motif",
+      "target": "skill-email-triage",
+      "relation": "REPRESENTS",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.7
+    },
+    {
+      "source": "six-pyramids-motif",
+      "target": "skill-expense-sorter",
+      "relation": "REPRESENTS",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.7
+    },
+    {
+      "source": "six-pyramids-motif",
+      "target": "skill-social-poster",
+      "relation": "REPRESENTS",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg",
+      "weight": 0.7
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "brand-palette-consistency",
+      "label": "Consistent Brand Palette Across Plate",
+      "nodes": ["brand-color-primary", "brand-color-surface", "brand-accent-peach", "editorial-plate-06-skills"],
+      "relation": "BRAND_PALETTE_APPLIED",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    },
+    {
+      "id": "skills-visual-metaphor",
+      "label": "Six Pyramids + Wire = Interconnected Automation Skills",
+      "nodes": ["six-pyramids-motif", "connecting-wire-motif", "central-sphere", "skills-section"],
+      "relation": "VISUAL_METAPHOR",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "apps/web/public/brand/editorial-plate-06-skills.jpg"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

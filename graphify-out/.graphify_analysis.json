@@ -1,0 +1,3309 @@
+{
+  "communities": {
+    "0": [
+      "apps_web_src_app_api_auth_google_callback_route_ts",
+      "apps_web_src_app_api_auth_google_route_ts",
+      "apps_web_src_app_api_auth_login_route_ts",
+      "apps_web_src_app_api_auth_me_route_ts",
+      "apps_web_src_app_api_auth_register_route_ts",
+      "apps_web_src_app_api_auth_resend_verification_route_ts",
+      "apps_web_src_app_api_auth_verify_email_route_ts",
+      "apps_web_src_app_api_billing_checkout_route_ts",
+      "apps_web_src_app_api_billing_webhook_route_ts",
+      "apps_web_src_app_api_cron_agent_tick_route_ts",
+      "apps_web_src_app_api_cron_email_touchpoints_route_ts",
+      "apps_web_src_app_api_cron_purge_route_ts",
+      "apps_web_src_app_api_cron_spend_alert_route_ts",
+      "apps_web_src_app_api_discovery_adaptive_route_ts",
+      "apps_web_src_app_api_discovery_analyze_route_ts",
+      "apps_web_src_app_api_discovery_session_route_ts",
+      "apps_web_src_app_api_discovery_upload_route_ts",
+      "apps_web_src_app_api_onboarding_route_ts",
+      "apps_web_src_app_api_subscribe_route_ts",
+      "apps_web_src_app_api_upload_screentime_route_ts",
+      "apps_web_src_app_api_webhooks_resend_route_ts",
+      "apps_web_src_app_api_workspace_projectid_agent_auto_approve_route_ts",
+      "apps_web_src_app_api_workspace_projectid_agent_events_route_ts",
+      "apps_web_src_app_api_workspace_projectid_agent_tasks_route_ts",
+      "apps_web_src_app_api_workspace_projectid_apply_template_route_ts",
+      "apps_web_src_app_api_workspace_projectid_ask_question_route_ts",
+      "apps_web_src_app_api_workspace_projectid_auto_build_route_ts",
+      "apps_web_src_app_api_workspace_projectid_bookings_route_ts",
+      "apps_web_src_app_api_workspace_projectid_build_decisions_route_ts",
+      "apps_web_src_app_api_workspace_projectid_cards_cardid_route_ts",
+      "apps_web_src_app_api_workspace_projectid_cards_reorder_route_ts",
+      "apps_web_src_app_api_workspace_projectid_cards_route_ts",
+      "apps_web_src_app_api_workspace_projectid_files_route_ts",
+      "apps_web_src_app_api_workspace_projectid_generate_plan_route_ts",
+      "apps_web_src_app_api_workspace_projectid_generate_proposal_route_ts",
+      "apps_web_src_app_api_workspace_projectid_improve_prompt_route_ts",
+      "apps_web_src_app_api_workspace_projectid_settings_route_ts",
+      "apps_web_src_app_api_workspace_projectid_wishes_route_ts",
+      "apps_web_src_app_api_workspace_projects_route_ts",
+      "apps_web_src_app_api_workspace_templates_templateid_route_ts",
+      "route_callhaiku",
+      "route_delete",
+      "route_detectlang",
+      "route_errorredirect",
+      "route_escapehtml",
+      "route_executetask",
+      "route_fetchrecentevents",
+      "route_formatcents",
+      "route_generateplanwithretry",
+      "route_get",
+      "route_getredis",
+      "route_isuniqueviolation",
+      "route_isvalidpayload",
+      "route_parseandvalidateplan",
+      "route_patch",
+      "route_post",
+      "route_processtasks",
+      "route_put",
+      "route_resolveadaptivesourcetype",
+      "route_sanitizeshikihtml",
+      "route_transitionstatus",
+      "route_tryacquirealertlock"
+    ],
+    "1": [
+      "agent_runtime",
+      "approval_loop",
+      "apps_web_src_app_authed_workspace_projectid_admin_page_tsx",
+      "apps_web_src_widgets_workspace_artifactpane_tsx",
+      "artifactpane_formatbytes",
+      "artifactpane_handlecopy",
+      "backlog",
+      "booking_template",
+      "build_system_prompt",
+      "clicktheroadfi_oy",
+      "cloudflare_sandbox",
+      "custom_domain_sprint2",
+      "data_export_ingestion",
+      "discovery_engine",
+      "email_isolation",
+      "fsd_architecture",
+      "hmac_verification",
+      "media_recorder_api",
+      "meldar_ai_domain",
+      "meldar_badge",
+      "meldar_product",
+      "monorepo_structure",
+      "needs_human",
+      "orby_ai",
+      "orchestrator_package",
+      "page_adminpage",
+      "product_stage_rules",
+      "prompt_md",
+      "rosebud",
+      "sandbox_graceful_degradation",
+      "sandbox_provider",
+      "sandbox_worker",
+      "screen_recording_input",
+      "sprint1_booking_ceu",
+      "subdomain_provisioning",
+      "target_audience_primary",
+      "target_audience_v3",
+      "tdd_workflow",
+      "teaching_hints",
+      "tech_stack_anthropic",
+      "tech_stack_drizzle",
+      "tech_stack_neon",
+      "tech_stack_nextjs",
+      "tech_stack_panda_css",
+      "tech_stack_resend",
+      "tech_stack_stripe",
+      "v3_mvp_backlog",
+      "visual_feedback_tool",
+      "voice_input",
+      "whisper_api",
+      "whisper_wasm",
+      "zero_comments_rule"
+    ],
+    "2": [
+      "apps_web_src_app_api_billing_checkout_tests_route_test_ts",
+      "apps_web_src_app_api_cron_agent_tick_tests_route_test_ts",
+      "apps_web_src_app_api_cron_email_touchpoints_tests_route_test_ts",
+      "apps_web_src_app_api_cron_purge_tests_route_test_ts",
+      "apps_web_src_app_api_discovery_adaptive_tests_route_test_ts",
+      "apps_web_src_app_api_discovery_analyze_tests_route_test_ts",
+      "apps_web_src_app_api_discovery_session_tests_route_test_ts",
+      "apps_web_src_app_api_discovery_upload_tests_route_test_ts",
+      "apps_web_src_app_api_onboarding_tests_route_test_ts",
+      "apps_web_src_app_api_webhooks_resend_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_agent_events_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_agent_tasks_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_apply_template_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_ask_question_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_bookings_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_cards_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_generate_plan_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_generate_proposal_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_improve_prompt_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_settings_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projectid_wishes_tests_route_test_ts",
+      "apps_web_src_app_api_workspace_projects_tests_route_test_ts",
+      "route_test_authedrequest",
+      "route_test_cardroutecontext",
+      "route_test_getresolvedsourcetype",
+      "route_test_makeadaptiverequest",
+      "route_test_makecard",
+      "route_test_makedeleterequest",
+      "route_test_makeevent",
+      "route_test_makeformdatarequest",
+      "route_test_makegetrequest",
+      "route_test_makeimagefile",
+      "route_test_makejsonfile",
+      "route_test_makepatchrequest",
+      "route_test_makepostrequest",
+      "route_test_makeputrequest",
+      "route_test_makereorderrequest",
+      "route_test_makerequest",
+      "route_test_maketask",
+      "route_test_maketaskrow",
+      "route_test_makewebhookpayload",
+      "route_test_makezipfile",
+      "route_test_mockhaikuresponse",
+      "route_test_mockresend",
+      "route_test_setupclaimmock",
+      "route_test_setupdbchain",
+      "route_test_setupdbchainerror",
+      "route_test_setupdbmocks",
+      "route_test_setupprojectlookup",
+      "route_test_setupselectchain",
+      "route_test_setupupdatechain"
+    ],
+    "3": [
+      "3d-sculptural-form",
+      "brand-color-deep-mauve",
+      "brand-color-peach-accent",
+      "brand-color-warm-cream",
+      "brand-color-warm-cream-surface",
+      "brand-design-language",
+      "brand-directory",
+      "brand-gradient-mauve-peach",
+      "brand-identity-meldar",
+      "brand-surface-warm-cream",
+      "color-deep-mauve",
+      "color-dusty-rose",
+      "color-warm-cream-bg",
+      "color-warm-peach",
+      "composition-style-symmetric-perspective",
+      "design-language-editorial-architecture",
+      "editorial-architecture-style",
+      "editorial-plate-01",
+      "editorial-plate-02-problem",
+      "editorial-plate-03-howitworks",
+      "editorial-plate-07-adopter",
+      "geometric-l-shape",
+      "landing-section-early-adopter",
+      "landing-section-how-it-works",
+      "landing-section-problem",
+      "meldar-brand-system",
+      "metaphor-convergence-belonging",
+      "organic-curve-swoops",
+      "overlapping-planes",
+      "problem-pain-points",
+      "visual-concentric-rings",
+      "visual-depth-shadow",
+      "visual-metaphor-goal-destination",
+      "visual-metaphor-progression",
+      "visual-motif-ascending-staircase",
+      "visual-motif-mauve-columns",
+      "visual-motif-peach-orb",
+      "visual-tension-motif"
+    ],
+    "4": [
+      "concept_learn_by_doing",
+      "concept_live_preview",
+      "concept_post_paywall_valley",
+      "concept_token_economy",
+      "decision_corporate_entry",
+      "decision_drop_terminology",
+      "decision_pricing_19",
+      "decision_ship_1",
+      "deferred_do_hibernation",
+      "deferred_heavy_xray",
+      "deferred_project_offload",
+      "friction_hotspot_1",
+      "friction_hotspot_2",
+      "friction_hotspot_3",
+      "persona_daria",
+      "persona_jari",
+      "persona_katya",
+      "refused_games",
+      "refused_payments",
+      "template_booking",
+      "template_dashboard",
+      "template_landing_page",
+      "template_strategy",
+      "tier_builder",
+      "tier_done_for_me",
+      "tier_free",
+      "usecase_email_triage",
+      "usecase_landing_booking",
+      "usecase_reddit_scanner",
+      "ux_architect_spec",
+      "ux_researcher_findings",
+      "v3_decisions_needed",
+      "v3_one_line_pitch",
+      "v3_phase2_backlog",
+      "v3_product_spec",
+      "workspace_modes"
+    ],
+    "5": [
+      "in_memory_provider_bytelength",
+      "in_memory_provider_inmemorybuildcontext",
+      "in_memory_provider_inmemorybuildcontext_commit",
+      "in_memory_provider_inmemorybuildcontext_constructor",
+      "in_memory_provider_inmemorybuildcontext_fail",
+      "in_memory_provider_inmemorybuildcontext_filecount",
+      "in_memory_provider_inmemorybuildcontext_writefile",
+      "in_memory_provider_inmemoryprojectstorage",
+      "in_memory_provider_inmemoryprojectstorage_beginbuild",
+      "in_memory_provider_inmemoryprojectstorage_commitbuild",
+      "in_memory_provider_inmemoryprojectstorage_constructor",
+      "in_memory_provider_inmemoryprojectstorage_createkanbancard",
+      "in_memory_provider_inmemoryprojectstorage_createkanbancards",
+      "in_memory_provider_inmemoryprojectstorage_createproject",
+      "in_memory_provider_inmemoryprojectstorage_deletekanbancard",
+      "in_memory_provider_inmemoryprojectstorage_failbuild",
+      "in_memory_provider_inmemoryprojectstorage_getactivestreamingbuild",
+      "in_memory_provider_inmemoryprojectstorage_getbuild",
+      "in_memory_provider_inmemoryprojectstorage_getbuildfiles",
+      "in_memory_provider_inmemoryprojectstorage_getbuildorthrow",
+      "in_memory_provider_inmemoryprojectstorage_getcurrentfiles",
+      "in_memory_provider_inmemoryprojectstorage_getkanbancards",
+      "in_memory_provider_inmemoryprojectstorage_getproject",
+      "in_memory_provider_inmemoryprojectstorage_readfile",
+      "in_memory_provider_inmemoryprojectstorage_reapstuckbuilds",
+      "in_memory_provider_inmemoryprojectstorage_reorderkanbancards",
+      "in_memory_provider_inmemoryprojectstorage_rollback",
+      "in_memory_provider_inmemoryprojectstorage_setbuild",
+      "in_memory_provider_inmemoryprojectstorage_setpreviewurl",
+      "in_memory_provider_inmemoryprojectstorage_softdeleteproject",
+      "in_memory_provider_inmemoryprojectstorage_updatekanbancard",
+      "in_memory_provider_inmemoryprojectstorage_validatefilebatch",
+      "in_memory_provider_inmemoryprojectstorage_writefiletobuild",
+      "in_memory_provider_toprojectfilerow",
+      "packages_storage_src_in_memory_provider_ts"
+    ],
+    "6": [
+      "ai_engineer_assessment",
+      "chrome_extension",
+      "competitive_positioning",
+      "conversational_ai_market",
+      "cross_source_intelligence",
+      "data_remediation",
+      "discovery_synthesis",
+      "doctor_checkup_metaphor",
+      "effort_escalation_funnel",
+      "email_intelligence",
+      "five_question_chat",
+      "gdpr_article_20",
+      "gen_z_privacy_paradox",
+      "google_data_portability_api",
+      "google_takeout",
+      "ios_shortcuts_automation",
+      "just_in_time_permissions",
+      "meldar_discovery_mechanism",
+      "nudge_engine",
+      "pick_your_pain_quiz",
+      "positioning_strategy",
+      "privacy_by_architecture",
+      "progressive_data_collection",
+      "progressive_discovery",
+      "reclaim_reveal_reclaim_arc",
+      "screen_time_screenshot",
+      "self_export_model",
+      "story_arc",
+      "tell_me_about_monday",
+      "three_win_themes",
+      "time_xray",
+      "trust_escalation_funnel",
+      "ux_trust_research",
+      "value_before_data",
+      "viral_hook"
+    ],
+    "7": [
+      "packages_storage_src_postgres_provider_ts",
+      "postgres_provider_assertnonemptybatch",
+      "postgres_provider_bytelength",
+      "postgres_provider_postgresbuildcontext",
+      "postgres_provider_postgresbuildcontext_commit",
+      "postgres_provider_postgresbuildcontext_constructor",
+      "postgres_provider_postgresbuildcontext_fail",
+      "postgres_provider_postgresbuildcontext_filecount",
+      "postgres_provider_postgresbuildcontext_writefile",
+      "postgres_provider_postgresprojectstorage",
+      "postgres_provider_postgresprojectstorage_beginbuild",
+      "postgres_provider_postgresprojectstorage_constructor",
+      "postgres_provider_postgresprojectstorage_createkanbancard",
+      "postgres_provider_postgresprojectstorage_createkanbancards",
+      "postgres_provider_postgresprojectstorage_createproject",
+      "postgres_provider_postgresprojectstorage_deletekanbancard",
+      "postgres_provider_postgresprojectstorage_getactivestreamingbuild",
+      "postgres_provider_postgresprojectstorage_getbuild",
+      "postgres_provider_postgresprojectstorage_getcurrentfiles",
+      "postgres_provider_postgresprojectstorage_getkanbancards",
+      "postgres_provider_postgresprojectstorage_getproject",
+      "postgres_provider_postgresprojectstorage_readfile",
+      "postgres_provider_postgresprojectstorage_reapstuckbuilds",
+      "postgres_provider_postgresprojectstorage_reorderkanbancards",
+      "postgres_provider_postgresprojectstorage_rollback",
+      "postgres_provider_postgresprojectstorage_setpreviewurl",
+      "postgres_provider_postgresprojectstorage_updatekanbancard",
+      "postgres_provider_postgresprojectstorage_validatefilebatch",
+      "postgres_provider_rowtobuild",
+      "postgres_provider_rowtokanbancard",
+      "postgres_provider_rowtoproject"
+    ],
+    "8": [
+      "agents_md_standards",
+      "bounded_context_discovery",
+      "brand_design_system",
+      "client_side_ocr_first",
+      "data_reclamation_narrative",
+      "design_image_prompt_engineer",
+      "docs_readme",
+      "event_handler_leak_rule",
+      "gdpr_compliance",
+      "hero_image_prompts",
+      "implementation_prompt_v2",
+      "landing_copy_v2",
+      "landing_page",
+      "plan_v1",
+      "plan_v1_ai_pipeline",
+      "plan_v1_architecture",
+      "plan_v1_business",
+      "plan_v1_devops",
+      "plan_v1_frontend",
+      "pricing_model_v1",
+      "pricing_model_v2",
+      "pricing_model_v3",
+      "rsc_default_rule",
+      "seo_programmatic_pages",
+      "seo_technical_audit",
+      "test_plan_v2",
+      "twelve_seniors_narrative",
+      "typography_system",
+      "v3_design_language",
+      "zod_ai_output_validation"
+    ],
+    "9": [
+      "bolt_new",
+      "humane_ai_pin",
+      "lindy_ai",
+      "lovable",
+      "market_white_space",
+      "meldar",
+      "minro_iris",
+      "mint_shutdown",
+      "mulerun",
+      "openclaw",
+      "pattern_ai_too_generic",
+      "pattern_decision_fatigue",
+      "pattern_manual_tracking_fatigue",
+      "rabbit_r1",
+      "research_synthesis",
+      "sintra_ai",
+      "usecase_adhd_routine",
+      "usecase_calorie_logging",
+      "usecase_expense_tracking",
+      "usecase_freelancer_admin",
+      "usecase_game_backlog",
+      "usecase_invoice_chasing",
+      "usecase_meal_planning",
+      "usecase_personal_crm",
+      "usecase_resume_tailoring",
+      "usecase_scope_creep",
+      "usecase_subscription_creep",
+      "vc_funding_trends",
+      "zapier"
+    ],
+    "10": [
+      "errors_blobintegrityerror",
+      "errors_blobintegrityerror_constructor",
+      "errors_blobstorageerror",
+      "errors_blobstorageerror_constructor",
+      "errors_buildfilelimiterror",
+      "errors_buildfilelimiterror_constructor",
+      "errors_buildnotfounderror",
+      "errors_buildnotfounderror_constructor",
+      "errors_buildnotstreamingerror",
+      "errors_buildnotstreamingerror_constructor",
+      "errors_constructor",
+      "errors_filetoolargeerror",
+      "errors_filetoolargeerror_constructor",
+      "errors_invalidrollbacktargeterror",
+      "errors_invalidrollbacktargeterror_constructor",
+      "errors_projectnotfounderror",
+      "errors_sandboxnotfounderror",
+      "errors_sandboxnotreadyerror",
+      "errors_sandboxstartfailederror",
+      "errors_sandboxunsafepatherror",
+      "errors_sandboxunsafepatherror_constructor",
+      "errors_sandboxwritefailederror",
+      "errors_sandboxwritefailederror_constructor",
+      "packages_sandbox_src_errors_ts",
+      "packages_storage_src_errors_ts"
+    ],
+    "11": [
+      "agent_task_service_approvetask",
+      "agent_task_service_asserttransition",
+      "agent_task_service_completetask",
+      "agent_task_service_escalatetask",
+      "agent_task_service_executetask",
+      "agent_task_service_failtask",
+      "agent_task_service_findtaskbyresendid",
+      "agent_task_service_findtaskorthrow",
+      "agent_task_service_getpendingtasks",
+      "agent_task_service_gettaskhistory",
+      "agent_task_service_invalidtasktransitionerror",
+      "agent_task_service_invalidtasktransitionerror_constructor",
+      "agent_task_service_logevent",
+      "agent_task_service_proposetask",
+      "agent_task_service_reapstuckexecutingtasks",
+      "agent_task_service_rejecttask",
+      "agent_task_service_tasknotfounderror",
+      "agent_task_service_tasknotfounderror_constructor",
+      "agent_task_service_verifytask",
+      "apps_web_src_server_agents_agent_task_service_ts"
+    ],
+    "12": [
+      "city-skyline",
+      "data-receipt-section",
+      "data-reclamation-narrative",
+      "editorial-photography-style",
+      "editorial-plate-04-receipt",
+      "editorial-plate-08-final",
+      "empowerment-mood",
+      "final-cta-section",
+      "human-hand-interaction",
+      "meldar-brand",
+      "paper-receipt-motif",
+      "silhouette-person-rooftop",
+      "spotify-wrapped-analogy",
+      "sunset-starburst",
+      "tangible-data-metaphor",
+      "time-xray-feature",
+      "warm-cream-surface-palette",
+      "warm-golden-light",
+      "warm-golden-palette",
+      "wooden-table-surface"
+    ],
+    "13": [
+      "packages_orchestrator_src_validate_files_ts",
+      "validate_files_extractimportsources",
+      "validate_files_getstringvalue",
+      "validate_files_hasdefaultexport",
+      "validate_files_hasuseclientdirective",
+      "validate_files_isallowedpackage",
+      "validate_files_isapppagefile",
+      "validate_files_iscolortokenvalue",
+      "validate_files_isrelativeimport",
+      "validate_files_isstringliterallike",
+      "validate_files_istypescriptfile",
+      "validate_files_isvalidcolortoken",
+      "validate_files_resolverelativeimport",
+      "validate_files_usesclienthooks",
+      "validate_files_validatebuildfiles",
+      "validate_files_validatefileimports",
+      "validate_files_validatefilepath",
+      "validate_files_validatepandacss",
+      "validate_files_validatestructure"
+    ],
+    "14": [
+      "aeo_strategy",
+      "brandyourself",
+      "character_brand_pages",
+      "consolidated_review",
+      "demandbase_6sense",
+      "edge_playbook",
+      "enterprise_readiness",
+      "google_yourself_keyword",
+      "growth_hacker_critique",
+      "marketing_blitz_plan",
+      "matthew_gallagher",
+      "medvi",
+      "medvi_legal_status",
+      "medvi_page_farm",
+      "negative_keywords",
+      "programmatic_seo_verdict",
+      "seo_aeo_agency_app",
+      "threat_reveal_rescue",
+      "ucpd"
+    ],
+    "15": [
+      "apps_web_scripts_e2e_api_flow_ts",
+      "e2e_api_flow_api",
+      "e2e_api_flow_applytemplate",
+      "e2e_api_flow_assert",
+      "e2e_api_flow_checkroutes",
+      "e2e_api_flow_createproject",
+      "e2e_api_flow_generateplan",
+      "e2e_api_flow_generateproposal",
+      "e2e_api_flow_getcards",
+      "e2e_api_flow_getfiles",
+      "e2e_api_flow_improveprompt",
+      "e2e_api_flow_login",
+      "e2e_api_flow_main",
+      "e2e_api_flow_savewishes",
+      "e2e_api_flow_skip",
+      "e2e_api_flow_step",
+      "e2e_api_flow_triggerbuild",
+      "e2e_api_flow_verifyauth"
+    ],
+    "16": [
+      "apps_web_src_server_lib_spend_ceiling_ts",
+      "spend_ceiling_ceilingcents",
+      "spend_ceiling_checkallspendceilings",
+      "spend_ceiling_checkglobalspendceiling",
+      "spend_ceiling_checkuserdailyspend",
+      "spend_ceiling_checkuserhourlyspend",
+      "spend_ceiling_createspendguardforuser",
+      "spend_ceiling_getglobalspendtoday",
+      "spend_ceiling_getredis",
+      "spend_ceiling_recordallspend",
+      "spend_ceiling_recordglobalspend",
+      "spend_ceiling_recorduserdailyspend",
+      "spend_ceiling_recorduserhourlyspend",
+      "spend_ceiling_todaykey",
+      "spend_ceiling_userdailyceiling",
+      "spend_ceiling_userdaykey",
+      "spend_ceiling_userhourkey",
+      "spend_ceiling_userhourlyceiling"
+    ],
+    "17": [
+      "competitor_bardeen",
+      "competitor_lovable",
+      "competitor_zapier",
+      "concept_articulation_barrier",
+      "concept_blank_box_problem",
+      "concept_discovery_gap",
+      "concept_kanban_as_spec",
+      "pain_ai_burnout",
+      "pain_personalization_gap",
+      "pain_trust_hallucination",
+      "research_appstore_competitors",
+      "research_reddit_competitors",
+      "research_reddit_students",
+      "research_twitter_ai_pain",
+      "student_usecase_deadlines",
+      "student_usecase_grades",
+      "student_usecase_seats"
+    ],
+    "18": [
+      "brand-accent-peach",
+      "brand-color-primary",
+      "brand-color-surface",
+      "central-sphere",
+      "connecting-wire-motif",
+      "diagonal-split-bg",
+      "editorial-design-style",
+      "editorial-plate-06-skills",
+      "six-pyramids-motif",
+      "skill-email-triage",
+      "skill-expense-sorter",
+      "skill-grade-watcher",
+      "skill-meal-planner",
+      "skill-price-watcher",
+      "skill-social-poster",
+      "skills-section"
+    ],
+    "19": [
+      "apps_sandbox_worker_src_handler_ts",
+      "handler_createsandboxworker",
+      "handler_ensuredevserver",
+      "handler_handleprewarm",
+      "handler_handlestart",
+      "handler_handlestatus",
+      "handler_handlestop",
+      "handler_handlewrite",
+      "handler_isobject",
+      "handler_jsonresponse",
+      "handler_mapsandboxerror",
+      "handler_parsefiles",
+      "handler_parseprojectid",
+      "handler_sandboxnamefor",
+      "handler_withtimeout"
+    ],
+    "20": [
+      "apps_web_src_server_deploy_guarded_deploy_call_ts",
+      "guarded_deploy_call_envcap",
+      "guarded_deploy_call_formatdeployerror",
+      "guarded_deploy_call_getredis",
+      "guarded_deploy_call_globaldeploydailykey",
+      "guarded_deploy_call_guardeddeploycall",
+      "guarded_deploy_call_hourkey",
+      "guarded_deploy_call_iskillswitchopen",
+      "guarded_deploy_call_rejectionmessage",
+      "guarded_deploy_call_reserveallceilings",
+      "guarded_deploy_call_todaykey",
+      "guarded_deploy_call_userdeploydailykey",
+      "guarded_deploy_call_userdeployhourlykey"
+    ],
+    "21": [
+      "apps_web_src_server_email_send_email_ts",
+      "send_email_ctabutton",
+      "send_email_emailwrapper",
+      "send_email_escapehtml",
+      "send_email_getbaseurl",
+      "send_email_sendbookingnotification",
+      "send_email_sendbookingnudge",
+      "send_email_sendfirstbuildemail",
+      "send_email_sendfounderalertemail",
+      "send_email_sendnudgeemail",
+      "send_email_sendpasswordresetemail",
+      "send_email_sendverificationemail",
+      "send_email_sendwelcomeemail"
+    ],
+    "22": [
+      "brand-theme:data-privacy",
+      "brand-theme:trust",
+      "color-palette:trust-plate",
+      "design-style:editorial-flatlay",
+      "editorial-plate-05-trust",
+      "landing-section:trust",
+      "metaphor:access-control",
+      "metaphor:sealed-privacy",
+      "visual-element:brass-keys",
+      "visual-element:leather-journal",
+      "visual-element:linen-surface",
+      "visual-element:sealed-envelope",
+      "visual-element:warm-window-light"
+    ],
+    "23": [
+      "packages_storage_src_r2_blob_ts",
+      "r2_blob_encodepath",
+      "r2_blob_formaterr",
+      "r2_blob_r2blobstorage",
+      "r2_blob_r2blobstorage_constructor",
+      "r2_blob_r2blobstorage_delete",
+      "r2_blob_r2blobstorage_exists",
+      "r2_blob_r2blobstorage_fromenv",
+      "r2_blob_r2blobstorage_get",
+      "r2_blob_r2blobstorage_put",
+      "r2_blob_r2blobstorage_url",
+      "r2_blob_sha256tobase64"
+    ],
+    "24": [
+      "cloudflare_provider_cloudflaresandboxprovider",
+      "cloudflare_provider_cloudflaresandboxprovider_callworker",
+      "cloudflare_provider_cloudflaresandboxprovider_constructor",
+      "cloudflare_provider_cloudflaresandboxprovider_fromenv",
+      "cloudflare_provider_cloudflaresandboxprovider_getpreviewurl",
+      "cloudflare_provider_cloudflaresandboxprovider_prewarm",
+      "cloudflare_provider_cloudflaresandboxprovider_start",
+      "cloudflare_provider_cloudflaresandboxprovider_stop",
+      "cloudflare_provider_cloudflaresandboxprovider_writefiles",
+      "cloudflare_provider_formaterr",
+      "cloudflare_provider_hmacsign",
+      "packages_sandbox_src_cloudflare_provider_ts"
+    ],
+    "25": [
+      "apps_web_src_server_discovery_insights_ts",
+      "insights_emailappfixsteps",
+      "insights_entertainmentappfixsteps",
+      "insights_focusgamesteps",
+      "insights_gamingappfixsteps",
+      "insights_generateinsights",
+      "insights_highpickupsfixsteps",
+      "insights_isfocusgame",
+      "insights_socialappfixsteps",
+      "insights_socialdominancefixsteps",
+      "insights_topappfixsteps",
+      "insights_totalscreentimefixsteps"
+    ],
+    "26": [
+      "apps_web_e2e_build_full_flow_spec_ts",
+      "build_full_flow_spec_assertcapturedcardid",
+      "build_full_flow_spec_buildssebody",
+      "build_full_flow_spec_clickmakethisnow",
+      "build_full_flow_spec_createprojectwithtemplate",
+      "build_full_flow_spec_formatssedone",
+      "build_full_flow_spec_formatsseevent",
+      "build_full_flow_spec_mockcardpersistence",
+      "build_full_flow_spec_navigatetoworkspace",
+      "build_full_flow_spec_publishevent",
+      "build_full_flow_spec_selectfirstreadytask"
+    ],
+    "27": [
+      "apps_web_src_features_cookie_consent_lib_use_consent_state_ts",
+      "use_consent_state_clearanalyticscookies",
+      "use_consent_state_getconsentrecord",
+      "use_consent_state_getstoredconsent",
+      "use_consent_state_invalidatecache",
+      "use_consent_state_parserecord",
+      "use_consent_state_requestconsentreopen",
+      "use_consent_state_revokeconsent",
+      "use_consent_state_saveconsent",
+      "use_consent_state_useconsentstate"
+    ],
+    "28": [
+      "apps_web_src_server_deploy_vercel_deploy_ts",
+      "vercel_deploy_createvercelclient",
+      "vercel_deploy_deploytovercel",
+      "vercel_deploy_readconfig",
+      "vercel_deploy_sha1",
+      "vercel_deploy_sleep",
+      "vercel_deploy_tonetworkerror",
+      "vercel_deploy_uploadallfiles",
+      "vercel_deploy_vercelapierror",
+      "vercel_deploy_vercelapierror_constructor"
+    ],
+    "29": [
+      "build_as_unit_of_truth",
+      "content_addressing",
+      "data_engineer_review",
+      "database_optimizer_review",
+      "github_phase2_migration",
+      "medallion_architecture",
+      "option_a_pure_r2",
+      "option_c_event_sourced",
+      "software_architect_review",
+      "storage_decision"
+    ],
+    "30": [
+      "in_memory_blob_inmemoryblobstorage",
+      "in_memory_blob_inmemoryblobstorage_clear",
+      "in_memory_blob_inmemoryblobstorage_delete",
+      "in_memory_blob_inmemoryblobstorage_exists",
+      "in_memory_blob_inmemoryblobstorage_get",
+      "in_memory_blob_inmemoryblobstorage_keys",
+      "in_memory_blob_inmemoryblobstorage_put",
+      "in_memory_blob_inmemoryblobstorage_size",
+      "packages_storage_src_in_memory_blob_ts"
+    ],
+    "31": [
+      "apps_web_src_features_workspace_context_tsx",
+      "context_deriveworkspacemode",
+      "context_findcard",
+      "context_isuiaction",
+      "context_persistcardstate",
+      "context_updatecardstate",
+      "context_workspacebuildinitialstate",
+      "context_workspacebuildprovider",
+      "context_workspacebuildreducer"
+    ],
+    "32": [
+      "agent_task_service_test_makeinsertchain",
+      "agent_task_service_test_makeselectchain",
+      "agent_task_service_test_maketask",
+      "agent_task_service_test_makeupdatechain",
+      "agent_task_service_test_nextreturning",
+      "agent_task_service_test_nextselect",
+      "agent_task_service_test_pushreturningresult",
+      "agent_task_service_test_pushselectresult",
+      "apps_web_src_server_agents_tests_agent_task_service_test_ts"
+    ],
+    "33": [
+      "ambassador_program",
+      "att_privacy",
+      "community_strategy",
+      "crisis_management",
+      "marketing_paid_social_review",
+      "marketing_ppc_review",
+      "marketing_social_media_review",
+      "meta_campaign_architecture",
+      "persona_page_farm"
+    ],
+    "34": [
+      "apps_web_src_server_discovery_preprocess_ocr_ts",
+      "preprocess_ocr_categorizeapp",
+      "preprocess_ocr_cleantext",
+      "preprocess_ocr_detectplatform",
+      "preprocess_ocr_extractscreentimedata",
+      "preprocess_ocr_formatstructuredoutput",
+      "preprocess_ocr_parsetimetominutes",
+      "preprocess_ocr_preprocessocrtext"
+    ],
+    "35": [
+      "apps_web_src_features_teaching_hints_ui_usehintdismissal_ts",
+      "usehintdismissal_getdismissed",
+      "usehintdismissal_getserversnapshot",
+      "usehintdismissal_getsnapshot",
+      "usehintdismissal_persistandnotify",
+      "usehintdismissal_subscribe",
+      "usehintdismissal_usehintdismissal"
+    ],
+    "36": [
+      "apps_web_src_tests_integration_setup_ts",
+      "setup_cleanuptestproject",
+      "setup_cleanuptestuser",
+      "setup_createtestproject",
+      "setup_createtestuser",
+      "setup_db",
+      "setup_testemail"
+    ],
+    "37": [
+      "brand_gradient",
+      "circle_shape",
+      "color_deep_mauve",
+      "color_peach_orange",
+      "favicon_svg",
+      "gradient_circle_icon",
+      "meldar_brand"
+    ],
+    "38": [
+      "packages_orchestrator_src_slug_generator_ts",
+      "slug_generator_generatesafeslug",
+      "slug_generator_generateslug",
+      "slug_generator_isreservedslug",
+      "slug_generator_isvalidslug",
+      "slug_generator_slugforprojectid"
+    ],
+    "39": [
+      "engine_test_collectevents",
+      "engine_test_makestubsandbox",
+      "engine_test_maketextonlymock",
+      "engine_test_maketoolusemock",
+      "engine_test_setupfixture",
+      "packages_orchestrator_src_tests_engine_test_ts"
+    ],
+    "40": [
+      "apps_web_src_app_api_auth_tests_google_callback_test_ts",
+      "google_callback_test_makecallbackrequest",
+      "google_callback_test_mockgoogleapis",
+      "google_callback_test_setupinsertchain",
+      "google_callback_test_setupselectchain",
+      "google_callback_test_setupupdatechain"
+    ],
+    "41": [
+      "apps_web_src_server_discovery_parsers_tests_chatgpt_test_ts",
+      "chatgpt_test_makeassistantconversation",
+      "chatgpt_test_makebombfile",
+      "chatgpt_test_makeconversation",
+      "chatgpt_test_makeemptyzip",
+      "chatgpt_test_makezipfile"
+    ],
+    "42": [
+      "apps_web_src_server_build_orchestration_tests_build_journey_test_ts",
+      "build_journey_test_collectsseevents",
+      "build_journey_test_makedeps",
+      "build_journey_test_maketoolusemock",
+      "build_journey_test_orchestratortossestream",
+      "build_journey_test_setupfixture"
+    ],
+    "43": [
+      "apps_web_src_shared_ui_toast_toast_store_ts",
+      "toast_store_addtoast",
+      "toast_store_dismisstoast",
+      "toast_store_emit",
+      "toast_store_getsnapshot",
+      "toast_store_subscribe"
+    ],
+    "44": [
+      "test_scores_architect",
+      "test_scores_backend",
+      "test_scores_devops",
+      "test_scores_overall",
+      "test_scores_reviewer",
+      "test_scores_security"
+    ],
+    "45": [
+      "chat_security_spec",
+      "run_build_for_user",
+      "security_principle_classifier",
+      "vuln_cross_project_build",
+      "vuln_double_build_race",
+      "vuln_user_confirmation"
+    ],
+    "46": [
+      "anthropic_mock_makeanthropicmessage",
+      "anthropic_mock_makeanthropicmock",
+      "anthropic_mock_maketextblock",
+      "anthropic_mock_maketooluseblock",
+      "packages_test_utils_src_anthropic_mock_ts"
+    ],
+    "47": [
+      "packages_storage_src_tests_r2_blob_test_ts",
+      "r2_blob_test_getcallbody",
+      "r2_blob_test_getcallheader",
+      "r2_blob_test_getcallmethod",
+      "r2_blob_test_getcallurl"
+    ],
+    "48": [
+      "deps_buildorchestratordeps",
+      "deps_createredisfromenv",
+      "deps_createsandboxproviderfromenv",
+      "deps_resetorchestratordepscache",
+      "packages_orchestrator_src_deps_ts"
+    ],
+    "49": [
+      "apps_web_src_app_api_auth_tests_verify_email_test_ts",
+      "verify_email_test_flattendrizzleexpr",
+      "verify_email_test_makerequest",
+      "verify_email_test_setupdbchain",
+      "verify_email_test_unauthenticatedresult"
+    ],
+    "50": [
+      "apps_web_src_app_api_discovery_tests_upload_security_test_ts",
+      "upload_security_test_makeformdatarequest",
+      "upload_security_test_makeimagefile",
+      "upload_security_test_setupdbsessionfound",
+      "upload_security_test_setupdbupdate"
+    ],
+    "51": [
+      "apps_web_src_features_booking_admin_ui_bookingslist_tsx",
+      "bookingslist_formatdate",
+      "bookingslist_load",
+      "bookingslist_statuscolor",
+      "bookingslist_statuslabel"
+    ],
+    "52": [
+      "apps_web_src_server_domains_tests_provision_subdomain_test_ts",
+      "provision_subdomain_test_makeinsertchain",
+      "provision_subdomain_test_makeselectchain",
+      "provision_subdomain_test_nextselect",
+      "provision_subdomain_test_pushselectresult"
+    ],
+    "53": [
+      "apps_web_src_server_identity_jwt_ts",
+      "jwt_getsecret",
+      "jwt_getuserfromrequest",
+      "jwt_signtoken",
+      "jwt_verifytoken"
+    ],
+    "54": [
+      "apps_web_src_server_discovery_parsers_tests_google_takeout_test_ts",
+      "google_takeout_test_makebombfile",
+      "google_takeout_test_makesearchentries",
+      "google_takeout_test_maketakeoutzip",
+      "google_takeout_test_makeyoutubeentries"
+    ],
+    "55": [
+      "apps_web_src_server_build_orchestration_tests_build_pipeline_integration_test_ts",
+      "build_pipeline_integration_test_collectevents",
+      "build_pipeline_integration_test_makedeps",
+      "build_pipeline_integration_test_maketoolusemock",
+      "build_pipeline_integration_test_setupfixture"
+    ],
+    "56": [
+      "apps_web_src_server_lib_guarded_anthropic_ts",
+      "guarded_anthropic_guardedanthropiccall",
+      "guarded_anthropic_guardedanthropiccallorthrow",
+      "guarded_anthropic_guardedcallblockederror",
+      "guarded_anthropic_guardedcallblockederror_constructor"
+    ],
+    "57": [
+      "apps_web_src_shared_ui_legal_primitives_tsx",
+      "legal_primitives_li",
+      "legal_primitives_p",
+      "legal_primitives_section",
+      "legal_primitives_ul"
+    ],
+    "58": [
+      "apps_web_src_widgets_workspace_buildstatusoverlay_tsx",
+      "buildstatusoverlay_buildingpill",
+      "buildstatusoverlay_buildstatusoverlay",
+      "buildstatusoverlay_donepill",
+      "buildstatusoverlay_failedpill"
+    ],
+    "59": [
+      "blob_blobkey",
+      "blob_buffertohex",
+      "blob_sha256hex",
+      "packages_storage_src_blob_ts"
+    ],
+    "60": [
+      "from_env_buildprojectstoragefromenv",
+      "from_env_buildprojectstoragewithoutr2",
+      "from_env_resetprojectstoragecache",
+      "packages_storage_src_from_env_ts"
+    ],
+    "61": [
+      "engine_bytelength",
+      "engine_orchestratorbuilderror",
+      "engine_orchestratorbuilderror_constructor",
+      "packages_orchestrator_src_engine_ts"
+    ],
+    "62": [
+      "packages_orchestrator_src_prompts_ts",
+      "prompts_buildprojectfilesblock",
+      "prompts_buildusermessage",
+      "prompts_builduserpromptblock"
+    ],
+    "63": [
+      "packages_orchestrator_src_sse_ts",
+      "sse_formatssedone",
+      "sse_formatsseevent",
+      "sse_parsesserecord"
+    ],
+    "64": [
+      "build_validation_test_collectevents",
+      "build_validation_test_maketoolusemock",
+      "build_validation_test_setupfixture",
+      "packages_orchestrator_src_tests_build_validation_test_ts"
+    ],
+    "65": [
+      "locked_paths_test_collectevents",
+      "locked_paths_test_maketoolusemock",
+      "locked_paths_test_setupfixture",
+      "packages_orchestrator_src_tests_locked_paths_test_ts"
+    ],
+    "66": [
+      "apps_web_src_app_authed_workspace_tests_page_test_tsx",
+      "page_test_expandfunctioncomponent",
+      "page_test_findalltext",
+      "page_test_findbytestid"
+    ],
+    "67": [
+      "apps_web_src_app_api_auth_tests_me_test_ts",
+      "me_test_makedeleterequest",
+      "me_test_makegetrequest",
+      "me_test_setupdbchain"
+    ],
+    "68": [
+      "apps_web_src_app_api_billing_webhook_tests_route_test_ts",
+      "route_test_makesessioncompletedevent",
+      "route_test_makesubscriptionevent",
+      "route_test_makewebhookrequest"
+    ],
+    "69": [
+      "apps_web_src_features_visual_feedback_ui_feedbackbar_tsx",
+      "feedbackbar_containsdesignkeyword",
+      "feedbackbar_getsuggestionchips",
+      "feedbackbar_isshortinstruction"
+    ],
+    "70": [
+      "apps_web_src_features_cookie_consent_ui_cookieconsent_tsx",
+      "cookieconsent_accept",
+      "cookieconsent_decline",
+      "cookieconsent_handlereopen"
+    ],
+    "71": [
+      "apps_web_src_server_domains_slug_ts",
+      "slug_appendcollisionsuffix",
+      "slug_generateslug",
+      "slug_generatesubdomain"
+    ],
+    "72": [
+      "apps_web_src_server_discovery_tests_extract_topics_test_ts",
+      "extract_topics_test_makemessages",
+      "extract_topics_test_mockgoogletopictoolresponse",
+      "extract_topics_test_mocktopictoolresponse"
+    ],
+    "73": [
+      "apps_web_src_server_agents_email_sender_ts",
+      "email_sender_senderaddress",
+      "email_sender_sendername",
+      "email_sender_sendisolatedemail"
+    ],
+    "74": [
+      "apps_web_src_server_agents_executors_booking_confirmation_ts",
+      "booking_confirmation_escapehtml",
+      "booking_confirmation_executebookingconfirmation",
+      "booking_confirmation_formatconfirmationhtml"
+    ],
+    "75": [
+      "apps_web_src_server_lib_rate_limit_ts",
+      "rate_limit_checkratelimit",
+      "rate_limit_getredis",
+      "rate_limit_musthaveratelimit"
+    ],
+    "76": [
+      "apps_sandbox_worker_src_hmac_ts",
+      "hmac_constanttimeequalhex",
+      "hmac_hmacsha256hex",
+      "hmac_verifyhmac"
+    ],
+    "77": [
+      "apps_sandbox_worker_src_validate_ts",
+      "validate_issaferelativepath",
+      "validate_isvalidprojectid",
+      "validate_sanitizefilepath"
+    ],
+    "78": [
+      "apps_sandbox_worker_src_tests_worker_test_ts",
+      "worker_test_makeenv",
+      "worker_test_makefakesandbox",
+      "worker_test_signedrequest"
+    ],
+    "79": [
+      "adaptive_haiku_followup",
+      "c1_analysis_blindness",
+      "meldar_master_plan_v2",
+      "two_stage_upload"
+    ],
+    "80": [
+      "pattern_polling_to_push",
+      "usecase_apartment_alerts",
+      "usecase_price_drops",
+      "usecase_student_deadlines"
+    ],
+    "81": [
+      "make_request_makenextjsonrequest",
+      "make_request_makenextrequest",
+      "packages_test_utils_src_make_request_ts"
+    ],
+    "82": [
+      "packages_storage_src_tests_postgres_provider_test_ts",
+      "postgres_provider_test_makefakedb",
+      "postgres_provider_test_queuebeginbuildandwrite"
+    ],
+    "83": [
+      "packages_sandbox_src_safety_ts",
+      "safety_assertsafesandboxpath",
+      "safety_issafesandboxpath"
+    ],
+    "84": [
+      "packages_orchestrator_src_tests_sse_test_ts",
+      "sse_test_collectstream",
+      "sse_test_streamfromchunks"
+    ],
+    "85": [
+      "apps_web_e2e_workspace_interaction_spec_ts",
+      "workspace_interaction_spec_applytemplate",
+      "workspace_interaction_spec_createproject"
+    ],
+    "86": [
+      "apps_web_src_app_authed_workspace_layout_tsx",
+      "layout_extractpathnamefromreferer",
+      "layout_workspacelayout"
+    ],
+    "87": [
+      "apps_web_src_app_api_auth_tests_resend_verification_test_ts",
+      "resend_verification_test_makerequest",
+      "resend_verification_test_setupdbchain"
+    ],
+    "88": [
+      "apps_web_src_app_api_auth_tests_register_test_ts",
+      "register_test_makerequest",
+      "register_test_setupdbchain"
+    ],
+    "89": [
+      "apps_web_src_app_api_auth_tests_login_test_ts",
+      "login_test_makerequest",
+      "login_test_setupdbchain"
+    ],
+    "90": [
+      "apps_web_src_features_booking_ui_bookingform_tsx",
+      "bookingform_generatetimeslots",
+      "bookingform_todayiso"
+    ],
+    "91": [
+      "apps_web_src_features_booking_ui_servicecard_tsx",
+      "servicecard_formatduration",
+      "servicecard_formatprice"
+    ],
+    "92": [
+      "apps_web_src_features_workspace_tests_context_test_ts",
+      "context_test_makecard",
+      "context_test_seed"
+    ],
+    "93": [
+      "apps_web_src_features_glass_plan_ui_glasssubtaskcard_tsx",
+      "glasssubtaskcard_cardvariant",
+      "glasssubtaskcard_glasssubtaskcard"
+    ],
+    "94": [
+      "apps_web_src_features_kanban_ui_firstbuildcelebration_tsx",
+      "firstbuildcelebration_handlekey",
+      "firstbuildcelebration_storagekey"
+    ],
+    "95": [
+      "apps_web_src_features_kanban_model_card_state_machine_ts",
+      "card_state_machine_cantransition",
+      "card_state_machine_uservisiblelabel"
+    ],
+    "96": [
+      "apps_web_src_server_identity_require_auth_ts",
+      "require_auth_requireauth",
+      "require_auth_unauthenticated"
+    ],
+    "97": [
+      "apps_web_src_server_identity_tests_require_auth_test_ts",
+      "require_auth_test_makerequest",
+      "require_auth_test_setupdbchain"
+    ],
+    "98": [
+      "analyze_builddatacontext",
+      "analyze_runcrossanalysis",
+      "apps_web_src_server_discovery_analyze_ts"
+    ],
+    "99": [
+      "apps_web_src_server_discovery_extract_topics_ts",
+      "extract_topics_extractgoogletopics",
+      "extract_topics_extracttopicsfrommessages"
+    ],
+    "100": [
+      "apps_web_src_server_discovery_parsers_google_takeout_ts",
+      "google_takeout_parsegoogletakeout",
+      "google_takeout_readactivityfile"
+    ],
+    "101": [
+      "apps_web_src_server_build_orchestration_tests_routes_tracked_test_ts",
+      "routes_tracked_test_findroutefiles",
+      "routes_tracked_test_gettrackedfiles"
+    ],
+    "102": [
+      "apps_web_src_shared_ui_editorialplate_tsx",
+      "editorialplate_onscroll",
+      "editorialplate_update"
+    ],
+    "103": [
+      "apps_web_src_shared_config_stripe_ts",
+      "stripe_getstripepriceid",
+      "stripe_resolveproductslug"
+    ],
+    "104": [
+      "apps_web_src_widgets_workspace_tasklistpane_tsx",
+      "tasklistpane_group",
+      "tasklistpane_stateicon"
+    ],
+    "105": [
+      "apps_web_src_widgets_workspace_lib_build_status_ts",
+      "build_status_buildpreviewsrc",
+      "build_status_derivebuildstatus"
+    ],
+    "106": [
+      "apps_web_src_entities_xray_result_ui_xraycardreveal_tsx",
+      "xraycardreveal_revealstagger",
+      "xraycardreveal_xraycardreveal"
+    ],
+    "107": [
+      "c1_category_bypass",
+      "c2_platform_bypass",
+      "process_audit"
+    ],
+    "108": [
+      "packages_test_utils_src_redis_mock_ts",
+      "redis_mock_makeredismock"
+    ],
+    "109": [
+      "fetch_mock_makefetchmock",
+      "packages_test_utils_src_fetch_mock_ts"
+    ],
+    "110": [
+      "packages_storage_src_tests_provider_contract_ts",
+      "provider_contract_runprojectstoragecontract"
+    ],
+    "111": [
+      "client_getdb",
+      "packages_db_src_client_ts"
+    ],
+    "112": [
+      "packages_orchestrator_src_starter_files_ts",
+      "starter_files_getstarterfilecontent"
+    ],
+    "113": [
+      "model_routing_routemodel",
+      "packages_orchestrator_src_model_routing_ts"
+    ],
+    "114": [
+      "packages_orchestrator_src_resolve_wishes_ts",
+      "resolve_wishes_resolvewishes"
+    ],
+    "115": [
+      "packages_orchestrator_src_tests_slug_generator_test_ts",
+      "slug_generator_test_seededrand"
+    ],
+    "116": [
+      "apps_web_styled_system_types_global_d_ts",
+      "apps_web_styled_system_types_index_d_ts"
+    ],
+    "117": [
+      "apps_web_e2e_workspace_empty_state_spec_ts",
+      "workspace_empty_state_spec_createorgetproject"
+    ],
+    "118": [
+      "apps_web_src_app_robots_ts",
+      "robots_robots"
+    ],
+    "119": [
+      "apps_web_src_app_sitemap_ts",
+      "sitemap_sitemap"
+    ],
+    "120": [
+      "apps_web_src_app_not_found_tsx",
+      "not_found_notfound"
+    ],
+    "121": [
+      "apps_web_src_app_authed_layout_tsx",
+      "layout_authedlayout"
+    ],
+    "122": [
+      "apps_web_src_app_authed_sign_up_sign_up_submit_ts",
+      "sign_up_submit_submitsignup"
+    ],
+    "123": [
+      "apps_web_src_app_authed_sign_up_tests_sign_up_submit_test_ts",
+      "sign_up_submit_test_jsonresponse"
+    ],
+    "124": [
+      "apps_web_src_app_authed_workspace_projectid_error_tsx",
+      "error_workspaceerror"
+    ],
+    "125": [
+      "apps_web_src_app_authed_workspace_projectid_page_tsx",
+      "page_workspacepage"
+    ],
+    "126": [
+      "apps_web_src_app_authed_workspace_projectid_admin_settings_page_tsx",
+      "page_adminsettingspage"
+    ],
+    "127": [
+      "apps_web_src_app_authed_sign_in_sign_in_submit_ts",
+      "sign_in_submit_submitsignin"
+    ],
+    "128": [
+      "apps_web_src_app_authed_sign_in_tests_sign_in_submit_test_ts",
+      "sign_in_submit_test_jsonresponse"
+    ],
+    "129": [
+      "apps_web_src_app_authed_onboarding_page_tsx",
+      "page_onboardingpage"
+    ],
+    "130": [
+      "apps_web_src_app_marketing_layout_tsx",
+      "layout_marketinglayout"
+    ],
+    "131": [
+      "apps_web_src_app_api_workspace_projects_serialize_error_ts",
+      "serialize_error_serializeerror"
+    ],
+    "132": [
+      "apps_web_src_app_api_cron_tests_purge_auth_test_ts",
+      "purge_auth_test_makerequest"
+    ],
+    "133": [
+      "apps_web_src_features_workspace_roadmap_roadmapdrawer_tsx",
+      "roadmapdrawer_handlekey"
+    ],
+    "134": [
+      "apps_web_src_features_workspace_roadmap_roadmapbutton_tsx",
+      "roadmapbutton_roadmapbutton"
+    ],
+    "135": [
+      "apps_web_src_features_auth_sign_out_ts",
+      "sign_out_performsignout"
+    ],
+    "136": [
+      "apps_web_src_features_auth_tests_sign_out_test_ts",
+      "sign_out_test_jsonresponse"
+    ],
+    "137": [
+      "apps_web_src_features_booking_ui_bookingconfirmation_tsx",
+      "bookingconfirmation_formatdate"
+    ],
+    "138": [
+      "apps_web_src_features_share_flow_tests_sharepanel_test_tsx",
+      "sharepanel_test_makepassthrough"
+    ],
+    "139": [
+      "approvalinbox_load",
+      "apps_web_src_features_booking_admin_ui_approvalinbox_tsx"
+    ],
+    "140": [
+      "apps_web_src_features_booking_admin_ui_settingspanel_tsx",
+      "settingspanel_createserviceid"
+    ],
+    "141": [
+      "admindashboard_admindashboard",
+      "apps_web_src_features_booking_admin_ui_admindashboard_tsx"
+    ],
+    "142": [
+      "apps_web_src_features_glass_plan_ui_glassstatebadge_tsx",
+      "glassstatebadge_glassstatebadge"
+    ],
+    "143": [
+      "apps_web_src_features_teaching_hints_ui_teachinghint_tsx",
+      "teachinghint_teachinghint"
+    ],
+    "144": [
+      "apps_web_src_features_visual_feedback_ui_promptdiffdisplay_tsx",
+      "promptdiffdisplay_promptdiffdisplay"
+    ],
+    "145": [
+      "apps_web_src_features_visual_feedback_tests_feedbackbar_test_tsx",
+      "feedbackbar_test_makepassthrough"
+    ],
+    "146": [
+      "apps_web_src_features_founding_program_ui_foundingcounter_tsx",
+      "foundingcounter_foundingcounter"
+    ],
+    "147": [
+      "apps_web_src_features_founding_program_ui_foundingemailcapture_tsx",
+      "foundingemailcapture_handlesubmit"
+    ],
+    "148": [
+      "anatomystrip_anatomystrip",
+      "apps_web_src_features_teaching_ui_anatomystrip_tsx"
+    ],
+    "149": [
+      "apps_web_src_features_kanban_tests_topological_sort_test_ts",
+      "topological_sort_test_card"
+    ],
+    "150": [
+      "apps_web_src_features_kanban_tests_group_cards_test_ts",
+      "group_cards_test_card"
+    ],
+    "151": [
+      "apps_web_src_features_kanban_tests_derive_milestone_state_test_ts",
+      "derive_milestone_state_test_card"
+    ],
+    "152": [
+      "apps_web_src_features_kanban_model_derive_milestone_state_ts",
+      "derive_milestone_state_derivemilestonestate"
+    ],
+    "153": [
+      "apps_web_src_features_kanban_lib_parse_prompt_anatomy_ts",
+      "parse_prompt_anatomy_parsepromptanatomy"
+    ],
+    "154": [
+      "apps_web_src_features_kanban_lib_topological_sort_ts",
+      "topological_sort_topologicalsort"
+    ],
+    "155": [
+      "apps_web_src_features_kanban_lib_group_cards_ts",
+      "group_cards_groupcards"
+    ],
+    "156": [
+      "apps_web_src_features_project_onboarding_lib_schemas_ts",
+      "schemas_gettokencostrange"
+    ],
+    "157": [
+      "apps_web_src_features_project_onboarding_lib_prompts_ts",
+      "prompts_buildaskquestionsystemprompt"
+    ],
+    "158": [
+      "apps_web_src_features_billing_ui_upsellblock_tsx",
+      "upsellblock_upsellblock"
+    ],
+    "159": [
+      "apps_web_src_features_billing_ui_purchasebutton_tsx",
+      "purchasebutton_purchasebutton"
+    ],
+    "160": [
+      "apps_web_src_features_analytics_ui_trackedemailcapture_tsx",
+      "trackedemailcapture_trackedemailcapture"
+    ],
+    "161": [
+      "apps_web_src_features_analytics_ui_fadeinwithtracking_tsx",
+      "fadeinwithtracking_fadeinwithtracking"
+    ],
+    "162": [
+      "apps_web_src_features_analytics_ui_trackfaqopen_tsx",
+      "trackfaqopen_trackfaqopen"
+    ],
+    "163": [
+      "apps_web_src_features_analytics_ui_trackedcta_tsx",
+      "trackedcta_trackedcta"
+    ],
+    "164": [
+      "apps_web_src_features_analytics_ui_googleanalytics_tsx",
+      "googleanalytics_googleanalytics"
+    ],
+    "165": [
+      "apps_web_src_features_analytics_lib_track_ts",
+      "track_trackevent"
+    ],
+    "166": [
+      "apps_web_src_server_domains_provision_subdomain_ts",
+      "provision_subdomain_provisionsubdomain"
+    ],
+    "167": [
+      "apps_web_src_server_identity_auth_cookie_ts",
+      "auth_cookie_setauthcookie"
+    ],
+    "168": [
+      "apps_web_src_server_identity_tests_jwt_test_ts",
+      "jwt_test_makerequest"
+    ],
+    "169": [
+      "apps_web_src_server_deploy_deployment_log_ts",
+      "deployment_log_recorddeployment"
+    ],
+    "170": [
+      "apps_web_src_server_deploy_tests_vercel_deploy_test_ts",
+      "vercel_deploy_test_makefetchsequence"
+    ],
+    "171": [
+      "apps_web_src_server_projects_list_user_projects_ts",
+      "list_user_projects_listuserprojects"
+    ],
+    "172": [
+      "apps_web_src_server_discovery_extract_from_text_ts",
+      "extract_from_text_extractfromocrtext"
+    ],
+    "173": [
+      "adaptive_generateadaptivefollowups",
+      "apps_web_src_server_discovery_adaptive_ts"
+    ],
+    "174": [
+      "apps_web_src_server_discovery_ocr_ts",
+      "ocr_extractscreentime"
+    ],
+    "175": [
+      "apps_web_src_server_discovery_extract_screenshot_ts",
+      "extract_screenshot_extractfromscreenshot"
+    ],
+    "176": [
+      "apps_web_src_server_discovery_upsells_ts",
+      "upsells_generateupsells"
+    ],
+    "177": [
+      "apps_web_src_server_discovery_suggestions_ts",
+      "suggestions_maptopainpoints"
+    ],
+    "178": [
+      "apps_web_src_server_discovery_parsers_claude_export_ts",
+      "claude_export_parseclaudeexport"
+    ],
+    "179": [
+      "apps_web_src_server_discovery_parsers_time_patterns_ts",
+      "time_patterns_extracttimepatterns"
+    ],
+    "180": [
+      "apps_web_src_server_discovery_parsers_chatgpt_ts",
+      "chatgpt_parsechatgptexport"
+    ],
+    "181": [
+      "apps_web_src_server_discovery_parsers_tests_claude_export_test_ts",
+      "claude_export_test_makefile"
+    ],
+    "182": [
+      "apps_web_src_server_discovery_tests_extract_from_text_test_ts",
+      "extract_from_text_test_mocktooluseresponse"
+    ],
+    "183": [
+      "analyze_test_mockanalysistoolresponse",
+      "apps_web_src_server_discovery_tests_analyze_test_ts"
+    ],
+    "184": [
+      "adaptive_test_mockfollowuptoolresponse",
+      "apps_web_src_server_discovery_tests_adaptive_test_ts"
+    ],
+    "185": [
+      "apps_web_src_server_discovery_tests_ocr_test_ts",
+      "ocr_test_mocktooluseresponse"
+    ],
+    "186": [
+      "apps_web_src_server_agents_email_audit_ts",
+      "email_audit_logemailsent"
+    ],
+    "187": [
+      "apps_web_src_server_lib_insert_plan_cards_ts",
+      "insert_plan_cards_insertplancards"
+    ],
+    "188": [
+      "anthropic_getanthropicclient",
+      "apps_web_src_server_lib_anthropic_ts"
+    ],
+    "189": [
+      "apps_web_src_server_lib_cron_auth_ts",
+      "cron_auth_verifycronauth"
+    ],
+    "190": [
+      "apps_web_src_server_lib_verify_project_ownership_ts",
+      "verify_project_ownership_verifyprojectownership"
+    ],
+    "191": [
+      "ai_call_log_recordaicall",
+      "apps_web_src_server_lib_ai_call_log_ts"
+    ],
+    "192": [
+      "apps_web_src_server_lib_tests_cron_auth_test_ts",
+      "cron_auth_test_makerequest"
+    ],
+    "193": [
+      "apps_web_src_server_billing_stripe_ts",
+      "stripe_getstripe"
+    ],
+    "194": [
+      "apps_web_src_shared_ui_jsonld_tsx",
+      "jsonld_jsonld"
+    ],
+    "195": [
+      "apps_web_src_shared_ui_fadeinonscroll_tsx",
+      "fadeinonscroll_fadeinonscroll"
+    ],
+    "196": [
+      "apps_web_src_shared_ui_emailcapture_tsx",
+      "emailcapture_emailcapture"
+    ],
+    "197": [
+      "apps_web_src_shared_ui_google_auth_tsx",
+      "google_auth_googlebutton"
+    ],
+    "198": [
+      "apps_web_src_shared_ui_meldar_badge_meldarbadge_tsx",
+      "meldarbadge_meldarbadge"
+    ],
+    "199": [
+      "apps_web_src_shared_lib_format_relative_ts",
+      "format_relative_formatrelative"
+    ],
+    "200": [
+      "apps_web_src_shared_lib_use_email_subscribe_ts",
+      "use_email_subscribe_useemailsubscribe"
+    ],
+    "201": [
+      "apps_web_src_shared_lib_sanitize_next_param_ts",
+      "sanitize_next_param_sanitizenextparam"
+    ],
+    "202": [
+      "apps_web_src_widgets_footer_footer_tsx",
+      "footer_footer"
+    ],
+    "203": [
+      "apps_web_src_widgets_landing_datareceiptsection_tsx",
+      "datareceiptsection_datareceiptsection"
+    ],
+    "204": [
+      "apps_web_src_widgets_landing_problemsection_tsx",
+      "problemsection_problemsection"
+    ],
+    "205": [
+      "apps_web_src_widgets_landing_comparisonsection_tsx",
+      "comparisonsection_comparisonsection"
+    ],
+    "206": [
+      "apps_web_src_widgets_landing_faqsection_tsx",
+      "faqsection_faqsection"
+    ],
+    "207": [
+      "apps_web_src_widgets_landing_finalctasection_tsx",
+      "finalctasection_finalctasection"
+    ],
+    "208": [
+      "apps_web_src_widgets_landing_trustsection_tsx",
+      "trustsection_trustsection"
+    ],
+    "209": [
+      "apps_web_src_widgets_landing_earlyadoptersection_tsx",
+      "earlyadoptersection_earlyadoptersection"
+    ],
+    "210": [
+      "apps_web_src_widgets_landing_tierssection_tsx",
+      "tierssection_tierssection"
+    ],
+    "211": [
+      "apps_web_src_widgets_landing_skillcardssection_tsx",
+      "skillcardssection_skillcardssection"
+    ],
+    "212": [
+      "apps_web_src_widgets_workspace_workspaceemptystate_tsx",
+      "workspaceemptystate_workspaceemptystate"
+    ],
+    "213": [
+      "apps_web_src_widgets_workspace_newprojectbutton_tsx",
+      "newprojectbutton_newprojectbutton"
+    ],
+    "214": [
+      "apps_web_src_widgets_workspace_stepindicator_tsx",
+      "stepindicator_stepindicator"
+    ],
+    "215": [
+      "apps_web_src_widgets_workspace_tests_previewpane_render_test_tsx",
+      "previewpane_render_test_makepassthrough"
+    ],
+    "216": [
+      "apps_web_src_widgets_workspace_lib_preview_url_ts",
+      "preview_url_issafepreviewurl"
+    ],
+    "217": [
+      "apps_web_src_widgets_workspace_lib_step_progress_ts",
+      "step_progress_computestepwidthpct"
+    ],
+    "218": [
+      "apps_web_src_widgets_header_header_tsx",
+      "header_header"
+    ],
+    "219": [
+      "apps_web_src_entities_xray_result_ui_xraycardactions_tsx",
+      "xraycardactions_xraycardactions"
+    ],
+    "220": [
+      "apps_web_src_entities_booking_verticals_model_data_ts",
+      "data_getverticalbyid"
+    ],
+    "221": [
+      "apps_web_src_entities_project_step_derive_step_ts",
+      "derive_step_deriveprojectstep"
+    ],
+    "222": [
+      "apps_web_src_entities_project_step_tests_derive_step_test_ts",
+      "derive_step_test_makecard"
+    ],
+    "223": [
+      "apps_sandbox_worker_sandbox_app_src_app_layout_tsx",
+      "layout_rootlayout"
+    ],
+    "224": [
+      "apps_sandbox_worker_src_worker_ts",
+      "worker_fetch"
+    ],
+    "225": [
+      "landing_page_sections",
+      "landing_section_specs"
+    ],
+    "226": [
+      "frontend_ux_onboarding",
+      "product_manager_analysis"
+    ],
+    "227": [
+      "linkedin_organic_strategy",
+      "video_strategy"
+    ],
+    "228": [
+      "pattern_scattered_data",
+      "usecase_scattered_health_data"
+    ],
+    "229": [
+      "pattern_mental_load",
+      "usecase_school_communication"
+    ],
+    "230": [
+      "neon_config",
+      "sprint1_db_setup"
+    ],
+    "231": [
+      "jarvis_workspace_spec",
+      "three_d_galaxy_workspace"
+    ],
+    "232": [
+      "packages_test_utils_vitest_config_ts"
+    ],
+    "233": [
+      "packages_test_utils_src_index_ts"
+    ],
+    "234": [
+      "packages_test_utils_src_tests_anthropic_mock_test_ts"
+    ],
+    "235": [
+      "packages_test_utils_src_tests_make_request_test_ts"
+    ],
+    "236": [
+      "packages_test_utils_src_tests_fetch_mock_test_ts"
+    ],
+    "237": [
+      "packages_test_utils_src_tests_redis_mock_test_ts"
+    ],
+    "238": [
+      "packages_storage_vitest_config_ts"
+    ],
+    "239": [
+      "packages_storage_src_types_ts"
+    ],
+    "240": [
+      "packages_storage_src_index_ts"
+    ],
+    "241": [
+      "packages_storage_src_provider_ts"
+    ],
+    "242": [
+      "packages_storage_src_tests_blob_test_ts"
+    ],
+    "243": [
+      "packages_storage_src_tests_in_memory_provider_test_ts"
+    ],
+    "244": [
+      "packages_storage_src_tests_agent_tables_test_ts"
+    ],
+    "245": [
+      "packages_sandbox_vitest_config_ts"
+    ],
+    "246": [
+      "packages_sandbox_src_types_ts"
+    ],
+    "247": [
+      "packages_sandbox_src_index_ts"
+    ],
+    "248": [
+      "packages_sandbox_src_provider_ts"
+    ],
+    "249": [
+      "packages_sandbox_src_tests_cloudflare_provider_test_ts"
+    ],
+    "250": [
+      "packages_sandbox_src_tests_safety_test_ts"
+    ],
+    "251": [
+      "packages_db_drizzle_config_ts"
+    ],
+    "252": [
+      "packages_db_src_schema_ts"
+    ],
+    "253": [
+      "packages_db_src_index_ts"
+    ],
+    "254": [
+      "packages_orchestrator_vitest_config_ts"
+    ],
+    "255": [
+      "packages_orchestrator_src_component_vocabulary_ts"
+    ],
+    "256": [
+      "packages_orchestrator_src_types_ts"
+    ],
+    "257": [
+      "packages_orchestrator_src_index_ts"
+    ],
+    "258": [
+      "packages_orchestrator_src_template_plans_summaries_ts"
+    ],
+    "259": [
+      "packages_orchestrator_src_template_plans_index_ts"
+    ],
+    "260": [
+      "packages_orchestrator_src_tests_model_routing_test_ts"
+    ],
+    "261": [
+      "packages_orchestrator_src_tests_template_plans_test_ts"
+    ],
+    "262": [
+      "packages_orchestrator_src_tests_validate_files_test_ts"
+    ],
+    "263": [
+      "packages_orchestrator_src_tests_prompts_test_ts"
+    ],
+    "264": [
+      "apps_web_next_env_d_ts"
+    ],
+    "265": [
+      "apps_web_panda_config_ts"
+    ],
+    "266": [
+      "apps_web_playwright_config_ts"
+    ],
+    "267": [
+      "apps_web_vitest_config_ts"
+    ],
+    "268": [
+      "apps_web_next_config_ts"
+    ],
+    "269": [
+      "apps_web_styled_system_types_jsx_d_ts"
+    ],
+    "270": [
+      "apps_web_styled_system_types_conditions_d_ts"
+    ],
+    "271": [
+      "apps_web_styled_system_types_selectors_d_ts"
+    ],
+    "272": [
+      "apps_web_styled_system_types_static_css_d_ts"
+    ],
+    "273": [
+      "apps_web_styled_system_types_recipe_d_ts"
+    ],
+    "274": [
+      "apps_web_styled_system_types_system_types_d_ts"
+    ],
+    "275": [
+      "apps_web_styled_system_types_parts_d_ts"
+    ],
+    "276": [
+      "apps_web_styled_system_types_csstype_d_ts"
+    ],
+    "277": [
+      "apps_web_styled_system_types_pattern_d_ts"
+    ],
+    "278": [
+      "apps_web_styled_system_types_composition_d_ts"
+    ],
+    "279": [
+      "apps_web_styled_system_types_style_props_d_ts"
+    ],
+    "280": [
+      "apps_web_styled_system_types_prop_type_d_ts"
+    ],
+    "281": [
+      "apps_web_styled_system_patterns_stack_d_ts"
+    ],
+    "282": [
+      "apps_web_styled_system_patterns_cq_d_ts"
+    ],
+    "283": [
+      "apps_web_styled_system_patterns_square_d_ts"
+    ],
+    "284": [
+      "apps_web_styled_system_patterns_aspect_ratio_d_ts"
+    ],
+    "285": [
+      "apps_web_styled_system_patterns_spacer_d_ts"
+    ],
+    "286": [
+      "apps_web_styled_system_patterns_box_d_ts"
+    ],
+    "287": [
+      "apps_web_styled_system_patterns_grid_item_d_ts"
+    ],
+    "288": [
+      "apps_web_styled_system_patterns_hstack_d_ts"
+    ],
+    "289": [
+      "apps_web_styled_system_patterns_divider_d_ts"
+    ],
+    "290": [
+      "apps_web_styled_system_patterns_link_overlay_d_ts"
+    ],
+    "291": [
+      "apps_web_styled_system_patterns_circle_d_ts"
+    ],
+    "292": [
+      "apps_web_styled_system_patterns_vstack_d_ts"
+    ],
+    "293": [
+      "apps_web_styled_system_patterns_container_d_ts"
+    ],
+    "294": [
+      "apps_web_styled_system_patterns_bleed_d_ts"
+    ],
+    "295": [
+      "apps_web_styled_system_patterns_wrap_d_ts"
+    ],
+    "296": [
+      "apps_web_styled_system_patterns_float_d_ts"
+    ],
+    "297": [
+      "apps_web_styled_system_patterns_grid_d_ts"
+    ],
+    "298": [
+      "apps_web_styled_system_patterns_flex_d_ts"
+    ],
+    "299": [
+      "apps_web_styled_system_patterns_visually_hidden_d_ts"
+    ],
+    "300": [
+      "apps_web_styled_system_patterns_index_d_ts"
+    ],
+    "301": [
+      "apps_web_styled_system_patterns_center_d_ts"
+    ],
+    "302": [
+      "apps_web_styled_system_css_cva_d_ts"
+    ],
+    "303": [
+      "apps_web_styled_system_css_cx_d_ts"
+    ],
+    "304": [
+      "apps_web_styled_system_css_css_d_ts"
+    ],
+    "305": [
+      "apps_web_styled_system_css_sva_d_ts"
+    ],
+    "306": [
+      "apps_web_styled_system_css_index_d_ts"
+    ],
+    "307": [
+      "apps_web_styled_system_recipes_tags_input_d_ts"
+    ],
+    "308": [
+      "apps_web_styled_system_recipes_signature_pad_d_ts"
+    ],
+    "309": [
+      "apps_web_styled_system_recipes_drawer_d_ts"
+    ],
+    "310": [
+      "apps_web_styled_system_recipes_toast_d_ts"
+    ],
+    "311": [
+      "apps_web_styled_system_recipes_radio_button_group_d_ts"
+    ],
+    "312": [
+      "apps_web_styled_system_recipes_field_d_ts"
+    ],
+    "313": [
+      "apps_web_styled_system_recipes_code_d_ts"
+    ],
+    "314": [
+      "apps_web_styled_system_recipes_editable_d_ts"
+    ],
+    "315": [
+      "apps_web_styled_system_recipes_file_upload_d_ts"
+    ],
+    "316": [
+      "apps_web_styled_system_recipes_segment_group_d_ts"
+    ],
+    "317": [
+      "apps_web_styled_system_recipes_tooltip_d_ts"
+    ],
+    "318": [
+      "apps_web_styled_system_recipes_splitter_d_ts"
+    ],
+    "319": [
+      "apps_web_styled_system_recipes_spinner_d_ts"
+    ],
+    "320": [
+      "apps_web_styled_system_recipes_slider_d_ts"
+    ],
+    "321": [
+      "apps_web_styled_system_recipes_input_d_ts"
+    ],
+    "322": [
+      "apps_web_styled_system_recipes_radio_group_d_ts"
+    ],
+    "323": [
+      "apps_web_styled_system_recipes_rating_group_d_ts"
+    ],
+    "324": [
+      "apps_web_styled_system_recipes_date_picker_d_ts"
+    ],
+    "325": [
+      "apps_web_styled_system_recipes_fieldset_d_ts"
+    ],
+    "326": [
+      "apps_web_styled_system_recipes_form_label_d_ts"
+    ],
+    "327": [
+      "apps_web_styled_system_recipes_alert_d_ts"
+    ],
+    "328": [
+      "apps_web_styled_system_recipes_switch_recipe_d_ts"
+    ],
+    "329": [
+      "apps_web_styled_system_recipes_checkbox_d_ts"
+    ],
+    "330": [
+      "apps_web_styled_system_recipes_collapsible_d_ts"
+    ],
+    "331": [
+      "apps_web_styled_system_recipes_dialog_d_ts"
+    ],
+    "332": [
+      "apps_web_styled_system_recipes_icon_d_ts"
+    ],
+    "333": [
+      "apps_web_styled_system_recipes_clipboard_d_ts"
+    ],
+    "334": [
+      "apps_web_styled_system_recipes_carousel_d_ts"
+    ],
+    "335": [
+      "apps_web_styled_system_recipes_button_d_ts"
+    ],
+    "336": [
+      "apps_web_styled_system_recipes_menu_d_ts"
+    ],
+    "337": [
+      "apps_web_styled_system_recipes_number_input_d_ts"
+    ],
+    "338": [
+      "apps_web_styled_system_recipes_card_d_ts"
+    ],
+    "339": [
+      "apps_web_styled_system_recipes_qr_code_d_ts"
+    ],
+    "340": [
+      "apps_web_styled_system_recipes_table_d_ts"
+    ],
+    "341": [
+      "apps_web_styled_system_recipes_tabs_d_ts"
+    ],
+    "342": [
+      "apps_web_styled_system_recipes_accordion_d_ts"
+    ],
+    "343": [
+      "apps_web_styled_system_recipes_skeleton_d_ts"
+    ],
+    "344": [
+      "apps_web_styled_system_recipes_textarea_d_ts"
+    ],
+    "345": [
+      "apps_web_styled_system_recipes_popover_d_ts"
+    ],
+    "346": [
+      "apps_web_styled_system_recipes_progress_d_ts"
+    ],
+    "347": [
+      "apps_web_styled_system_recipes_avatar_d_ts"
+    ],
+    "348": [
+      "apps_web_styled_system_recipes_combobox_d_ts"
+    ],
+    "349": [
+      "apps_web_styled_system_recipes_kbd_d_ts"
+    ],
+    "350": [
+      "apps_web_styled_system_recipes_pin_input_d_ts"
+    ],
+    "351": [
+      "apps_web_styled_system_recipes_tree_view_d_ts"
+    ],
+    "352": [
+      "apps_web_styled_system_recipes_pagination_d_ts"
+    ],
+    "353": [
+      "apps_web_styled_system_recipes_index_d_ts"
+    ],
+    "354": [
+      "apps_web_styled_system_recipes_link_d_ts"
+    ],
+    "355": [
+      "apps_web_styled_system_recipes_toggle_group_d_ts"
+    ],
+    "356": [
+      "apps_web_styled_system_recipes_hover_card_d_ts"
+    ],
+    "357": [
+      "apps_web_styled_system_recipes_color_picker_d_ts"
+    ],
+    "358": [
+      "apps_web_styled_system_recipes_text_d_ts"
+    ],
+    "359": [
+      "apps_web_styled_system_recipes_badge_d_ts"
+    ],
+    "360": [
+      "apps_web_styled_system_recipes_select_d_ts"
+    ],
+    "361": [
+      "apps_web_styled_system_jsx_stack_d_ts"
+    ],
+    "362": [
+      "apps_web_styled_system_jsx_cq_d_ts"
+    ],
+    "363": [
+      "apps_web_styled_system_jsx_square_d_ts"
+    ],
+    "364": [
+      "apps_web_styled_system_jsx_aspect_ratio_d_ts"
+    ],
+    "365": [
+      "apps_web_styled_system_jsx_spacer_d_ts"
+    ],
+    "366": [
+      "apps_web_styled_system_jsx_box_d_ts"
+    ],
+    "367": [
+      "apps_web_styled_system_jsx_grid_item_d_ts"
+    ],
+    "368": [
+      "apps_web_styled_system_jsx_hstack_d_ts"
+    ],
+    "369": [
+      "apps_web_styled_system_jsx_divider_d_ts"
+    ],
+    "370": [
+      "apps_web_styled_system_jsx_link_overlay_d_ts"
+    ],
+    "371": [
+      "apps_web_styled_system_jsx_circle_d_ts"
+    ],
+    "372": [
+      "apps_web_styled_system_jsx_vstack_d_ts"
+    ],
+    "373": [
+      "apps_web_styled_system_jsx_container_d_ts"
+    ],
+    "374": [
+      "apps_web_styled_system_jsx_is_valid_prop_d_ts"
+    ],
+    "375": [
+      "apps_web_styled_system_jsx_bleed_d_ts"
+    ],
+    "376": [
+      "apps_web_styled_system_jsx_wrap_d_ts"
+    ],
+    "377": [
+      "apps_web_styled_system_jsx_float_d_ts"
+    ],
+    "378": [
+      "apps_web_styled_system_jsx_factory_d_ts"
+    ],
+    "379": [
+      "apps_web_styled_system_jsx_grid_d_ts"
+    ],
+    "380": [
+      "apps_web_styled_system_jsx_flex_d_ts"
+    ],
+    "381": [
+      "apps_web_styled_system_jsx_visually_hidden_d_ts"
+    ],
+    "382": [
+      "apps_web_styled_system_jsx_create_style_context_d_ts"
+    ],
+    "383": [
+      "apps_web_styled_system_jsx_index_d_ts"
+    ],
+    "384": [
+      "apps_web_styled_system_jsx_center_d_ts"
+    ],
+    "385": [
+      "apps_web_e2e_fixtures_ts"
+    ],
+    "386": [
+      "apps_web_e2e_landing_spec_ts"
+    ],
+    "387": [
+      "apps_web_e2e_auth_setup_ts"
+    ],
+    "388": [
+      "apps_web_e2e_api_routes_exist_spec_ts"
+    ],
+    "389": [
+      "apps_web_e2e_build_journey_spec_ts"
+    ],
+    "390": [
+      "apps_web_src_test_setup_ts"
+    ],
+    "391": [
+      "apps_web_src_app_layout_tsx"
+    ],
+    "392": [
+      "apps_web_src_app_error_tsx"
+    ],
+    "393": [
+      "apps_web_src_app_global_error_tsx"
+    ],
+    "394": [
+      "apps_web_src_app_authed_sign_up_signupform_tsx"
+    ],
+    "395": [
+      "apps_web_src_app_authed_sign_up_page_tsx"
+    ],
+    "396": [
+      "apps_web_src_app_authed_workspace_page_tsx"
+    ],
+    "397": [
+      "apps_web_src_app_authed_workspace_projectid_admin_layout_tsx"
+    ],
+    "398": [
+      "apps_web_src_app_authed_sign_in_signinform_tsx"
+    ],
+    "399": [
+      "apps_web_src_app_authed_sign_in_page_tsx"
+    ],
+    "400": [
+      "apps_web_src_app_marketing_page_tsx"
+    ],
+    "401": [
+      "apps_web_src_app_marketing_privacy_policy_page_tsx"
+    ],
+    "402": [
+      "apps_web_src_app_marketing_terms_page_tsx"
+    ],
+    "403": [
+      "apps_web_src_app_marketing_coming_soon_page_tsx"
+    ],
+    "404": [
+      "apps_web_src_app_api_workspace_projects_tests_serialize_error_test_ts"
+    ],
+    "405": [
+      "apps_web_src_app_og_route_tsx"
+    ],
+    "406": [
+      "apps_web_src_features_workspace_roadmap_index_ts"
+    ],
+    "407": [
+      "apps_web_src_features_auth_signoutbutton_tsx"
+    ],
+    "408": [
+      "apps_web_src_features_auth_index_ts"
+    ],
+    "409": [
+      "apps_web_src_features_booking_index_ts"
+    ],
+    "410": [
+      "apps_web_src_features_booking_ui_bookingpage_tsx"
+    ],
+    "411": [
+      "apps_web_src_features_workspace_index_ts"
+    ],
+    "412": [
+      "apps_web_src_features_share_flow_index_ts"
+    ],
+    "413": [
+      "apps_web_src_features_share_flow_ui_sharepanel_tsx"
+    ],
+    "414": [
+      "apps_web_src_features_booking_admin_index_ts"
+    ],
+    "415": [
+      "apps_web_src_features_glass_plan_index_ts"
+    ],
+    "416": [
+      "apps_web_src_features_glass_plan_ui_proposalcard_tsx"
+    ],
+    "417": [
+      "apps_web_src_features_glass_plan_ui_glassplanfooter_tsx"
+    ],
+    "418": [
+      "apps_web_src_features_glass_plan_ui_glass_styles_ts"
+    ],
+    "419": [
+      "apps_web_src_features_glass_plan_ui_glassmilestonesection_tsx"
+    ],
+    "420": [
+      "apps_web_src_features_glass_plan_ui_glassplanview_tsx"
+    ],
+    "421": [
+      "apps_web_src_features_teaching_hints_index_ts"
+    ],
+    "422": [
+      "apps_web_src_features_teaching_hints_ui_hints_data_ts"
+    ],
+    "423": [
+      "apps_web_src_features_teaching_hints_tests_hints_test_ts"
+    ],
+    "424": [
+      "apps_web_src_features_visual_feedback_index_ts"
+    ],
+    "425": [
+      "apps_web_src_features_visual_feedback_ui_visualfeedbackpanel_tsx"
+    ],
+    "426": [
+      "apps_web_src_features_founding_program_index_ts"
+    ],
+    "427": [
+      "apps_web_src_features_teaching_index_ts"
+    ],
+    "428": [
+      "apps_web_src_features_teaching_ui_decisionscard_tsx"
+    ],
+    "429": [
+      "apps_web_src_features_teaching_ui_prompteditor_tsx"
+    ],
+    "430": [
+      "apps_web_src_features_kanban_index_ts"
+    ],
+    "431": [
+      "apps_web_src_features_kanban_tests_parse_prompt_anatomy_test_ts"
+    ],
+    "432": [
+      "apps_web_src_features_kanban_model_kanban_atoms_ts"
+    ],
+    "433": [
+      "apps_web_src_features_cookie_consent_index_ts"
+    ],
+    "434": [
+      "apps_web_src_features_project_onboarding_index_ts"
+    ],
+    "435": [
+      "apps_web_src_features_project_onboarding_tests_schemas_test_ts"
+    ],
+    "436": [
+      "apps_web_src_features_billing_index_ts"
+    ],
+    "437": [
+      "apps_web_src_features_onboarding_index_ts"
+    ],
+    "438": [
+      "apps_web_src_features_onboarding_ui_onboardingflow_tsx"
+    ],
+    "439": [
+      "apps_web_src_features_analytics_index_ts"
+    ],
+    "440": [
+      "apps_web_src_features_analytics_types_gtag_d_ts"
+    ],
+    "441": [
+      "apps_web_src_server_domains_index_ts"
+    ],
+    "442": [
+      "apps_web_src_server_domains_tests_slug_test_ts"
+    ],
+    "443": [
+      "apps_web_src_server_identity_tests_auth_cookie_test_ts"
+    ],
+    "444": [
+      "apps_web_src_server_deploy_tests_guarded_deploy_call_test_ts"
+    ],
+    "445": [
+      "apps_web_src_server_deploy_tests_sleep_listener_leak_test_ts"
+    ],
+    "446": [
+      "apps_web_src_server_projects_tests_list_user_projects_test_ts"
+    ],
+    "447": [
+      "apps_web_src_server_discovery_prompts_ts"
+    ],
+    "448": [
+      "apps_web_src_server_discovery_parsers_types_ts"
+    ],
+    "449": [
+      "apps_web_src_server_discovery_parsers_index_ts"
+    ],
+    "450": [
+      "apps_web_src_server_discovery_tests_preprocess_ocr_test_ts"
+    ],
+    "451": [
+      "apps_web_src_server_email_index_ts"
+    ],
+    "452": [
+      "apps_web_src_shared_ui_typography_tsx"
+    ],
+    "453": [
+      "apps_web_src_shared_ui_editorialeyebrow_tsx"
+    ],
+    "454": [
+      "apps_web_src_shared_ui_index_ts"
+    ],
+    "455": [
+      "apps_web_src_shared_ui_button_tsx"
+    ],
+    "456": [
+      "apps_web_src_shared_ui_meldar_badge_index_ts"
+    ],
+    "457": [
+      "apps_web_src_shared_ui_toast_toaster_tsx"
+    ],
+    "458": [
+      "apps_web_src_shared_ui_toast_index_ts"
+    ],
+    "459": [
+      "apps_web_src_shared_types_discovery_ts"
+    ],
+    "460": [
+      "apps_web_src_shared_config_index_ts"
+    ],
+    "461": [
+      "apps_web_src_shared_config_seo_ts"
+    ],
+    "462": [
+      "apps_web_src_shared_lib_tests_sanitize_next_param_test_ts"
+    ],
+    "463": [
+      "apps_web_src_shared_lib_tests_format_relative_test_ts"
+    ],
+    "464": [
+      "apps_web_src_tests_integration_agent_flows_test_ts"
+    ],
+    "465": [
+      "apps_web_src_tests_integration_schema_test_ts"
+    ],
+    "466": [
+      "apps_web_src_tests_integration_auth_flows_test_ts"
+    ],
+    "467": [
+      "apps_web_src_tests_integration_workspace_routes_test_ts"
+    ],
+    "468": [
+      "apps_web_src_tests_integration_billing_flows_test_ts"
+    ],
+    "469": [
+      "apps_web_src_tests_integration_agent_operations_test_ts"
+    ],
+    "470": [
+      "apps_web_src_tests_integration_critical_flows_test_ts"
+    ],
+    "471": [
+      "apps_web_src_tests_integration_booking_flows_test_ts"
+    ],
+    "472": [
+      "apps_web_src_tests_integration_core_flows_test_ts"
+    ],
+    "473": [
+      "apps_web_src_tests_integration_auth_routes_test_ts"
+    ],
+    "474": [
+      "apps_web_src_widgets_footer_index_ts"
+    ],
+    "475": [
+      "apps_web_src_widgets_landing_howitworkssection_tsx"
+    ],
+    "476": [
+      "apps_web_src_widgets_landing_herosection_tsx"
+    ],
+    "477": [
+      "apps_web_src_widgets_landing_index_ts"
+    ],
+    "478": [
+      "apps_web_src_widgets_workspace_workspacenav_tsx"
+    ],
+    "479": [
+      "apps_web_src_widgets_workspace_previewpane_tsx"
+    ],
+    "480": [
+      "apps_web_src_widgets_workspace_workspacebottombar_tsx"
+    ],
+    "481": [
+      "apps_web_src_widgets_workspace_continuebanner_tsx"
+    ],
+    "482": [
+      "apps_web_src_widgets_workspace_workspacetopbar_tsx"
+    ],
+    "483": [
+      "apps_web_src_widgets_workspace_emailverificationbanner_tsx"
+    ],
+    "484": [
+      "apps_web_src_widgets_workspace_workspaceshell_tsx"
+    ],
+    "485": [
+      "apps_web_src_widgets_workspace_index_ts"
+    ],
+    "486": [
+      "apps_web_src_widgets_workspace_onboardingchat_tsx"
+    ],
+    "487": [
+      "apps_web_src_widgets_workspace_tests_build_status_test_ts"
+    ],
+    "488": [
+      "apps_web_src_widgets_workspace_tests_stepindicator_test_ts"
+    ],
+    "489": [
+      "apps_web_src_widgets_workspace_tests_previewpane_test_ts"
+    ],
+    "490": [
+      "apps_web_src_widgets_header_index_ts"
+    ],
+    "491": [
+      "apps_web_src_entities_xray_result_index_ts"
+    ],
+    "492": [
+      "apps_web_src_entities_xray_result_ui_xraycard_tsx"
+    ],
+    "493": [
+      "apps_web_src_entities_xray_result_model_types_ts"
+    ],
+    "494": [
+      "apps_web_src_entities_booking_verticals_index_ts"
+    ],
+    "495": [
+      "apps_web_src_entities_booking_verticals_tests_data_test_ts"
+    ],
+    "496": [
+      "apps_web_src_entities_pain_points_index_ts"
+    ],
+    "497": [
+      "apps_web_src_entities_pain_points_model_data_ts"
+    ],
+    "498": [
+      "apps_web_src_entities_kanban_card_types_ts"
+    ],
+    "499": [
+      "apps_web_src_entities_kanban_card_index_ts"
+    ],
+    "500": [
+      "apps_web_src_entities_discovery_card_index_ts"
+    ],
+    "501": [
+      "apps_web_src_entities_discovery_card_ui_discoverycard_tsx"
+    ],
+    "502": [
+      "apps_web_src_entities_project_step_types_ts"
+    ],
+    "503": [
+      "apps_web_src_entities_project_step_index_ts"
+    ],
+    "504": [
+      "apps_sandbox_worker_vitest_config_ts"
+    ],
+    "505": [
+      "apps_sandbox_worker_sandbox_app_next_config_ts"
+    ],
+    "506": [
+      "apps_sandbox_worker_sandbox_app_src_app_page_tsx"
+    ],
+    "507": [
+      "option_b_hybrid"
+    ],
+    "508": [
+      "backend_architecture"
+    ],
+    "509": [
+      "data_sources_catalog"
+    ],
+    "510": [
+      "apple_screen_time_api"
+    ],
+    "511": [
+      "rescuetime"
+    ],
+    "512": [
+      "usecase_cross_platform_posting"
+    ],
+    "513": [
+      "usecase_job_tracking"
+    ],
+    "514": [
+      "usecase_ghost_jobs"
+    ],
+    "515": [
+      "usecase_travel_planning"
+    ],
+    "516": [
+      "usecase_fake_listings"
+    ],
+    "517": [
+      "usecase_moving_automation"
+    ],
+    "518": [
+      "competitor_bolt"
+    ],
+    "519": [
+      "competitor_replit"
+    ],
+    "520": [
+      "competitor_manus"
+    ],
+    "521": [
+      "competitor_lindy"
+    ],
+    "522": [
+      "competitor_gumloop"
+    ]
+  },
+  "cohesion": {
+    "0": 0.05,
+    "1": 0.04,
+    "2": 0.05,
+    "3": 0.08,
+    "4": 0.07,
+    "5": 0.08,
+    "6": 0.08,
+    "7": 0.09,
+    "8": 0.08,
+    "9": 0.07,
+    "10": 0.08,
+    "11": 0.21,
+    "12": 0.16,
+    "13": 0.21,
+    "14": 0.11,
+    "15": 0.28,
+    "16": 0.22,
+    "17": 0.12,
+    "18": 0.2,
+    "19": 0.42,
+    "20": 0.31,
+    "21": 0.47,
+    "22": 0.23,
+    "23": 0.33,
+    "24": 0.27,
+    "25": 0.32,
+    "26": 0.2,
+    "27": 0.29,
+    "28": 0.31,
+    "29": 0.2,
+    "30": 0.22,
+    "31": 0.31,
+    "32": 0.22,
+    "33": 0.25,
+    "34": 0.46,
+    "35": 0.33,
+    "36": 0.52,
+    "37": 0.48,
+    "38": 0.47,
+    "39": 0.33,
+    "40": 0.33,
+    "41": 0.33,
+    "42": 0.33,
+    "43": 0.47,
+    "44": 0.33,
+    "45": 0.33,
+    "46": 0.4,
+    "47": 0.4,
+    "48": 0.6,
+    "49": 0.4,
+    "50": 0.4,
+    "51": 0.4,
+    "52": 0.4,
+    "53": 0.7,
+    "54": 0.4,
+    "55": 0.4,
+    "56": 0.5,
+    "57": 0.4,
+    "58": 0.4,
+    "59": 0.67,
+    "60": 0.5,
+    "61": 0.5,
+    "62": 0.83,
+    "63": 0.5,
+    "64": 0.5,
+    "65": 0.5,
+    "66": 0.83,
+    "67": 0.5,
+    "68": 0.5,
+    "69": 0.5,
+    "70": 0.5,
+    "71": 0.67,
+    "72": 0.5,
+    "73": 0.83,
+    "74": 0.83,
+    "75": 0.5,
+    "76": 0.83,
+    "77": 0.5,
+    "78": 0.5,
+    "79": 0.67,
+    "80": 0.5,
+    "81": 1.0,
+    "82": 0.67,
+    "83": 1.0,
+    "84": 0.67,
+    "85": 0.67,
+    "86": 1.0,
+    "87": 0.67,
+    "88": 0.67,
+    "89": 0.67,
+    "90": 0.67,
+    "91": 0.67,
+    "92": 0.67,
+    "93": 1.0,
+    "94": 0.67,
+    "95": 0.67,
+    "96": 1.0,
+    "97": 0.67,
+    "98": 1.0,
+    "99": 0.67,
+    "100": 1.0,
+    "101": 0.67,
+    "102": 0.67,
+    "103": 0.67,
+    "104": 0.67,
+    "105": 0.67,
+    "106": 0.67,
+    "107": 1.0,
+    "108": 1.0,
+    "109": 1.0,
+    "110": 1.0,
+    "111": 1.0,
+    "112": 1.0,
+    "113": 1.0,
+    "114": 1.0,
+    "115": 1.0,
+    "116": 1.0,
+    "117": 1.0,
+    "118": 1.0,
+    "119": 1.0,
+    "120": 1.0,
+    "121": 1.0,
+    "122": 1.0,
+    "123": 1.0,
+    "124": 1.0,
+    "125": 1.0,
+    "126": 1.0,
+    "127": 1.0,
+    "128": 1.0,
+    "129": 1.0,
+    "130": 1.0,
+    "131": 1.0,
+    "132": 1.0,
+    "133": 1.0,
+    "134": 1.0,
+    "135": 1.0,
+    "136": 1.0,
+    "137": 1.0,
+    "138": 1.0,
+    "139": 1.0,
+    "140": 1.0,
+    "141": 1.0,
+    "142": 1.0,
+    "143": 1.0,
+    "144": 1.0,
+    "145": 1.0,
+    "146": 1.0,
+    "147": 1.0,
+    "148": 1.0,
+    "149": 1.0,
+    "150": 1.0,
+    "151": 1.0,
+    "152": 1.0,
+    "153": 1.0,
+    "154": 1.0,
+    "155": 1.0,
+    "156": 1.0,
+    "157": 1.0,
+    "158": 1.0,
+    "159": 1.0,
+    "160": 1.0,
+    "161": 1.0,
+    "162": 1.0,
+    "163": 1.0,
+    "164": 1.0,
+    "165": 1.0,
+    "166": 1.0,
+    "167": 1.0,
+    "168": 1.0,
+    "169": 1.0,
+    "170": 1.0,
+    "171": 1.0,
+    "172": 1.0,
+    "173": 1.0,
+    "174": 1.0,
+    "175": 1.0,
+    "176": 1.0,
+    "177": 1.0,
+    "178": 1.0,
+    "179": 1.0,
+    "180": 1.0,
+    "181": 1.0,
+    "182": 1.0,
+    "183": 1.0,
+    "184": 1.0,
+    "185": 1.0,
+    "186": 1.0,
+    "187": 1.0,
+    "188": 1.0,
+    "189": 1.0,
+    "190": 1.0,
+    "191": 1.0,
+    "192": 1.0,
+    "193": 1.0,
+    "194": 1.0,
+    "195": 1.0,
+    "196": 1.0,
+    "197": 1.0,
+    "198": 1.0,
+    "199": 1.0,
+    "200": 1.0,
+    "201": 1.0,
+    "202": 1.0,
+    "203": 1.0,
+    "204": 1.0,
+    "205": 1.0,
+    "206": 1.0,
+    "207": 1.0,
+    "208": 1.0,
+    "209": 1.0,
+    "210": 1.0,
+    "211": 1.0,
+    "212": 1.0,
+    "213": 1.0,
+    "214": 1.0,
+    "215": 1.0,
+    "216": 1.0,
+    "217": 1.0,
+    "218": 1.0,
+    "219": 1.0,
+    "220": 1.0,
+    "221": 1.0,
+    "222": 1.0,
+    "223": 1.0,
+    "224": 1.0,
+    "225": 1.0,
+    "226": 1.0,
+    "227": 1.0,
+    "228": 1.0,
+    "229": 1.0,
+    "230": 1.0,
+    "231": 1.0,
+    "232": 1.0,
+    "233": 1.0,
+    "234": 1.0,
+    "235": 1.0,
+    "236": 1.0,
+    "237": 1.0,
+    "238": 1.0,
+    "239": 1.0,
+    "240": 1.0,
+    "241": 1.0,
+    "242": 1.0,
+    "243": 1.0,
+    "244": 1.0,
+    "245": 1.0,
+    "246": 1.0,
+    "247": 1.0,
+    "248": 1.0,
+    "249": 1.0,
+    "250": 1.0,
+    "251": 1.0,
+    "252": 1.0,
+    "253": 1.0,
+    "254": 1.0,
+    "255": 1.0,
+    "256": 1.0,
+    "257": 1.0,
+    "258": 1.0,
+    "259": 1.0,
+    "260": 1.0,
+    "261": 1.0,
+    "262": 1.0,
+    "263": 1.0,
+    "264": 1.0,
+    "265": 1.0,
+    "266": 1.0,
+    "267": 1.0,
+    "268": 1.0,
+    "269": 1.0,
+    "270": 1.0,
+    "271": 1.0,
+    "272": 1.0,
+    "273": 1.0,
+    "274": 1.0,
+    "275": 1.0,
+    "276": 1.0,
+    "277": 1.0,
+    "278": 1.0,
+    "279": 1.0,
+    "280": 1.0,
+    "281": 1.0,
+    "282": 1.0,
+    "283": 1.0,
+    "284": 1.0,
+    "285": 1.0,
+    "286": 1.0,
+    "287": 1.0,
+    "288": 1.0,
+    "289": 1.0,
+    "290": 1.0,
+    "291": 1.0,
+    "292": 1.0,
+    "293": 1.0,
+    "294": 1.0,
+    "295": 1.0,
+    "296": 1.0,
+    "297": 1.0,
+    "298": 1.0,
+    "299": 1.0,
+    "300": 1.0,
+    "301": 1.0,
+    "302": 1.0,
+    "303": 1.0,
+    "304": 1.0,
+    "305": 1.0,
+    "306": 1.0,
+    "307": 1.0,
+    "308": 1.0,
+    "309": 1.0,
+    "310": 1.0,
+    "311": 1.0,
+    "312": 1.0,
+    "313": 1.0,
+    "314": 1.0,
+    "315": 1.0,
+    "316": 1.0,
+    "317": 1.0,
+    "318": 1.0,
+    "319": 1.0,
+    "320": 1.0,
+    "321": 1.0,
+    "322": 1.0,
+    "323": 1.0,
+    "324": 1.0,
+    "325": 1.0,
+    "326": 1.0,
+    "327": 1.0,
+    "328": 1.0,
+    "329": 1.0,
+    "330": 1.0,
+    "331": 1.0,
+    "332": 1.0,
+    "333": 1.0,
+    "334": 1.0,
+    "335": 1.0,
+    "336": 1.0,
+    "337": 1.0,
+    "338": 1.0,
+    "339": 1.0,
+    "340": 1.0,
+    "341": 1.0,
+    "342": 1.0,
+    "343": 1.0,
+    "344": 1.0,
+    "345": 1.0,
+    "346": 1.0,
+    "347": 1.0,
+    "348": 1.0,
+    "349": 1.0,
+    "350": 1.0,
+    "351": 1.0,
+    "352": 1.0,
+    "353": 1.0,
+    "354": 1.0,
+    "355": 1.0,
+    "356": 1.0,
+    "357": 1.0,
+    "358": 1.0,
+    "359": 1.0,
+    "360": 1.0,
+    "361": 1.0,
+    "362": 1.0,
+    "363": 1.0,
+    "364": 1.0,
+    "365": 1.0,
+    "366": 1.0,
+    "367": 1.0,
+    "368": 1.0,
+    "369": 1.0,
+    "370": 1.0,
+    "371": 1.0,
+    "372": 1.0,
+    "373": 1.0,
+    "374": 1.0,
+    "375": 1.0,
+    "376": 1.0,
+    "377": 1.0,
+    "378": 1.0,
+    "379": 1.0,
+    "380": 1.0,
+    "381": 1.0,
+    "382": 1.0,
+    "383": 1.0,
+    "384": 1.0,
+    "385": 1.0,
+    "386": 1.0,
+    "387": 1.0,
+    "388": 1.0,
+    "389": 1.0,
+    "390": 1.0,
+    "391": 1.0,
+    "392": 1.0,
+    "393": 1.0,
+    "394": 1.0,
+    "395": 1.0,
+    "396": 1.0,
+    "397": 1.0,
+    "398": 1.0,
+    "399": 1.0,
+    "400": 1.0,
+    "401": 1.0,
+    "402": 1.0,
+    "403": 1.0,
+    "404": 1.0,
+    "405": 1.0,
+    "406": 1.0,
+    "407": 1.0,
+    "408": 1.0,
+    "409": 1.0,
+    "410": 1.0,
+    "411": 1.0,
+    "412": 1.0,
+    "413": 1.0,
+    "414": 1.0,
+    "415": 1.0,
+    "416": 1.0,
+    "417": 1.0,
+    "418": 1.0,
+    "419": 1.0,
+    "420": 1.0,
+    "421": 1.0,
+    "422": 1.0,
+    "423": 1.0,
+    "424": 1.0,
+    "425": 1.0,
+    "426": 1.0,
+    "427": 1.0,
+    "428": 1.0,
+    "429": 1.0,
+    "430": 1.0,
+    "431": 1.0,
+    "432": 1.0,
+    "433": 1.0,
+    "434": 1.0,
+    "435": 1.0,
+    "436": 1.0,
+    "437": 1.0,
+    "438": 1.0,
+    "439": 1.0,
+    "440": 1.0,
+    "441": 1.0,
+    "442": 1.0,
+    "443": 1.0,
+    "444": 1.0,
+    "445": 1.0,
+    "446": 1.0,
+    "447": 1.0,
+    "448": 1.0,
+    "449": 1.0,
+    "450": 1.0,
+    "451": 1.0,
+    "452": 1.0,
+    "453": 1.0,
+    "454": 1.0,
+    "455": 1.0,
+    "456": 1.0,
+    "457": 1.0,
+    "458": 1.0,
+    "459": 1.0,
+    "460": 1.0,
+    "461": 1.0,
+    "462": 1.0,
+    "463": 1.0,
+    "464": 1.0,
+    "465": 1.0,
+    "466": 1.0,
+    "467": 1.0,
+    "468": 1.0,
+    "469": 1.0,
+    "470": 1.0,
+    "471": 1.0,
+    "472": 1.0,
+    "473": 1.0,
+    "474": 1.0,
+    "475": 1.0,
+    "476": 1.0,
+    "477": 1.0,
+    "478": 1.0,
+    "479": 1.0,
+    "480": 1.0,
+    "481": 1.0,
+    "482": 1.0,
+    "483": 1.0,
+    "484": 1.0,
+    "485": 1.0,
+    "486": 1.0,
+    "487": 1.0,
+    "488": 1.0,
+    "489": 1.0,
+    "490": 1.0,
+    "491": 1.0,
+    "492": 1.0,
+    "493": 1.0,
+    "494": 1.0,
+    "495": 1.0,
+    "496": 1.0,
+    "497": 1.0,
+    "498": 1.0,
+    "499": 1.0,
+    "500": 1.0,
+    "501": 1.0,
+    "502": 1.0,
+    "503": 1.0,
+    "504": 1.0,
+    "505": 1.0,
+    "506": 1.0,
+    "507": 1.0,
+    "508": 1.0,
+    "509": 1.0,
+    "510": 1.0,
+    "511": 1.0,
+    "512": 1.0,
+    "513": 1.0,
+    "514": 1.0,
+    "515": 1.0,
+    "516": 1.0,
+    "517": 1.0,
+    "518": 1.0,
+    "519": 1.0,
+    "520": 1.0,
+    "521": 1.0,
+    "522": 1.0
+  },
+  "gods": [
+    {
+      "id": "route_post",
+      "label": "POST()",
+      "edges": 30
+    },
+    {
+      "id": "route_get",
+      "label": "GET()",
+      "edges": 28
+    },
+    {
+      "id": "in_memory_provider_inmemoryprojectstorage",
+      "label": "InMemoryProjectStorage",
+      "edges": 26
+    },
+    {
+      "id": "postgres_provider_postgresprojectstorage",
+      "label": "PostgresProjectStorage",
+      "edges": 19
+    },
+    {
+      "id": "route_test_makerequest",
+      "label": "makeRequest()",
+      "edges": 17
+    },
+    {
+      "id": "meldar_product",
+      "label": "Meldar",
+      "edges": 15
+    },
+    {
+      "id": "e2e_api_flow_api",
+      "label": "api()",
+      "edges": 13
+    },
+    {
+      "id": "e2e_api_flow_assert",
+      "label": "assert()",
+      "edges": 13
+    },
+    {
+      "id": "editorial-plate-05-trust",
+      "label": "Editorial Plate 05: Trust",
+      "edges": 10
+    },
+    {
+      "id": "cloudflare_provider_cloudflaresandboxprovider",
+      "label": "CloudflareSandboxProvider",
+      "edges": 9
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Data Reclamation Narrative",
+      "target": "Time X-Ray / Digital Footprint Scan",
+      "source_files": [
+        "docs/archive/plans-v2-adaptive/2026-04-02-landing-copy-v2.md",
+        "CLAUDE.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "narrativizes",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `Data Reclamation Narrative` unexpectedly reaches hub `Time X-Ray / Digital Footprint Scan`"
+    },
+    {
+      "source": "Meldar",
+      "target": "Next.js 16",
+      "source_files": [
+        "CLAUDE.md",
+        "README.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "uses_technology",
+      "why": "connects across different repos/directories; peripheral node `Next.js 16` unexpectedly reaches hub `Meldar`"
+    },
+    {
+      "source": "Meldar",
+      "target": "Drizzle ORM",
+      "source_files": [
+        "CLAUDE.md",
+        "README.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "uses_technology",
+      "why": "connects across different repos/directories; peripheral node `Drizzle ORM` unexpectedly reaches hub `Meldar`"
+    },
+    {
+      "source": "Meldar",
+      "target": "Neon Postgres",
+      "source_files": [
+        "CLAUDE.md",
+        "README.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "uses_technology",
+      "why": "connects across different repos/directories; peripheral node `Neon Postgres` unexpectedly reaches hub `Meldar`"
+    },
+    {
+      "source": "Meldar",
+      "target": "Anthropic Claude",
+      "source_files": [
+        "CLAUDE.md",
+        "README.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "uses_technology",
+      "why": "connects across different repos/directories; peripheral node `Anthropic Claude` unexpectedly reaches hub `Meldar`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `Discovery Engine` connect `Community 1` to `Community 9`, `Community 6`?",
+      "why": "High betweenness centrality (0.009) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Meldar` connect `Community 1` to `Community 8`?",
+      "why": "High betweenness centrality (0.006) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Effort Escalation Funnel` connect `Community 6` to `Community 1`?",
+      "why": "High betweenness centrality (0.003) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `ProjectNotFoundError`, `SandboxStartFailedError`, `SandboxNotFoundError` to the rest of the system?",
+      "why": "51 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.05 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.04 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 2` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.05 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

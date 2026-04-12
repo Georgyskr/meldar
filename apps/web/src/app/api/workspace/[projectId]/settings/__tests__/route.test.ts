@@ -196,15 +196,8 @@ describe('PUT /api/workspace/[projectId]/settings', () => {
 		expect(json.error.code).toBe('INVALID_JSON')
 	})
 
-	it('returns 400 when body has unknown keys only', async () => {
-		const res = await PUT(makePutRequest({ unknownField: 'value' }, 'valid_token'), routeContext)
-		expect(res.status).toBe(400)
-		const json = (await res.json()) as { error: { code: string } }
-		expect(json.error.code).toBe('VALIDATION_ERROR')
-	})
-
 	it('updates businessName in wishes', async () => {
-		setupDbMocks({ services: ['Haircut'] })
+		setupDbMocks({ services: [{ name: 'Haircut' }] })
 
 		const res = await PUT(
 			makePutRequest({ businessName: 'New Salon' }, 'valid_token'),
@@ -213,19 +206,19 @@ describe('PUT /api/workspace/[projectId]/settings', () => {
 		expect(res.status).toBe(200)
 		const json = (await res.json()) as { settings: Record<string, unknown> }
 		expect(json.settings.businessName).toBe('New Salon')
-		expect(json.settings.services).toEqual(['Haircut'])
+		expect(json.settings.services).toEqual([{ name: 'Haircut' }])
 	})
 
 	it('updates services in wishes', async () => {
 		setupDbMocks({ businessName: 'Cool Salon' })
 
 		const res = await PUT(
-			makePutRequest({ services: ['Haircut', 'Color', 'Blowout'] }, 'valid_token'),
+			makePutRequest({ services: [{ name: 'Haircut' }, { name: 'Color' }, { name: 'Blowout' }] }, 'valid_token'),
 			routeContext,
 		)
 		expect(res.status).toBe(200)
 		const json = (await res.json()) as { settings: Record<string, unknown> }
-		expect(json.settings.services).toEqual(['Haircut', 'Color', 'Blowout'])
+		expect(json.settings.services).toEqual([{ name: 'Haircut' }, { name: 'Color' }, { name: 'Blowout' }])
 		expect(json.settings.businessName).toBe('Cool Salon')
 	})
 
@@ -240,13 +233,13 @@ describe('PUT /api/workspace/[projectId]/settings', () => {
 	})
 
 	it('merges with existing wishes (does not clobber)', async () => {
-		setupDbMocks({ businessName: 'Old Name', services: ['Haircut'] })
+		setupDbMocks({ businessName: 'Old Name', services: [{ name: 'Haircut' }] })
 
 		const res = await PUT(makePutRequest({ businessName: 'New Name' }, 'valid_token'), routeContext)
 		expect(res.status).toBe(200)
 		const json = (await res.json()) as { settings: Record<string, unknown> }
 		expect(json.settings.businessName).toBe('New Name')
-		expect(json.settings.services).toEqual(['Haircut'])
+		expect(json.settings.services).toEqual([{ name: 'Haircut' }])
 	})
 
 	it('returns 400 when projectId is not a UUID', async () => {

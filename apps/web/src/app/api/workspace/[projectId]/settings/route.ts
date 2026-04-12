@@ -11,13 +11,19 @@ export const dynamic = 'force-dynamic'
 
 const projectIdSchema = z.string().uuid()
 
-const settingsSchema = z
-	.object({
-		businessName: z.string().min(1).max(200).optional(),
-		services: z.array(z.string().min(1).max(200)).max(50).optional(),
-		hours: z.record(z.string().max(20), z.string().max(50)).optional(),
-	})
-	.strict()
+const serviceSchema = z.object({
+	id: z.string().optional(),
+	name: z.string().min(1).max(200),
+	durationMinutes: z.number().positive().optional(),
+	priceEur: z.number().nonnegative().optional(),
+})
+
+const settingsSchema = z.object({
+	businessName: z.string().min(1).max(200).optional(),
+	services: z.array(serviceSchema).max(50).optional(),
+	availableHours: z.record(z.string(), z.unknown()).optional(),
+	hours: z.record(z.string(), z.unknown()).optional(),
+})
 
 type RouteContext = { params: Promise<{ projectId: string }> }
 

@@ -1,0 +1,241 @@
+{
+  "nodes": [
+    {
+      "id": "editorial-plate-01",
+      "label": "Editorial Plate 01 — Abstract geometric brand illustration",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "brand-color-deep-mauve",
+      "label": "Deep Mauve (#623153) — Primary brand color",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "brand-color-peach-accent",
+      "label": "Peach / Salmon Accent (#FFB876 range) — Gradient warm tone",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "brand-color-warm-cream",
+      "label": "Warm Cream (#faf9f6) — Surface / background color",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "brand-design-language",
+      "label": "Meldar Design Language — Editorial, warm, architectural",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "geometric-l-shape",
+      "label": "Angular L-shaped form — Sharp corners, deep mauve with gradient shading",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "organic-curve-swoops",
+      "label": "Curved organic swoops — Peach-to-mauve gradient, soft flowing shapes",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "overlapping-planes",
+      "label": "Overlapping rectangular planes — Layered depth, cream and mauve",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "brand-identity-meldar",
+      "label": "Meldar Brand Identity",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    },
+    {
+      "id": "brand-directory",
+      "label": "apps/web/public/brand/ — Brand asset directory",
+      "file_type": "directory",
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg"
+    }
+  ],
+  "edges": [
+    {
+      "source": "editorial-plate-01",
+      "target": "brand-identity-meldar",
+      "relation": "REPRESENTS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-01",
+      "target": "brand-directory",
+      "relation": "STORED_IN",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-01",
+      "target": "brand-color-deep-mauve",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-01",
+      "target": "brand-color-peach-accent",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-01",
+      "target": "brand-color-warm-cream",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-01",
+      "target": "brand-design-language",
+      "relation": "EMBODIES",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 0.9
+    },
+    {
+      "source": "editorial-plate-01",
+      "target": "geometric-l-shape",
+      "relation": "CONTAINS_ELEMENT",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-01",
+      "target": "organic-curve-swoops",
+      "relation": "CONTAINS_ELEMENT",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-01",
+      "target": "overlapping-planes",
+      "relation": "CONTAINS_ELEMENT",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "geometric-l-shape",
+      "target": "brand-color-deep-mauve",
+      "relation": "COLORED_WITH",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 0.8
+    },
+    {
+      "source": "organic-curve-swoops",
+      "target": "brand-color-peach-accent",
+      "relation": "COLORED_WITH",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 0.8
+    },
+    {
+      "source": "organic-curve-swoops",
+      "target": "brand-color-deep-mauve",
+      "relation": "GRADIENT_TO",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 0.8
+    },
+    {
+      "source": "overlapping-planes",
+      "target": "brand-color-warm-cream",
+      "relation": "COLORED_WITH",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 0.8
+    },
+    {
+      "source": "brand-design-language",
+      "target": "brand-identity-meldar",
+      "relation": "DEFINES_AESTHETIC_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 0.9
+    },
+    {
+      "source": "brand-color-deep-mauve",
+      "target": "brand-identity-meldar",
+      "relation": "PRIMARY_COLOR_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "brand-color-peach-accent",
+      "target": "brand-identity-meldar",
+      "relation": "ACCENT_COLOR_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 0.9
+    },
+    {
+      "source": "brand-color-warm-cream",
+      "target": "brand-identity-meldar",
+      "relation": "SURFACE_COLOR_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 0.9
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "he-editorial-plate-composition",
+      "nodes": ["geometric-l-shape", "organic-curve-swoops", "overlapping-planes"],
+      "relation": "COMPOSE_LAYERED_ABSTRACT_ILLUSTRATION",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    },
+    {
+      "id": "he-brand-color-palette",
+      "nodes": ["brand-color-deep-mauve", "brand-color-peach-accent", "brand-color-warm-cream"],
+      "relation": "FORM_BRAND_COLOR_PALETTE",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-01.jpg",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

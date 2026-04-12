@@ -18,6 +18,8 @@ import { guardedDeployCall } from '@/server/deploy/guarded-deploy-call'
 import { sendFirstBuildEmail } from '@/server/email'
 import { recordAiCall } from '@/server/lib/ai-call-log'
 import { createSpendGuardForUser } from '@/server/lib/spend-ceiling'
+import { withSandboxPreview } from './sandbox-preview'
+import { tryCreateSandboxProvider } from './sandbox-provider-factory'
 
 export type RunBuildInput = {
 	readonly projectId: string
@@ -152,7 +154,12 @@ export async function runBuildForUser(input: RunBuildInput): Promise<RunBuildRes
 	)
 
 	const generator = withTokenRefund(
-		withFirstBuildEmail(rawGenerator, input.userId, input.projectId),
+		withSandboxPreview(withFirstBuildEmail(rawGenerator, input.userId, input.projectId), {
+			projectId: input.projectId,
+			userId: input.userId,
+			storage: deps.storage,
+			sandbox: tryCreateSandboxProvider(),
+		}),
 		input.userId,
 		estimatedCost,
 		input.kanbanCardId,

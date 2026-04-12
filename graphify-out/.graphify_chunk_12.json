@@ -1,0 +1,189 @@
+{
+  "nodes": [
+    {
+      "id": "editorial-plate-08-final",
+      "label": "Editorial Plate 08 — Final CTA Section",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    },
+    {
+      "id": "final-cta-section",
+      "label": "Final CTA Landing Section",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    },
+    {
+      "id": "silhouette-person-rooftop",
+      "label": "Person Silhouette on Rooftop Overlooking City",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    },
+    {
+      "id": "sunset-starburst",
+      "label": "Sunset Starburst Through Skyline",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    },
+    {
+      "id": "city-skyline",
+      "label": "Urban City Skyline",
+      "file_type": "visual_element",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    },
+    {
+      "id": "warm-golden-palette",
+      "label": "Warm Golden & Mauve Color Palette",
+      "file_type": "design_token",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    },
+    {
+      "id": "empowerment-mood",
+      "label": "Empowerment & Forward-Looking Mood",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    },
+    {
+      "id": "meldar-brand",
+      "label": "Meldar Brand Identity",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    },
+    {
+      "id": "data-reclamation-narrative",
+      "label": "Data Reclamation Narrative — Take Back What's Yours",
+      "file_type": "concept",
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg"
+    }
+  ],
+  "edges": [
+    {
+      "source": "editorial-plate-08-final",
+      "target": "final-cta-section",
+      "relation": "SERVES_AS_VISUAL_FOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-08-final",
+      "target": "silhouette-person-rooftop",
+      "relation": "DEPICTS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-08-final",
+      "target": "sunset-starburst",
+      "relation": "DEPICTS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-08-final",
+      "target": "city-skyline",
+      "relation": "DEPICTS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-08-final",
+      "target": "warm-golden-palette",
+      "relation": "USES_COLOR_PALETTE",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.9
+    },
+    {
+      "source": "warm-golden-palette",
+      "target": "meldar-brand",
+      "relation": "ALIGNS_WITH",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.85
+    },
+    {
+      "source": "silhouette-person-rooftop",
+      "target": "empowerment-mood",
+      "relation": "EVOKES",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.9
+    },
+    {
+      "source": "sunset-starburst",
+      "target": "empowerment-mood",
+      "relation": "REINFORCES",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.85
+    },
+    {
+      "source": "empowerment-mood",
+      "target": "final-cta-section",
+      "relation": "DRIVES_EMOTIONAL_INTENT_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.9
+    },
+    {
+      "source": "final-cta-section",
+      "target": "data-reclamation-narrative",
+      "relation": "DELIVERS",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.8
+    },
+    {
+      "source": "data-reclamation-narrative",
+      "target": "meldar-brand",
+      "relation": "CORE_NARRATIVE_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.85
+    },
+    {
+      "source": "editorial-plate-08-final",
+      "target": "meldar-brand",
+      "relation": "BELONGS_TO",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 1.0
+    },
+    {
+      "source": "city-skyline",
+      "target": "empowerment-mood",
+      "relation": "CONTEXTUALIZES",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": [
+    {
+      "nodes": ["silhouette-person-rooftop", "sunset-starburst", "city-skyline", "warm-golden-palette"],
+      "relation": "COMPOSE_ASPIRATIONAL_HERO_IMAGE",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-08-final.jpg",
+      "weight": 0.9
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

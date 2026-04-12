@@ -14,6 +14,7 @@ Active planning lives under `v3/`. Everything under `archive/` is historical —
 | UX spec | `v3/ux/ux-architect-spec.md` |
 | UX research findings | `v3/ux/ux-researcher-findings.md` |
 | Market + user research | `research/` |
+| Marketing blitz strategy (MedVi-inspired) | `marketing-blitz/` |
 | Discovery engine design briefs | `discovery/` |
 | Brand / image prompts | `hero-image-prompts.md`, `agents/design-image-prompt-engineer.md` |
 

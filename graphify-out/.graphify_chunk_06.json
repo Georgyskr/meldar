@@ -1,0 +1,155 @@
+{
+  "nodes": [
+    {
+      "id": "favicon_svg",
+      "label": "Favicon (SVG)",
+      "file_type": "image",
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gradient_circle_icon",
+      "label": "Gradient Circle Icon",
+      "file_type": "image",
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "brand_gradient",
+      "label": "Brand Gradient (#623153 to #FFB876, 135deg)",
+      "file_type": "image",
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_deep_mauve",
+      "label": "Deep Mauve (#623153)",
+      "file_type": "image",
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_peach_orange",
+      "label": "Peach Orange (#FFB876)",
+      "file_type": "image",
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "meldar_brand",
+      "label": "Meldar Brand Identity",
+      "file_type": "image",
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "favicon_svg",
+      "target": "gradient_circle_icon",
+      "relation": "DEPICTS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gradient_circle_icon",
+      "target": "brand_gradient",
+      "relation": "USES_FILL",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "brand_gradient",
+      "target": "color_deep_mauve",
+      "relation": "STARTS_WITH_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "brand_gradient",
+      "target": "color_peach_orange",
+      "relation": "ENDS_WITH_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "favicon_svg",
+      "target": "meldar_brand",
+      "relation": "REPRESENTS",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "brand_gradient",
+      "target": "meldar_brand",
+      "relation": "PART_OF_IDENTITY",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "color_deep_mauve",
+      "target": "meldar_brand",
+      "relation": "PRIMARY_COLOR_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "color_peach_orange",
+      "target": "meldar_brand",
+      "relation": "ACCENT_COLOR_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -56,12 +56,19 @@ export function PreviewPane({ previewUrl, activeBuildCardId, failureMessage }: P
 					flex="1"
 					alignItems="center"
 					justifyContent="center"
+					direction="column"
+					gap={4}
 					border="1px solid"
 					borderColor="outlineVariant/30"
 					borderRadius="md"
+					paddingInline={6}
+					textAlign="center"
 				>
-					<Text textStyle="body.md" color="onSurfaceVariant">
-						Your page is being set up&hellip;
+					<Text textStyle="primary.sm" color="onSurface">
+						Your page is ready to customize
+					</Text>
+					<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="400px">
+						Use the input below to describe what you want. Try "add a hero section" or "create a booking form with 3 services."
 					</Text>
 				</Flex>
 			)}

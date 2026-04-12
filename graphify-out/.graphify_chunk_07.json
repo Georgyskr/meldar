@@ -1,0 +1,301 @@
+{
+  "nodes": [
+    {
+      "id": "editorial-plate-07-adopter",
+      "label": "Editorial Plate 07 — Adopter",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "visual-concentric-rings",
+      "label": "Concentric Offset Rings Composition",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color-deep-mauve",
+      "label": "Deep Mauve / Plum (#623153 range)",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color-dusty-rose",
+      "label": "Dusty Rose / Muted Purple",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color-warm-peach",
+      "label": "Warm Peach / Orange (#FFB876 range)",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color-warm-cream-bg",
+      "label": "Warm Cream Background (#faf9f6 range)",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "landing-section-early-adopter",
+      "label": "Early Adopter Landing Section (Section 7)",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "meldar-brand-system",
+      "label": "Meldar Brand / Design System",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "metaphor-convergence-belonging",
+      "label": "Convergence / Belonging Metaphor (Rings Drawing Inward)",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "design-language-editorial-architecture",
+      "label": "Editorial Architecture Design Language",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "visual-depth-shadow",
+      "label": "3D Depth via Shadow and Layering",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "brand-gradient-mauve-peach",
+      "label": "Brand Gradient Palette (Deep Mauve to Peach)",
+      "file_type": "image",
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "editorial-plate-07-adopter",
+      "target": "visual-concentric-rings",
+      "relation": "DEPICTS",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-07-adopter",
+      "target": "landing-section-early-adopter",
+      "relation": "ILLUSTRATES_SECTION",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-07-adopter",
+      "target": "meldar-brand-system",
+      "relation": "PART_OF",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "editorial-plate-07-adopter",
+      "target": "design-language-editorial-architecture",
+      "relation": "FOLLOWS_STYLE",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "visual-concentric-rings",
+      "target": "color-deep-mauve",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "visual-concentric-rings",
+      "target": "color-dusty-rose",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "visual-concentric-rings",
+      "target": "color-warm-peach",
+      "relation": "USES_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "visual-concentric-rings",
+      "target": "color-warm-cream-bg",
+      "relation": "USES_BACKGROUND_COLOR",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "visual-concentric-rings",
+      "target": "metaphor-convergence-belonging",
+      "relation": "CONVEYS_METAPHOR",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "visual-concentric-rings",
+      "target": "visual-depth-shadow",
+      "relation": "EMPLOYS_TECHNIQUE",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "metaphor-convergence-belonging",
+      "target": "landing-section-early-adopter",
+      "relation": "REINFORCES_THEME",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "color-deep-mauve",
+      "target": "brand-gradient-mauve-peach",
+      "relation": "PART_OF_GRADIENT",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "color-dusty-rose",
+      "target": "brand-gradient-mauve-peach",
+      "relation": "PART_OF_GRADIENT",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "color-warm-peach",
+      "target": "brand-gradient-mauve-peach",
+      "relation": "PART_OF_GRADIENT",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "brand-gradient-mauve-peach",
+      "target": "meldar-brand-system",
+      "relation": "DEFINES_PALETTE_FOR",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "landing-section-early-adopter",
+      "target": "meldar-brand-system",
+      "relation": "PART_OF",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "apps/web/public/brand/editorial-plate-07-adopter.jpg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

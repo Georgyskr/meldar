@@ -1,0 +1,1046 @@
+{
+  "nodes": [
+    {
+      "id": "meldar_master_plan_v2",
+      "type": "document",
+      "label": "Meldar Master Implementation Plan (v2 Adaptive)",
+      "properties": {
+        "date": "2026-03-31",
+        "scope": "Full product redesign — adaptive funnel, pricing tiers, content strategy",
+        "source": "docs/archive/plans-v2-adaptive/2026-03-31-master-plan.md"
+      }
+    },
+    {
+      "id": "landing_section_specs",
+      "type": "document",
+      "label": "Landing Page Section-by-Section Implementation Spec",
+      "properties": {
+        "date": "2026-04-01",
+        "source": "docs/archive/plans-v2-adaptive/2026-04-02-landing-section-specs.md",
+        "sections_count": 11
+      }
+    },
+    {
+      "id": "process_audit",
+      "type": "document",
+      "label": "Process Audit: Why Critical Issues Slipped Through Multiple Reviews",
+      "properties": {
+        "date": "2026-04-01",
+        "trigger": "AI Engineer audit found 2 critical issues that passed through 14 review agents",
+        "source": "docs/archive/pre-v3-reviews/2026-04-01-process-audit.md"
+      }
+    },
+    {
+      "id": "storage_decision",
+      "type": "decision",
+      "label": "Storage Architecture Decision (R2 vs Postgres+R2 Hybrid)",
+      "properties": {
+        "date": "2026-04-06",
+        "outcome": "Option C: Event-sourced Postgres build log + content-addressed R2 blobs",
+        "status": "Approved"
+      }
+    },
+    {
+      "id": "data_engineer_review",
+      "type": "document",
+      "label": "Data Engineer Review — File Storage Architecture",
+      "properties": {
+        "date": "2026-04-06",
+        "recommendation": "Option B with versioned R2 keys and immutable per-build manifest snapshot",
+        "source": "docs/archive/storage-decision-2026-04/data-engineer-review.md"
+      }
+    },
+    {
+      "id": "software_architect_review",
+      "type": "document",
+      "label": "Software Architect Review — Project File Storage",
+      "properties": {
+        "date": "2026-04-06",
+        "recommendation": "Option C: Event log + content-addressed R2",
+        "source": "docs/archive/storage-decision-2026-04/software-architect-review.md"
+      }
+    },
+    {
+      "id": "database_optimizer_review",
+      "type": "document",
+      "label": "Database Optimizer Review — Project File Storage Architecture",
+      "properties": {
+        "date": "2026-04-06",
+        "recommendation": "Option B with normalized project_files table",
+        "source": "docs/archive/storage-decision-2026-04/database-optimizer-review.md"
+      }
+    },
+    {
+      "id": "option_a_pure_r2",
+      "type": "concept",
+      "label": "Option A: Pure Cloudflare R2 Storage",
+      "properties": {
+        "description": "R2 list/get/put as only file API, Postgres holds only user/project/billing metadata",
+        "status": "Rejected"
+      }
+    },
+    {
+      "id": "option_b_hybrid",
+      "type": "concept",
+      "label": "Option B: Postgres Manifest + R2 Content Hybrid",
+      "properties": {
+        "description": "Postgres manifest (jsonb or normalized) tracks files, R2 stores content blobs",
+        "status": "Superseded by Option C"
+      }
+    },
+    {
+      "id": "option_c_event_sourced",
+      "type": "concept",
+      "label": "Option C: Event-Sourced Build Log + Content-Addressed R2",
+      "properties": {
+        "description": "Postgres event log (builds + build_files rows) + R2 content at content-addressed keys (sha256). Build is the unit of truth.",
+        "schema_tables": ["projects", "builds", "build_files"],
+        "r2_layout": "projects/{projectId}/content/{contentHash}",
+        "status": "Selected"
+      }
+    },
+    {
+      "id": "content_addressing",
+      "type": "concept",
+      "label": "Content-Addressed Storage (SHA-256)",
+      "properties": {
+        "benefits": ["free dedup", "free integrity", "free immutability", "free rollback"],
+        "key_pattern": "projects/{projectId}/blobs/{sha256}"
+      }
+    },
+    {
+      "id": "build_as_unit_of_truth",
+      "type": "rationale",
+      "label": "Build Is the Unit of Truth, Not the File",
+      "properties": {
+        "reasoning": "Files are payload of build events. Build is a causally-traceable event with producer (Sonnet), consumer (sandbox), and payload (file set). Optimizing for the event unlocks undo/redo, A/B testing, diffs, snapshots, forks.",
+        "source": "Data Engineer + Software Architect reviews"
+      }
+    },
+    {
+      "id": "github_phase2_migration",
+      "type": "concept",
+      "label": "GitHub Phase-2 Migration Path",
+      "properties": {
+        "description": "Each Build maps to a git commit. build_files = tree entries. Content-addressed blobs = git blobs. Option C maps naturally.",
+        "estimated_effort": "~1 week from Option C vs ~3 weeks from Option A"
+      }
+    },
+    {
+      "id": "test_scores_backend",
+      "type": "audit",
+      "label": "Test Validity Audit — Backend",
+      "properties": {
+        "total_tests": 1208,
+        "integration_real_db": 78,
+        "mock_based": 1130,
+        "score_5": 175,
+        "score_4": 373,
+        "score_3": 510,
+        "score_2": 117,
+        "score_1": 33,
+        "source": "docs/audit/test-scores-backend.md"
+      }
+    },
+    {
+      "id": "test_scores_security",
+      "type": "audit",
+      "label": "Test Validity Audit — Security",
+      "properties": {
+        "total_tests": 1030,
+        "security_critical": 347,
+        "score_5": 62,
+        "score_4": 185,
+        "score_3": 383,
+        "score_2": 262,
+        "score_1": 138,
+        "source": "docs/audit/test-scores-security.md"
+      }
+    },
+    {
+      "id": "test_scores_devops",
+      "type": "audit",
+      "label": "Test Validity Audit — DevOps",
+      "properties": {
+        "total_tests": 1108,
+        "pass_rate": "100%",
+        "wall_clock": "3.94s",
+        "score_5": 975,
+        "score_4": 55,
+        "score_3": 78,
+        "score_2": 0,
+        "score_1": 0,
+        "source": "docs/audit/test-scores-devops.md"
+      }
+    },
+    {
+      "id": "test_scores_architect",
+      "type": "audit",
+      "label": "Test Validity Audit — Architect",
+      "properties": {
+        "total_tests": 1056,
+        "score_5": 389,
+        "score_4": 421,
+        "score_3": 227,
+        "score_2": 19,
+        "score_1": 0,
+        "source": "docs/audit/test-scores-architect.md"
+      }
+    },
+    {
+      "id": "test_scores_overall",
+      "type": "audit",
+      "label": "Test Validity Audit — Complete Scorecard",
+      "properties": {
+        "total_tests": 1025,
+        "score_5": 175,
+        "score_4": 521,
+        "score_3": 262,
+        "score_2": 56,
+        "score_1": 11,
+        "source": "docs/audit/test-scores.md"
+      }
+    },
+    {
+      "id": "test_scores_reviewer",
+      "type": "audit",
+      "label": "Test Validity Audit — Reviewer",
+      "properties": {
+        "total_tests": 1108,
+        "score_5": 468,
+        "score_4": 518,
+        "score_3": 94,
+        "score_2": 28,
+        "score_1": 0,
+        "source": "docs/audit/test-scores-reviewer.md"
+      }
+    },
+    {
+      "id": "discovery_synthesis",
+      "type": "document",
+      "label": "Discovery Engine — Final Synthesis",
+      "properties": {
+        "agents_count": 13,
+        "one_sentence": "Take back your data from Big Tech. See where your time actually goes. We build a personal app that fixes it.",
+        "source": "docs/discovery/SYNTHESIS.md"
+      }
+    },
+    {
+      "id": "effort_escalation_funnel",
+      "type": "concept",
+      "label": "Effort Escalation Funnel",
+      "properties": {
+        "description": "Every step proves value BEFORE asking for the next",
+        "levels": ["Level 0: Pick Your Pain quiz (15s)", "Level 1: Screen Time screenshot (30s)", "Level 2: Google Takeout upload (3min+wait)", "Level 3: Chrome extension (ongoing)", "Level 4: Deep dive (month 2+)"]
+      }
+    },
+    {
+      "id": "time_xray",
+      "type": "concept",
+      "label": "Time X-Ray",
+      "properties": {
+        "internal_name": "Discovery engine",
+        "user_facing_name": "Time X-Ray",
+        "metaphor": "Medical checkup for how you spend your time",
+        "tagline": "See what you're missing"
+      }
+    },
+    {
+      "id": "self_export_model",
+      "type": "concept",
+      "label": "Self-Export Data Model",
+      "properties": {
+        "description": "Users export their OWN data using GDPR rights. We never touch their accounts. They hand us a file, we find the patterns.",
+        "trust_anchor": "Meldar doesn't watch you. You show Meldar.",
+        "gdpr_article": "Article 20 data portability"
+      }
+    },
+    {
+      "id": "google_takeout",
+      "type": "data_source",
+      "label": "Google Takeout",
+      "properties": {
+        "tier": "1 - Top",
+        "data_includes": ["Chrome history", "YouTube history", "Search history", "Calendar", "Maps", "Gmail", "Fit"],
+        "user_friction": "4-5 minutes to request + download",
+        "richness": "Extremely high — one export covers 8+ data sources"
+      }
+    },
+    {
+      "id": "screen_time_screenshot",
+      "type": "data_source",
+      "label": "Screen Time Screenshot (iOS/Android)",
+      "properties": {
+        "tier": "1 - Top",
+        "method": "User takes screenshot of Screen Time / Digital Wellbeing",
+        "analysis": "Vision AI (Claude Haiku) OCR extraction",
+        "cost_per_parse": "$0.002",
+        "user_friction": "30 seconds"
+      }
+    },
+    {
+      "id": "chrome_extension",
+      "type": "data_source",
+      "label": "Meldar Chrome Extension",
+      "properties": {
+        "data": "domain + seconds_active + timestamp only",
+        "permissions": "history + tabs (Manifest V3)",
+        "privacy": "Domain-only, never reads page content",
+        "signal_density": "Detects polling, comparison shopping, context switching, time sinks, routines",
+        "payoff_timeline": "72 hours for first personalized report"
+      }
+    },
+    {
+      "id": "nudge_engine",
+      "type": "concept",
+      "label": "Behavioral Nudge Engine",
+      "properties": {
+        "description": "Discovery without data — conversational flow to surface automation opportunities from user self-report",
+        "approaches": ["Tell Me About Your Monday (8 questions)", "Pick Your Pain (curated menu)"],
+        "source": "docs/discovery/nudge-engine.md"
+      }
+    },
+    {
+      "id": "pick_your_pain_quiz",
+      "type": "feature",
+      "label": "Pick Your Pain Quiz",
+      "properties": {
+        "effort": "15 seconds",
+        "data_required": "none",
+        "completion_rate_estimate": "80-90%",
+        "purpose": "Instant matched automation suggestions based on archetype"
+      }
+    },
+    {
+      "id": "tell_me_about_monday",
+      "type": "feature",
+      "label": "Tell Me About Your Monday Chat",
+      "properties": {
+        "questions": 8,
+        "duration": "4-5 minutes",
+        "technique": "Temporal anchoring — people recall activities better when tied to time of day",
+        "completion_rate_estimate": "65-75%"
+      }
+    },
+    {
+      "id": "viral_hook",
+      "type": "concept",
+      "label": "Viral Hook: Spotify Wrapped for Productivity",
+      "properties": {
+        "mechanism": "Gap between self-perception and reality is the viral moment",
+        "sharing_hooks": ["You can download everything Google knows about you", "AI found I waste X hours"],
+        "movement_framing": "Big Tech owned your data for a decade. Take it back."
+      }
+    },
+    {
+      "id": "positioning_strategy",
+      "type": "document",
+      "label": "Discovery Mechanism: Positioning Strategy",
+      "properties": {
+        "date": "2026-03-30",
+        "category": "Personal automation intelligence",
+        "positioning_line": "The AI that finds your time waste and fixes it",
+        "trust_anchor_line": "Meldar doesn't watch you. You show Meldar.",
+        "source": "docs/discovery/positioning.md"
+      }
+    },
+    {
+      "id": "three_win_themes",
+      "type": "concept",
+      "label": "Landing Page Win Themes",
+      "properties": {
+        "theme_1": "You can't fix what you can't see",
+        "theme_2": "Meldar starts with your life, not a blank prompt",
+        "theme_3": "From invisible waste to working fix — in one motion"
+      }
+    },
+    {
+      "id": "story_arc",
+      "type": "concept",
+      "label": "Positioning Story Arc (3 Acts)",
+      "properties": {
+        "act_1": "Before Meldar — The Invisible Bleed (waste is invisible)",
+        "act_2": "The Moment of Truth — The X-Ray Reveals (personal, specific, slightly uncomfortable)",
+        "act_3": "After Meldar — The Reclaimed Life (calm, competent, evangelical)"
+      }
+    },
+    {
+      "id": "competitive_positioning",
+      "type": "concept",
+      "label": "Competitive Positioning",
+      "properties": {
+        "vs_lovable": "You don't have to know what to build. Meldar figures it out.",
+        "vs_zapier": "Meldar tells you WHICH apps to connect — and why.",
+        "vs_chatgpt": "Meldar doesn't wait for you to ask. It shows you what you didn't know to ask about.",
+        "vs_mulerun": "We learn your patterns AND build the fix."
+      }
+    },
+    {
+      "id": "email_intelligence",
+      "type": "document",
+      "label": "Self-Export Intelligence — Email Deep Dive",
+      "properties": {
+        "source": "docs/discovery/email-intel.md",
+        "date": "2026-03-30",
+        "patterns_detected": ["newsletter overload", "response priority scoring", "volume/timing patterns", "thread bloat", "recurring emails", "attachment patterns", "neglected email", "social graph"]
+      }
+    },
+    {
+      "id": "cross_source_intelligence",
+      "type": "concept",
+      "label": "Cross-Source Intelligence",
+      "properties": {
+        "description": "Overlaying data from multiple exports reveals transformative patterns",
+        "combinations": ["email+calendar", "email+browser", "screen_time+browser", "email+bank", "calendar+screen_time", "youtube+spotify+netflix"]
+      }
+    },
+    {
+      "id": "privacy_by_architecture",
+      "type": "concept",
+      "label": "Privacy by Architecture (Self-Export Model)",
+      "properties": {
+        "no_oauth": true,
+        "no_account_access": true,
+        "client_side_processing": true,
+        "data_never_leaves_device": "V1 architecturally true",
+        "gdpr_minimal_obligations": "Tool, not data processor"
+      }
+    },
+    {
+      "id": "backend_architecture",
+      "type": "document",
+      "label": "Discovery Backend Architecture",
+      "properties": {
+        "source": "docs/discovery/backend-arch.md",
+        "date": "2026-03-30",
+        "scope": "2-person team, 4-week MVP",
+        "layers": ["Ingestion & Normalization", "Pattern Analysis Engine", "Insights Store"]
+      }
+    },
+    {
+      "id": "frontend_ux_onboarding",
+      "type": "document",
+      "label": "Discovery UX — Onboarding Flow Design",
+      "properties": {
+        "source": "docs/discovery/frontend-ux.md",
+        "date": "2026-03-30",
+        "target_user": "Scared non-technical 20-year-old",
+        "design_principle": "Every screen must feel like texting a smart friend, not filling out a form at the DMV"
+      }
+    },
+    {
+      "id": "progressive_discovery",
+      "type": "document",
+      "label": "Progressive Discovery System",
+      "properties": {
+        "source": "docs/discovery/progressive-discovery.md",
+        "date": "2026-03-30",
+        "unfair_shortcut": "Google Takeout + One Browser Extension = 80% of insight from 20% of effort"
+      }
+    },
+    {
+      "id": "product_manager_analysis",
+      "type": "document",
+      "label": "Discovery Mechanism: Product Manager Analysis",
+      "properties": {
+        "source": "docs/discovery/product-manager.md",
+        "date": "2026-03-30",
+        "core_tension": "Original idea designed for developers; actual user is a 22-year-old marketing student"
+      }
+    },
+    {
+      "id": "ai_engineer_assessment",
+      "type": "document",
+      "label": "AI Engineer Assessment: Data Sources for Discovery",
+      "properties": {
+        "source": "docs/discovery/ai-engineer.md",
+        "date": "2026-03-30",
+        "top_tier": "Google Takeout",
+        "rejected": "Apple Screen Time API, Google Digital Wellbeing API"
+      }
+    },
+    {
+      "id": "data_sources_catalog",
+      "type": "document",
+      "label": "Data Sources Discovery Catalog",
+      "properties": {
+        "source": "docs/discovery/data-sources.md",
+        "date": "2026-03-30",
+        "tier_1_sources": ["Google Takeout", "Apple Health Export", "Screen Time screenshot", "Android Digital Wellbeing screenshot"],
+        "tier_2_sources": ["Google Calendar", "Google Search", "YouTube", "Meta/Facebook", "Twitter/X", "WhatsApp", "Amazon", "Outlook"],
+        "tier_3_sources": ["Uber/Lyft", "LinkedIn", "Todoist/Notion/Trello", "Banking", "Strava", "Reddit"]
+      }
+    },
+    {
+      "id": "c1_analysis_blindness",
+      "type": "bug",
+      "label": "C1: Analysis Engine Blindness",
+      "properties": {
+        "description": "Raw messages stripped from DB (correct for privacy) but analyze.ts still tries to read them",
+        "priority": "P0",
+        "impact": "Every delayed export produces generic results"
+      }
+    },
+    {
+      "id": "c1_category_bypass",
+      "type": "bug",
+      "label": "C1: All Apps category: utility on Regex Path",
+      "properties": {
+        "description": "Regex shortcut skips AI categorization, assigns category 'utility' to all apps",
+        "impact": "Breaks ALL category-based insights and recommendations",
+        "detected_by": "AI Engineer (agent #15)"
+      }
+    },
+    {
+      "id": "c2_platform_bypass",
+      "type": "bug",
+      "label": "C2: Platform: unknown on Regex Path",
+      "properties": {
+        "description": "Regex shortcut assigns platform 'unknown' to all apps",
+        "impact": "Breaks all platform-specific fix steps",
+        "detected_by": "AI Engineer (agent #15)"
+      }
+    },
+    {
+      "id": "adaptive_haiku_followup",
+      "type": "feature",
+      "label": "Adaptive Haiku Follow-Up System",
+      "properties": {
+        "description": "Core differentiator — nobody gets the same form. Haiku analyzes Screen Time + profile, returns personalized follow-up screenshot requests.",
+        "endpoint": "/api/discovery/adaptive",
+        "status": "Missing (P1)"
+      }
+    },
+    {
+      "id": "two_stage_upload",
+      "type": "architecture_decision",
+      "label": "AD1: Two-Stage Upload with Haiku Topic Extraction",
+      "properties": {
+        "flow": "parse ZIP -> extract raw messages -> call Haiku for topics -> store topics in DB -> discard raw messages",
+        "rationale": "Fix analysis blindness while preserving privacy"
+      }
+    },
+    {
+      "id": "medallion_architecture",
+      "type": "concept",
+      "label": "Medallion Architecture (Bronze/Silver/Gold)",
+      "properties": {
+        "bronze": "Raw Sonnet output, untouched, validated at Zod boundary",
+        "silver": "Canonical file set, deduped, post-formatter",
+        "gold": "Exact set of files the running sandbox reads now",
+        "rationale": "Splitting layers lets you replay without rerunning Sonnet"
+      }
+    },
+    {
+      "id": "doctor_checkup_metaphor",
+      "type": "concept",
+      "label": "Doctor's Checkup Metaphor",
+      "properties": {
+        "description": "Time X-Ray framed as annual health checkup for how you spend time",
+        "key_mapping": "Doctor finds things before they become serious = Meldar finds waste before burnout",
+        "privacy_boundary": "Doctor sees your body, not your thoughts = Meldar sees app usage, not content"
+      }
+    },
+    {
+      "id": "landing_page_sections",
+      "type": "concept",
+      "label": "Landing Page Sections (11 total)",
+      "properties": {
+        "order": ["HeroSection", "ProblemSection", "ComparisonSection", "HowItWorksSection", "DataReceiptSection", "SkillCardsSection", "TrustSection", "TiersSection", "EarlyAdopterSection", "FaqSection", "FinalCtaSection"]
+      }
+    },
+    {
+      "id": "reclaim_reveal_reclaim_arc",
+      "type": "concept",
+      "label": "Three-Act Flow: Reclaim-Reveal-Reclaim",
+      "properties": {
+        "act_1_reclaim": "Download your data from Big Tech. It's your legal right.",
+        "act_2_reveal": "Upload to Meldar. See your Time X-Ray in 15 seconds.",
+        "act_3_reclaim_time": "Pick the biggest time-waster. We build a personal app that handles it."
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "storage_decision",
+      "target": "option_c_event_sourced",
+      "relation": "DECIDED_ON",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "All three reviewers converged on hybrid approach; Option C adds event sourcing + content addressing"
+      }
+    },
+    {
+      "source": "data_engineer_review",
+      "target": "storage_decision",
+      "relation": "INFORMS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "software_architect_review",
+      "target": "storage_decision",
+      "relation": "INFORMS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "database_optimizer_review",
+      "target": "storage_decision",
+      "relation": "INFORMS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "storage_decision",
+      "target": "option_a_pure_r2",
+      "relation": "REJECTED",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "No atomic builds, no rollback, eventual consistency on LIST, history is lost"
+      }
+    },
+    {
+      "source": "option_c_event_sourced",
+      "target": "content_addressing",
+      "relation": "USES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "option_c_event_sourced",
+      "target": "build_as_unit_of_truth",
+      "relation": "EMBODIES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "option_c_event_sourced",
+      "target": "github_phase2_migration",
+      "relation": "ENABLES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "Build = commit, build_files = tree entries, content-addressed blobs = git blobs"
+      }
+    },
+    {
+      "source": "option_c_event_sourced",
+      "target": "medallion_architecture",
+      "relation": "IMPLEMENTS",
+      "type": "INFERRED",
+      "confidence_score": 0.8,
+      "properties": {
+        "rationale": "Data Engineer drew parallel to Iceberg/Delta/Hudi medallion pattern"
+      }
+    },
+    {
+      "source": "process_audit",
+      "target": "c1_category_bypass",
+      "relation": "ANALYZES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "process_audit",
+      "target": "c2_platform_bypass",
+      "relation": "ANALYZES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "c1_category_bypass",
+      "target": "c2_platform_bypass",
+      "relation": "CO_INTRODUCED",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "root_cause": "TDD tested preprocessor in isolation, not integration with insight engine"
+      }
+    },
+    {
+      "source": "meldar_master_plan_v2",
+      "target": "c1_analysis_blindness",
+      "relation": "IDENTIFIES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "priority": "P0"
+      }
+    },
+    {
+      "source": "meldar_master_plan_v2",
+      "target": "two_stage_upload",
+      "relation": "PROPOSES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "meldar_master_plan_v2",
+      "target": "adaptive_haiku_followup",
+      "relation": "PROPOSES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "two_stage_upload",
+      "target": "c1_analysis_blindness",
+      "relation": "FIXES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "discovery_synthesis",
+      "target": "effort_escalation_funnel",
+      "relation": "DEFINES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "discovery_synthesis",
+      "target": "time_xray",
+      "relation": "DEFINES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "discovery_synthesis",
+      "target": "self_export_model",
+      "relation": "DEFINES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "effort_escalation_funnel",
+      "target": "pick_your_pain_quiz",
+      "relation": "CONTAINS_LEVEL",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "level": 0
+      }
+    },
+    {
+      "source": "effort_escalation_funnel",
+      "target": "screen_time_screenshot",
+      "relation": "CONTAINS_LEVEL",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "level": 1
+      }
+    },
+    {
+      "source": "effort_escalation_funnel",
+      "target": "google_takeout",
+      "relation": "CONTAINS_LEVEL",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "level": 2
+      }
+    },
+    {
+      "source": "effort_escalation_funnel",
+      "target": "chrome_extension",
+      "relation": "CONTAINS_LEVEL",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "level": 3
+      }
+    },
+    {
+      "source": "self_export_model",
+      "target": "privacy_by_architecture",
+      "relation": "ENABLES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "self_export_model",
+      "target": "google_takeout",
+      "relation": "PRIMARY_SOURCE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "self_export_model",
+      "target": "screen_time_screenshot",
+      "relation": "PRIMARY_SOURCE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "positioning_strategy",
+      "target": "time_xray",
+      "relation": "NAMES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "positioning_strategy",
+      "target": "three_win_themes",
+      "relation": "DEFINES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "positioning_strategy",
+      "target": "story_arc",
+      "relation": "DEFINES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "positioning_strategy",
+      "target": "competitive_positioning",
+      "relation": "DEFINES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "positioning_strategy",
+      "target": "doctor_checkup_metaphor",
+      "relation": "RECOMMENDS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "positioning_strategy",
+      "target": "self_export_model",
+      "relation": "INTEGRATES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "Self-export strengthens all three win themes and creates a David-vs-Goliath narrative"
+      }
+    },
+    {
+      "source": "time_xray",
+      "target": "viral_hook",
+      "relation": "DRIVES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "mechanism": "Gap between self-perception and reality"
+      }
+    },
+    {
+      "source": "discovery_synthesis",
+      "target": "reclaim_reveal_reclaim_arc",
+      "relation": "DEFINES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "email_intelligence",
+      "target": "cross_source_intelligence",
+      "relation": "FEEDS_INTO",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "google_takeout",
+      "target": "cross_source_intelligence",
+      "relation": "ENABLES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "One export covers 8+ data sources for cross-referencing"
+      }
+    },
+    {
+      "source": "nudge_engine",
+      "target": "tell_me_about_monday",
+      "relation": "CONTAINS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "nudge_engine",
+      "target": "pick_your_pain_quiz",
+      "relation": "CONTAINS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "progressive_discovery",
+      "target": "google_takeout",
+      "relation": "IDENTIFIES_AS_SHORTCUT",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "label": "The God Export"
+      }
+    },
+    {
+      "source": "progressive_discovery",
+      "target": "chrome_extension",
+      "relation": "IDENTIFIES_AS_SHORTCUT",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "label": "The Living Wire"
+      }
+    },
+    {
+      "source": "ai_engineer_assessment",
+      "target": "google_takeout",
+      "relation": "RATES_TOP_TIER",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "ai_engineer_assessment",
+      "target": "screen_time_screenshot",
+      "relation": "REJECTS_API_PATH",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "Apple Screen Time APIs locked down for parental controls only; no public API; workaround is screenshot + OCR"
+      }
+    },
+    {
+      "source": "product_manager_analysis",
+      "target": "frontend_ux_onboarding",
+      "relation": "INFORMS",
+      "type": "INFERRED",
+      "confidence_score": 0.8,
+      "properties": {
+        "rationale": "Both focus on non-technical user persona, 90-second onboarding"
+      }
+    },
+    {
+      "source": "landing_section_specs",
+      "target": "landing_page_sections",
+      "relation": "SPECIFIES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "test_scores_backend",
+      "target": "test_scores_overall",
+      "relation": "PERSPECTIVE_ON",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "test_scores_security",
+      "target": "test_scores_overall",
+      "relation": "PERSPECTIVE_ON",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "test_scores_devops",
+      "target": "test_scores_overall",
+      "relation": "PERSPECTIVE_ON",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "test_scores_architect",
+      "target": "test_scores_overall",
+      "relation": "PERSPECTIVE_ON",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "test_scores_reviewer",
+      "target": "test_scores_overall",
+      "relation": "PERSPECTIVE_ON",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "story_arc",
+      "target": "reclaim_reveal_reclaim_arc",
+      "relation": "SIMILAR_TO",
+      "type": "INFERRED",
+      "confidence_score": 0.85,
+      "properties": {
+        "rationale": "Both describe a 3-act narrative arc: invisible problem -> reveal -> resolution"
+      }
+    },
+    {
+      "source": "competitive_positioning",
+      "target": "self_export_model",
+      "relation": "DIFFERENTIATED_BY",
+      "type": "INFERRED",
+      "confidence_score": 0.9,
+      "properties": {
+        "rationale": "Self-export model creates unique trust gap vs all competitors (MuleRun, Minro, Zapier, Lovable)"
+      }
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "he_storage_consensus",
+      "label": "Storage Architecture Review Consensus",
+      "nodes": ["data_engineer_review", "software_architect_review", "database_optimizer_review", "option_c_event_sourced"],
+      "relation": "ALL_CONVERGE_ON",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "Three independent reviewers all rejected pure R2 and converged on Postgres manifest + R2 content with builds as first-class events"
+      }
+    },
+    {
+      "id": "he_discovery_architecture",
+      "label": "Discovery Engine Architecture Synthesis",
+      "nodes": ["discovery_synthesis", "effort_escalation_funnel", "self_export_model", "time_xray", "positioning_strategy"],
+      "relation": "UNIFIED_PRODUCT_DESIGN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "13 agent reports synthesized into unified discovery architecture: funnel + data model + naming + positioning"
+      }
+    },
+    {
+      "id": "he_test_audit_suite",
+      "label": "Multi-Perspective Test Validity Audit",
+      "nodes": ["test_scores_backend", "test_scores_security", "test_scores_devops", "test_scores_architect", "test_scores_reviewer"],
+      "relation": "MULTI_PERSPECTIVE_REVIEW",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "Same ~1000+ test suite scored independently by 5 specialist personas with different evaluation criteria"
+      }
+    }
+  ],
+  "metadata": {
+    "chunk_id": 2,
+    "chunk_size": 21,
+    "files_processed": [
+      "docs/archive/plans-v2-adaptive/2026-04-02-landing-section-specs.md",
+      "docs/archive/plans-v2-adaptive/2026-03-31-master-plan.md",
+      "docs/archive/pre-v3-reviews/2026-04-01-process-audit.md",
+      "docs/archive/storage-decision-2026-04/data-engineer-review.md",
+      "docs/archive/storage-decision-2026-04/software-architect-review.md",
+      "docs/archive/storage-decision-2026-04/database-optimizer-review.md",
+      "docs/audit/test-scores-backend.md",
+      "docs/audit/test-scores-security.md",
+      "docs/audit/test-scores-devops.md",
+      "docs/audit/test-scores-architect.md",
+      "docs/audit/test-scores.md",
+      "docs/audit/test-scores-reviewer.md",
+      "docs/discovery/data-sources.md",
+      "docs/discovery/frontend-ux.md",
+      "docs/discovery/nudge-engine.md",
+      "docs/discovery/SYNTHESIS.md",
+      "docs/discovery/backend-arch.md",
+      "docs/discovery/ai-engineer.md",
+      "docs/discovery/progressive-discovery.md",
+      "docs/discovery/email-intel.md",
+      "docs/discovery/product-manager.md",
+      "docs/discovery/positioning.md"
+    ],
+    "node_count": 53,
+    "edge_count": 52,
+    "hyperedge_count": 3,
+    "extraction_notes": "This chunk covers three major domains: (1) Storage architecture decision with 3 independent expert reviews converging on event-sourced + content-addressed design, (2) 13-agent discovery engine synthesis defining the effort escalation funnel and self-export data model, (3) Multi-perspective test validity audit across 1000+ tests. Key rationale captured: build-as-unit-of-truth reasoning, self-export trust model, and process audit lessons about integration testing gaps."
+  }
+}

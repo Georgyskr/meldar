@@ -1,0 +1,1272 @@
+{
+  "nodes": [
+    {
+      "id": "meldar",
+      "type": "product",
+      "label": "Meldar",
+      "properties": {
+        "description": "AI personal app builder for non-technical users combining discovery + guided setup + app building",
+        "company": "ClickTheRoadFi Oy",
+        "stage": "pre-launch MVP"
+      }
+    },
+    {
+      "id": "discovery_engine",
+      "type": "feature",
+      "label": "Discovery Engine",
+      "properties": {
+        "description": "Core differentiator: discovers what to automate from user behavior patterns before building apps"
+      }
+    },
+    {
+      "id": "time_xray",
+      "type": "feature",
+      "label": "Time X-Ray",
+      "properties": {
+        "description": "User-facing name for discovery output showing how time is spent"
+      }
+    },
+    {
+      "id": "voice_input",
+      "type": "feature",
+      "label": "Voice Input Discovery",
+      "properties": {
+        "description": "60-second voice memo analyzed by Claude to extract time-use insights with emotional context",
+        "cost_per_session": "$0.005-$0.011",
+        "recommended_stt": "OpenAI Whisper API at $0.006/min",
+        "privacy_concern": "Voice is biometric data under GDPR Article 9"
+      }
+    },
+    {
+      "id": "screen_recording_input",
+      "type": "feature",
+      "label": "Screen Recording Input",
+      "properties": {
+        "description": "User records Screen Time settings, frames extracted via FFmpeg, analyzed by Claude Vision",
+        "cost_per_session": "$0.10-$0.19",
+        "recommended_fps": "1 fps"
+      }
+    },
+    {
+      "id": "data_export_ingestion",
+      "type": "feature",
+      "label": "Data Export Ingestion",
+      "properties": {
+        "description": "Ingest user data exports from 20+ platforms for discovery",
+        "platforms_supported": "ChatGPT, Claude, Spotify, Instagram, TikTok, YouTube, Google Search, Twitter, Reddit, WhatsApp, Telegram, Discord, Netflix, Apple Health, Google Calendar, Gmail, Notion, Browser Bookmarks"
+      }
+    },
+    {
+      "id": "market_white_space",
+      "type": "concept",
+      "label": "Discovery + Build White Space",
+      "properties": {
+        "description": "No funded competitor combines: discover what to automate + guided setup + build personal apps for non-technical users",
+        "confirmed_by": "4 independent market researchers (web, Reddit, app stores, VC, Twitter)"
+      }
+    },
+    {
+      "id": "lovable",
+      "type": "competitor",
+      "label": "Lovable",
+      "properties": {
+        "funding": "$552.5M total, $6.6B valuation",
+        "arr": "$300M ARR (Jan 2026)",
+        "users": "8M",
+        "gap": "No discovery - user must specify what to build"
+      }
+    },
+    {
+      "id": "bolt_new",
+      "type": "competitor",
+      "label": "Bolt.new",
+      "properties": {
+        "funding": "$105.5M Series B",
+        "arr": "$40M ARR (Mar 2025)",
+        "valuation": "$700M",
+        "gap": "No discovery, no personal focus"
+      }
+    },
+    {
+      "id": "minro_iris",
+      "type": "competitor",
+      "label": "Minro/Iris",
+      "properties": {
+        "funding": "YC F2025 backed",
+        "traction": "168 DAU, 36K actions, 48% WoW growth",
+        "gap": "Replicates behavior, doesn't discover what's WORTH automating, doesn't build apps"
+      }
+    },
+    {
+      "id": "sintra_ai",
+      "type": "competitor",
+      "label": "Sintra AI",
+      "properties": {
+        "funding": "$17M seed",
+        "arr": "$12M ARR",
+        "customers": "40K+ paying",
+        "gap": "Pre-built roles but no personalized discovery"
+      }
+    },
+    {
+      "id": "lindy_ai",
+      "type": "competitor",
+      "label": "Lindy AI",
+      "properties": {
+        "funding": "~$50-54M total",
+        "arr": "$5.1M ARR",
+        "gap": "No discovery - user must know what to automate"
+      }
+    },
+    {
+      "id": "mulerun",
+      "type": "competitor",
+      "label": "MuleRun",
+      "properties": {
+        "launched": "March 2026",
+        "description": "Self-evolving personal AI that learns work habits on dedicated cloud VM",
+        "gap": "Does NOT build personal apps, more of a digital employee"
+      }
+    },
+    {
+      "id": "orby_ai",
+      "type": "competitor",
+      "label": "Orby AI",
+      "properties": {
+        "funding": "$35M total",
+        "status": "Acquired by Uniphore Aug 2025",
+        "gap": "Enterprise-only, not consumer"
+      }
+    },
+    {
+      "id": "openclaw",
+      "type": "competitor",
+      "label": "OpenClaw",
+      "properties": {
+        "traction": "250K GitHub stars in 60 days",
+        "creator": "Peter Steinberger (joined OpenAI Feb 2026)",
+        "gap": "Developer-focused, not non-technical-user-focused"
+      }
+    },
+    {
+      "id": "zapier",
+      "type": "competitor",
+      "label": "Zapier",
+      "properties": {
+        "description": "No-code automation across 7000+ apps",
+        "gap": "Too complicated for non-technical (Reddit consensus), no discovery"
+      }
+    },
+    {
+      "id": "humane_ai_pin",
+      "type": "competitor",
+      "label": "Humane AI Pin",
+      "properties": {
+        "status": "Dead - sold to HP for $116M, servers shut down Feb 2025",
+        "lesson": "Hardware play failed, software-first is safer"
+      }
+    },
+    {
+      "id": "rabbit_r1",
+      "type": "competitor",
+      "label": "Rabbit R1",
+      "properties": {
+        "funding": "$64.7M total",
+        "status": "Struggling",
+        "lesson": "Dedicated devices lose to phone/desktop integration"
+      }
+    },
+    {
+      "id": "usecase_meal_planning",
+      "type": "use_case",
+      "label": "Meal Planning & Grocery Lists",
+      "properties": {
+        "pain_level": "extreme",
+        "source": "fitness, parenting, forums, productivity",
+        "stat": "Couples argue about dinner 156 times/year",
+        "tier": 1
+      }
+    },
+    {
+      "id": "usecase_email_triage",
+      "type": "use_case",
+      "label": "Email Triage & Auto-Reply",
+      "properties": {
+        "pain_level": "extreme",
+        "source": "freelance, forums, social",
+        "tier": 1
+      }
+    },
+    {
+      "id": "usecase_resume_tailoring",
+      "type": "use_case",
+      "label": "Resume Tailoring Per Job Application",
+      "properties": {
+        "pain_level": "extreme",
+        "source": "jobs",
+        "stat": "88% of employers reject non-ATS-optimized resumes",
+        "tier": 1
+      }
+    },
+    {
+      "id": "usecase_expense_tracking",
+      "type": "use_case",
+      "label": "Manual Expense & Receipt Tracking",
+      "properties": {
+        "pain_level": "extreme",
+        "source": "finance, productivity",
+        "stat": "Users abandon budgeting when it takes >30 sec/day",
+        "tier": 1
+      }
+    },
+    {
+      "id": "usecase_student_deadlines",
+      "type": "use_case",
+      "label": "Student Deadline & Grade Notifications",
+      "properties": {
+        "pain_level": "extreme",
+        "source": "productivity, students",
+        "tier": 1
+      }
+    },
+    {
+      "id": "usecase_school_communication",
+      "type": "use_case",
+      "label": "School Communication Overload",
+      "properties": {
+        "pain_level": "high",
+        "source": "parenting, productivity",
+        "stat": "62% of parents miss events buried in email; 4 school emails/day avg",
+        "tier": 1
+      }
+    },
+    {
+      "id": "usecase_scattered_health_data",
+      "type": "use_case",
+      "label": "Scattered Health Data Across Apps",
+      "properties": {
+        "pain_level": "high",
+        "source": "fitness",
+        "tier": 1
+      }
+    },
+    {
+      "id": "usecase_calorie_logging",
+      "type": "use_case",
+      "label": "Calorie & Food Logging",
+      "properties": {
+        "pain_level": "high",
+        "source": "fitness",
+        "description": "Users quit tracking within days due to friction"
+      }
+    },
+    {
+      "id": "usecase_invoice_chasing",
+      "type": "use_case",
+      "label": "Invoice Chasing & Payment Follow-up",
+      "properties": {
+        "pain_level": "extreme",
+        "source": "freelance",
+        "stat": "54% of gig workers say payment too slow; 44% experience non-payment",
+        "tier": 2
+      }
+    },
+    {
+      "id": "usecase_cross_platform_posting",
+      "type": "use_case",
+      "label": "Cross-Platform Social Media Posting",
+      "properties": {
+        "pain_level": "high",
+        "source": "social",
+        "stat": "43% of SMB owners spend 6+ hrs/week on social media",
+        "tier": 2
+      }
+    },
+    {
+      "id": "usecase_apartment_alerts",
+      "type": "use_case",
+      "label": "Real-Time Apartment Listing Alerts",
+      "properties": {
+        "pain_level": "high",
+        "source": "housing",
+        "tier": 2
+      }
+    },
+    {
+      "id": "usecase_price_drops",
+      "type": "use_case",
+      "label": "Price Drop & Restock Alerts",
+      "properties": {
+        "pain_level": "high",
+        "source": "shopping",
+        "stat": "PS5 availability bot gained 5K followers overnight (now 26K)",
+        "tier": 2
+      }
+    },
+    {
+      "id": "usecase_job_tracking",
+      "type": "use_case",
+      "label": "Job Application Tracking",
+      "properties": {
+        "pain_level": "high",
+        "source": "jobs",
+        "tier": 2
+      }
+    },
+    {
+      "id": "usecase_ghost_jobs",
+      "type": "use_case",
+      "label": "Ghost Job Detection",
+      "properties": {
+        "pain_level": "high",
+        "source": "jobs",
+        "stat": "27% of US job listings are ghost jobs; zero tools exist",
+        "tier": 3
+      }
+    },
+    {
+      "id": "usecase_scope_creep",
+      "type": "use_case",
+      "label": "Scope Creep Management",
+      "properties": {
+        "pain_level": "medium-high",
+        "source": "freelance",
+        "stat": "Zero existing solutions",
+        "tier": 3
+      }
+    },
+    {
+      "id": "usecase_game_backlog",
+      "type": "use_case",
+      "label": "Gaming Backlog & Collection Tracking",
+      "properties": {
+        "pain_level": "medium",
+        "source": "hobbies",
+        "stat": "Median adult gamer has 100-150 unplayed games",
+        "tier": 2
+      }
+    },
+    {
+      "id": "usecase_subscription_creep",
+      "type": "use_case",
+      "label": "Subscription Creep & Forgotten Charges",
+      "properties": {
+        "pain_level": "high",
+        "source": "finance",
+        "stat": "Americans spend $91/mo avg on subscriptions; waste $200/yr on unused ones"
+      }
+    },
+    {
+      "id": "usecase_adhd_routine",
+      "type": "use_case",
+      "label": "ADHD Executive Function & Routine Scaffolding",
+      "properties": {
+        "pain_level": "high",
+        "source": "productivity",
+        "stat": "r/ADHD has 2M+ members",
+        "description": "Traditional to-do lists create anxiety; need zero-friction adaptive systems"
+      }
+    },
+    {
+      "id": "usecase_personal_crm",
+      "type": "use_case",
+      "label": "Personal CRM / Relationship Tracking",
+      "properties": {
+        "pain_level": "medium-high",
+        "source": "relationships",
+        "description": "No tool nails personal + private + polished + mobile"
+      }
+    },
+    {
+      "id": "usecase_freelancer_admin",
+      "type": "use_case",
+      "label": "Freelancer Administrative Overhead",
+      "properties": {
+        "pain_level": "extreme",
+        "source": "freelance, productivity",
+        "stat": "35-40% of working hours on non-billable tasks; 18 hrs/week non-billable avg"
+      }
+    },
+    {
+      "id": "usecase_travel_planning",
+      "type": "use_case",
+      "label": "Travel Planning & Research Overload",
+      "properties": {
+        "pain_level": "high",
+        "source": "travel",
+        "description": "20+ browser tabs, no coherent itinerary"
+      }
+    },
+    {
+      "id": "usecase_fake_listings",
+      "type": "use_case",
+      "label": "Fake/Ghost Rental Listing Detection",
+      "properties": {
+        "pain_level": "high",
+        "source": "housing",
+        "stat": "FTC reported $65M in rental scam losses in 12 months ending June 2025"
+      }
+    },
+    {
+      "id": "usecase_moving_automation",
+      "type": "use_case",
+      "label": "Moving Day Automation",
+      "properties": {
+        "pain_level": "medium",
+        "source": "housing",
+        "stat": "30-50 address changes per move"
+      }
+    },
+    {
+      "id": "pattern_manual_tracking_fatigue",
+      "type": "pattern",
+      "label": "Manual Tracking Fatigue",
+      "properties": {
+        "description": "People start tracking (calories, expenses, applications, collections), quit within 2 weeks because >30 sec/day",
+        "appears_in": "fitness, finance, hobbies, jobs, freelance, students",
+        "meldar_angle": "You stop tracking. We keep watching."
+      }
+    },
+    {
+      "id": "pattern_polling_to_push",
+      "type": "pattern",
+      "label": "Polling to Push",
+      "properties": {
+        "description": "Manually refreshing websites for changes (grades, apartments, prices, seats)",
+        "appears_in": "students, housing, shopping, travel",
+        "meldar_angle": "Stop checking. We'll tell you."
+      }
+    },
+    {
+      "id": "pattern_scattered_data",
+      "type": "pattern",
+      "label": "Scattered Data, No Unified View",
+      "properties": {
+        "description": "Important information spread across 5+ apps with no dashboard",
+        "appears_in": "fitness, finance, hobbies, parenting, freelance",
+        "meldar_angle": "One place for everything that matters to you."
+      }
+    },
+    {
+      "id": "pattern_decision_fatigue",
+      "type": "pattern",
+      "label": "Decision Fatigue Before Task",
+      "properties": {
+        "description": "The hardest part isn't doing the thing, it's deciding what to do",
+        "appears_in": "fitness, jobs, social, parenting",
+        "meldar_angle": "We decide. You approve."
+      }
+    },
+    {
+      "id": "pattern_ai_too_generic",
+      "type": "pattern",
+      "label": "AI Is Too Generic for My Life",
+      "properties": {
+        "description": "People want AI for their specific situation, not a chatbot",
+        "stat": "Fastest-growing AI use case: 17% to 30% in one year",
+        "meldar_angle": "Your app. Nobody else's."
+      }
+    },
+    {
+      "id": "pattern_mental_load",
+      "type": "pattern",
+      "label": "Mental Load / Invisible Labor",
+      "properties": {
+        "description": "Cognitive overhead of tracking, remembering, planning and coordinating",
+        "stat": "Parents spend 30.4 hrs/week on planning/coordinating valued at $60K/yr",
+        "appears_in": "parenting, household management"
+      }
+    },
+    {
+      "id": "marketing_paid_social_review",
+      "type": "document",
+      "label": "Paid Social Strategist Review",
+      "properties": {
+        "date": "2026-04-12",
+        "overall_score": "2.6/5",
+        "verdict": "Ambitious vision, execution plan needs significant rework before launch"
+      }
+    },
+    {
+      "id": "marketing_social_media_review",
+      "type": "document",
+      "label": "Social Media Strategist Review",
+      "properties": {
+        "date": "2026-04-12",
+        "key_finding": "100+ persona farm will get flagged; manage 3-5 quality + ambassador program"
+      }
+    },
+    {
+      "id": "marketing_ppc_review",
+      "type": "document",
+      "label": "PPC Strategist Review",
+      "properties": {
+        "date": "2026-04-12",
+        "key_finding": "250 concurrent campaigns is anti-pattern; consolidate to 4-6 at launch"
+      }
+    },
+    {
+      "id": "persona_page_farm",
+      "type": "strategy",
+      "label": "Persona Page Farm Model",
+      "properties": {
+        "description": "Multi-persona page farm model across Meta with authority-based personas running native ads",
+        "risk": "CRITICAL - coordinated inauthentic behavior enforcement",
+        "recommended_max_pages": "5-10 active (not 50-100)"
+      }
+    },
+    {
+      "id": "meta_campaign_architecture",
+      "type": "strategy",
+      "label": "Meta Campaign Architecture",
+      "properties": {
+        "recommended_campaigns": "4-6 at launch (not 250)",
+        "recommended_budget_split": "Meta $10K, LinkedIn $1.5K, TikTok $1.5K",
+        "golden_rule": "Never increase budget more than 20% per week"
+      }
+    },
+    {
+      "id": "community_strategy",
+      "type": "strategy",
+      "label": "Community-First Strategy",
+      "properties": {
+        "description": "Ambassador program with real advocates instead of mass fake personas",
+        "target": "20-50 real career coaches, HR pros, recruiters",
+        "missing_from_plan": "Zero community strategy was the biggest gap"
+      }
+    },
+    {
+      "id": "ambassador_program",
+      "type": "strategy",
+      "label": "Ambassador Program",
+      "properties": {
+        "description": "Recruit real professionals who use Meldar to post authentically",
+        "target_month1": "10-20 real advocates",
+        "sustainable_alternative_to": "persona farm"
+      }
+    },
+    {
+      "id": "crisis_management",
+      "type": "strategy",
+      "label": "Persona Farm Crisis Management",
+      "properties": {
+        "inevitability": "Exposure is when not if",
+        "response_framework": "Hour 0-2 assess, Hour 2-6 respond, Hour 6-24 redirect, Day 2-7 rebuild"
+      }
+    },
+    {
+      "id": "vc_funding_trends",
+      "type": "concept",
+      "label": "AI VC Funding Trends 2025-2026",
+      "properties": {
+        "ai_share_of_vc_2025": "~40% of global VC ($150B)",
+        "yc_ai_companies_2026": "60% of batches",
+        "seed_stage_ai_premium": "42% higher valuations than non-AI",
+        "agent_companies_seed_2025": "$700M+"
+      }
+    },
+    {
+      "id": "whisper_api",
+      "type": "technology",
+      "label": "OpenAI Whisper API",
+      "properties": {
+        "cost": "$0.006/min",
+        "recommendation": "Best accuracy/cost ratio for Meldar voice input"
+      }
+    },
+    {
+      "id": "whisper_wasm",
+      "type": "technology",
+      "label": "Client-Side Whisper WASM",
+      "properties": {
+        "cost": "$0.00",
+        "model_size": "~40 MB",
+        "advantage": "Audio never leaves device - maximum privacy"
+      }
+    },
+    {
+      "id": "media_recorder_api",
+      "type": "technology",
+      "label": "Browser MediaRecorder API",
+      "properties": {
+        "ios_support": "Fully supported since iOS 14.5",
+        "file_size": "60s Opus audio ≈ 100-200 KB",
+        "requires": "HTTPS, user permission, foreground tab"
+      }
+    },
+    {
+      "id": "rosebud",
+      "type": "competitor",
+      "label": "Rosebud",
+      "properties": {
+        "funding": "$6M seed (2025)",
+        "description": "Voice journaling with AI analysis for emotional patterns",
+        "gap": "Emotional journaling only, not time-use discovery"
+      }
+    },
+    {
+      "id": "research_synthesis",
+      "type": "document",
+      "label": "Research Synthesis",
+      "properties": {
+        "date": "2026-03-30",
+        "agents_used": 20,
+        "verdict": "No product combines discover + guided setup + build personal apps"
+      }
+    },
+    {
+      "id": "att_privacy",
+      "type": "concept",
+      "label": "Post-ATT Measurement Challenge",
+      "properties": {
+        "description": "Apple's App Tracking Transparency limits Meta to ~35-40% deterministic iOS conversion matching",
+        "implication": "Reported CPA likely 20-40% lower than actual CPA",
+        "mitigation": "Conversions API (CAPI) is non-negotiable"
+      }
+    },
+    {
+      "id": "mint_shutdown",
+      "type": "event",
+      "label": "Mint Shutdown (March 2024)",
+      "properties": {
+        "impact": "Millions lost years of categorized financial history",
+        "user_sentiment": "Platform lock-in anxiety",
+        "meldar_angle": "Data ownership - agent works with user's own data"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "meldar",
+      "target": "discovery_engine",
+      "relation": "HAS_CORE_FEATURE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md"
+      }
+    },
+    {
+      "source": "discovery_engine",
+      "target": "time_xray",
+      "relation": "PRODUCES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md"
+      }
+    },
+    {
+      "source": "discovery_engine",
+      "target": "voice_input",
+      "relation": "HAS_INPUT_METHOD",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/voice-input.md"
+      }
+    },
+    {
+      "source": "discovery_engine",
+      "target": "screen_recording_input",
+      "relation": "HAS_INPUT_METHOD",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/voice-input.md"
+      }
+    },
+    {
+      "source": "discovery_engine",
+      "target": "data_export_ingestion",
+      "relation": "HAS_INPUT_METHOD",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/export-formats.md"
+      }
+    },
+    {
+      "source": "voice_input",
+      "target": "whisper_api",
+      "relation": "USES_TECHNOLOGY",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/voice-input.md",
+        "rationale": "Recommended STT: best accuracy/cost ratio at $0.006/min"
+      }
+    },
+    {
+      "source": "voice_input",
+      "target": "whisper_wasm",
+      "relation": "ALTERNATIVE_TECHNOLOGY",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/voice-input.md",
+        "rationale": "Privacy-maximizing option: audio never leaves device"
+      }
+    },
+    {
+      "source": "voice_input",
+      "target": "media_recorder_api",
+      "relation": "USES_TECHNOLOGY",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/voice-input.md"
+      }
+    },
+    {
+      "source": "voice_input",
+      "target": "rosebud",
+      "relation": "COMPETES_WITH",
+      "type": "INFERRED",
+      "confidence_score": 0.6,
+      "properties": {
+        "rationale": "Rosebud does voice journaling but focuses on emotional patterns, not time-use discovery"
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "market_white_space",
+      "relation": "OCCUPIES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md",
+        "rationale": "No funded startup combines discovery + guided setup + building personal apps"
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "lovable",
+      "relation": "COMPETES_WITH",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/market-web-competitors.md",
+        "differentiation": "Lovable has no discovery; user must specify what to build"
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "bolt_new",
+      "relation": "COMPETES_WITH",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/market-web-competitors.md",
+        "differentiation": "Bolt has no discovery, no personal focus"
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "minro_iris",
+      "relation": "COMPETES_WITH",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/market-web-competitors.md",
+        "differentiation": "Minro replicates behavior but doesn't discover what's worth automating or build apps"
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "sintra_ai",
+      "relation": "COMPETES_WITH",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/market-vc-landscape.md",
+        "differentiation": "Sintra has pre-built roles but no personalized discovery"
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "lindy_ai",
+      "relation": "COMPETES_WITH",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/market-vc-landscape.md",
+        "differentiation": "Lindy has no discovery - user must know what to automate"
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "zapier",
+      "relation": "COMPETES_WITH",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md",
+        "differentiation": "Too complicated for non-technical (Reddit consensus), no discovery"
+      }
+    },
+    {
+      "source": "mulerun",
+      "target": "meldar",
+      "relation": "CLOSEST_THREAT",
+      "type": "EXTRACTED",
+      "confidence_score": 0.8,
+      "properties": {
+        "source_file": "docs/research/market-web-competitors.md",
+        "rationale": "Strong on discovery but doesn't build apps; could add app-building"
+      }
+    },
+    {
+      "source": "orby_ai",
+      "target": "discovery_engine",
+      "relation": "VALIDATES_CONCEPT",
+      "type": "INFERRED",
+      "confidence_score": 0.8,
+      "properties": {
+        "rationale": "Orby's behavior observation approach validates discovery-from-behavior concept, but enterprise-only"
+      }
+    },
+    {
+      "source": "humane_ai_pin",
+      "target": "meldar",
+      "relation": "CAUTIONARY_TALE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/market-twitter-landscape.md",
+        "lesson": "Hardware-first personal AI fails; software-first wins"
+      }
+    },
+    {
+      "source": "rabbit_r1",
+      "target": "meldar",
+      "relation": "CAUTIONARY_TALE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/market-twitter-landscape.md",
+        "lesson": "Dedicated devices lose to phone/desktop integration"
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "usecase_meal_planning",
+      "relation": "ADDRESSES_USE_CASE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md",
+        "tier": 1
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "usecase_email_triage",
+      "relation": "ADDRESSES_USE_CASE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md",
+        "tier": 1
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "usecase_resume_tailoring",
+      "relation": "ADDRESSES_USE_CASE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md",
+        "tier": 1
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "usecase_expense_tracking",
+      "relation": "ADDRESSES_USE_CASE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md",
+        "tier": 1
+      }
+    },
+    {
+      "source": "meldar",
+      "target": "usecase_freelancer_admin",
+      "relation": "ADDRESSES_USE_CASE",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-freelance.md",
+        "tier": 1
+      }
+    },
+    {
+      "source": "usecase_meal_planning",
+      "target": "pattern_decision_fatigue",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md"
+      }
+    },
+    {
+      "source": "usecase_expense_tracking",
+      "target": "pattern_manual_tracking_fatigue",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md"
+      }
+    },
+    {
+      "source": "usecase_calorie_logging",
+      "target": "pattern_manual_tracking_fatigue",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-fitness.md"
+      }
+    },
+    {
+      "source": "usecase_scattered_health_data",
+      "target": "pattern_scattered_data",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-fitness.md"
+      }
+    },
+    {
+      "source": "usecase_apartment_alerts",
+      "target": "pattern_polling_to_push",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md"
+      }
+    },
+    {
+      "source": "usecase_price_drops",
+      "target": "pattern_polling_to_push",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md"
+      }
+    },
+    {
+      "source": "usecase_student_deadlines",
+      "target": "pattern_polling_to_push",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-productivity.md"
+      }
+    },
+    {
+      "source": "usecase_adhd_routine",
+      "target": "pattern_manual_tracking_fatigue",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "ADHD users can't sustain manual setup/maintenance systems"
+      }
+    },
+    {
+      "source": "usecase_school_communication",
+      "target": "pattern_mental_load",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-parenting.md"
+      }
+    },
+    {
+      "source": "usecase_freelancer_admin",
+      "target": "usecase_invoice_chasing",
+      "relation": "CONTAINS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-freelance.md"
+      }
+    },
+    {
+      "source": "usecase_freelancer_admin",
+      "target": "usecase_scope_creep",
+      "relation": "CONTAINS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-freelance.md"
+      }
+    },
+    {
+      "source": "marketing_paid_social_review",
+      "target": "persona_page_farm",
+      "relation": "REVIEWS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/marketing-blitz/reviews/paid-social-strategist-review.md",
+        "score": "2/5 for page farm scaling plan"
+      }
+    },
+    {
+      "source": "marketing_paid_social_review",
+      "target": "meta_campaign_architecture",
+      "relation": "RECOMMENDS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/marketing-blitz/reviews/paid-social-strategist-review.md",
+        "key_fix": "Consolidate 250 campaigns to 4-6; max 5-8 active campaigns per ad account"
+      }
+    },
+    {
+      "source": "marketing_paid_social_review",
+      "target": "att_privacy",
+      "relation": "IDENTIFIES_RISK",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/marketing-blitz/reviews/paid-social-strategist-review.md",
+        "fix": "Implement Conversions API before spending a dollar on Meta ads"
+      }
+    },
+    {
+      "source": "marketing_social_media_review",
+      "target": "community_strategy",
+      "relation": "RECOMMENDS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/marketing-blitz/reviews/social-media-strategist-review.md",
+        "rationale": "Community building was completely missing from plan - biggest gap"
+      }
+    },
+    {
+      "source": "marketing_social_media_review",
+      "target": "ambassador_program",
+      "relation": "RECOMMENDS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/marketing-blitz/reviews/social-media-strategist-review.md",
+        "rationale": "20-50 real advocates more effective than 100 fake personas"
+      }
+    },
+    {
+      "source": "marketing_social_media_review",
+      "target": "crisis_management",
+      "relation": "REQUIRES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/marketing-blitz/reviews/social-media-strategist-review.md",
+        "rationale": "Persona farm exposure is when not if"
+      }
+    },
+    {
+      "source": "marketing_ppc_review",
+      "target": "meta_campaign_architecture",
+      "relation": "REINFORCES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/marketing-blitz/reviews/ppc-strategist-review.md",
+        "key_fix": "250 campaigns is anti-pattern; $0.67/day per campaign is catastrophically insufficient"
+      }
+    },
+    {
+      "source": "persona_page_farm",
+      "target": "crisis_management",
+      "relation": "REQUIRES",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "rationale": "CIB enforcement risk means page bans are inevitable; need contingency pipeline"
+      }
+    },
+    {
+      "source": "community_strategy",
+      "target": "persona_page_farm",
+      "relation": "REPLACES",
+      "type": "EXTRACTED",
+      "confidence_score": 0.9,
+      "properties": {
+        "source_file": "docs/marketing-blitz/reviews/social-media-strategist-review.md",
+        "rationale": "Ambassador program is sustainable alternative to persona farm with no existential brand risk"
+      }
+    },
+    {
+      "source": "vc_funding_trends",
+      "target": "market_white_space",
+      "relation": "VALIDATES",
+      "type": "INFERRED",
+      "confidence_score": 0.8,
+      "properties": {
+        "rationale": "$700M+ in agent company seeds in 2025; YC 60% AI batches; but nobody funds discovery+build for consumers"
+      }
+    },
+    {
+      "source": "mint_shutdown",
+      "target": "usecase_expense_tracking",
+      "relation": "AMPLIFIES_PAIN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-finance.md",
+        "rationale": "Platform lock-in anxiety after Mint loss creates demand for user-owned data approach"
+      }
+    },
+    {
+      "source": "research_synthesis",
+      "target": "market_white_space",
+      "relation": "CONFIRMS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/SYNTHESIS.md"
+      }
+    },
+    {
+      "source": "usecase_personal_crm",
+      "target": "usecase_adhd_routine",
+      "relation": "SHARES_AUDIENCE",
+      "type": "INFERRED",
+      "confidence_score": 0.7,
+      "properties": {
+        "rationale": "ADHD 'object permanence' problem is top personal CRM use case; both need zero-friction external scaffolding"
+      }
+    },
+    {
+      "source": "usecase_game_backlog",
+      "target": "pattern_manual_tracking_fatigue",
+      "relation": "EXHIBITS_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_file": "docs/research/reddit-hobbies.md",
+        "quote": "Tracking habits die fast - users sign up enthusiastically then gradually stop"
+      }
+    },
+    {
+      "source": "usecase_subscription_creep",
+      "target": "usecase_expense_tracking",
+      "relation": "RELATED_TO",
+      "type": "INFERRED",
+      "confidence_score": 0.8,
+      "properties": {
+        "rationale": "Subscription management is a sub-problem of overall expense tracking"
+      }
+    },
+    {
+      "source": "openclaw",
+      "target": "meldar",
+      "relation": "POTENTIAL_THREAT",
+      "type": "EXTRACTED",
+      "confidence_score": 0.7,
+      "properties": {
+        "source_file": "docs/research/market-twitter-landscape.md",
+        "rationale": "If OpenClaw adds non-technical-friendly UI, could absorb much of market given 250K GitHub stars"
+      }
+    },
+    {
+      "source": "pattern_ai_too_generic",
+      "target": "market_white_space",
+      "relation": "MOTIVATES",
+      "type": "INFERRED",
+      "confidence_score": 0.8,
+      "properties": {
+        "rationale": "People want AI for THEIR specific life, not a chatbot - validates personalized discovery+build approach"
+      }
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hyper_all_reviewers_agree_consolidate",
+      "label": "All Marketing Reviewers Agree: Consolidate Campaigns",
+      "nodes": ["marketing_paid_social_review", "marketing_ppc_review", "marketing_social_media_review"],
+      "relation": "CONSENSUS",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "finding": "All three reviewers independently concluded: 250 campaigns / 100+ persona accounts is unworkable; consolidate to 4-6 campaigns with 3-10 quality accounts",
+        "source_files": [
+          "docs/marketing-blitz/reviews/paid-social-strategist-review.md",
+          "docs/marketing-blitz/reviews/ppc-strategist-review.md",
+          "docs/marketing-blitz/reviews/social-media-strategist-review.md"
+        ]
+      }
+    },
+    {
+      "id": "hyper_tracking_fatigue_universal",
+      "label": "Manual Tracking Fatigue Is Universal Across Domains",
+      "nodes": ["usecase_calorie_logging", "usecase_expense_tracking", "usecase_game_backlog", "usecase_job_tracking", "usecase_freelancer_admin"],
+      "relation": "SHARED_PATTERN",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "pattern": "People start tracking enthusiastically, abandon within 2 weeks because daily effort exceeds 30 seconds",
+        "meldar_response": "Zero-config automation that observes and tracks without manual entry"
+      }
+    },
+    {
+      "id": "hyper_no_competitor_combines_three",
+      "label": "No Competitor Combines Discovery + Setup + Build",
+      "nodes": ["lovable", "minro_iris", "sintra_ai", "zapier", "mulerun", "orby_ai"],
+      "relation": "MARKET_GAP",
+      "type": "EXTRACTED",
+      "confidence_score": 1.0,
+      "properties": {
+        "source_files": ["docs/research/SYNTHESIS.md", "docs/research/market-web-competitors.md", "docs/research/market-vc-landscape.md", "docs/research/market-twitter-landscape.md"],
+        "finding": "All four market researchers independently confirmed: no product combines discover + guided setup + build personal apps"
+      }
+    }
+  ],
+  "metadata": {
+    "chunk_id": "chunk_04",
+    "chunk_total": 15,
+    "files_processed": [
+      "docs/marketing-blitz/reviews/paid-social-strategist-review.md",
+      "docs/marketing-blitz/reviews/social-media-strategist-review.md",
+      "docs/marketing-blitz/reviews/ppc-strategist-review.md",
+      "docs/research/reddit-hobbies.md",
+      "docs/research/reddit-finance.md",
+      "docs/research/reddit-housing.md",
+      "docs/research/voice-input.md",
+      "docs/research/SYNTHESIS.md",
+      "docs/research/reddit-jobs.md",
+      "docs/research/market-vc-landscape.md",
+      "docs/research/reddit-productivity.md",
+      "docs/research/reddit-travel.md",
+      "docs/research/reddit-social.md",
+      "docs/research/market-web-competitors.md",
+      "docs/research/reddit-relationships.md",
+      "docs/research/reddit-shopping.md",
+      "docs/research/export-formats.md",
+      "docs/research/forums-general.md",
+      "docs/research/reddit-parenting.md",
+      "docs/research/reddit-fitness.md",
+      "docs/research/market-twitter-landscape.md",
+      "docs/research/reddit-freelance.md"
+    ],
+    "extraction_date": "2026-04-13",
+    "node_count": 63,
+    "edge_count": 52,
+    "hyperedge_count": 3
+  }
+}
