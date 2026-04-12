@@ -46,7 +46,6 @@ describe('makeNextJsonRequest', () => {
 			{ headers: { authorization: 'Bearer t' } },
 		)
 		expect(req.headers.get('authorization')).toBe('Bearer t')
-		// Content-Type still defaulted
 		expect(req.headers.get('Content-Type')).toBe('application/json')
 	})
 })

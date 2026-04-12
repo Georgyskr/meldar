@@ -18,7 +18,6 @@ import type { AiChatRawParseResult } from './types'
  * errors with a clear message.
  */
 
-
 /**
  * One message inside a conversation. Every field is optional because the
  * historical export format has been remarkably loose — different exports
@@ -56,7 +55,6 @@ const claudeExportRootSchema = z.union([
 ])
 
 type ClaudeExportRoot = z.infer<typeof claudeExportRootSchema>
-
 
 export async function parseClaudeExport(file: File): Promise<AiChatRawParseResult> {
 	const text = await file.text()

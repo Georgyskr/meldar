@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { parseClaudeExport } from '../claude-export'
 
-
 function makeFile(content: string, name = 'claude-export.json'): File {
 	return new File([content], name, { type: 'application/json' })
 }
-
 
 describe('parseClaudeExport', () => {
 	describe('array format', () => {

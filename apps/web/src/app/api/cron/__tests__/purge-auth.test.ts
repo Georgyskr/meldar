@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-
 const { mockDbExecute } = vi.hoisted(() => ({
 	mockDbExecute: vi.fn(),
 }))
@@ -11,9 +10,7 @@ vi.mock('@meldar/db/client', () => ({
 	}),
 }))
 
-
 import { GET } from '../purge/route'
-
 
 function makeRequest(headers: Record<string, string> = {}): Request {
 	return new Request('http://localhost/api/cron/purge', {
@@ -23,7 +20,6 @@ function makeRequest(headers: Record<string, string> = {}): Request {
 }
 
 const CRON_SECRET = 'test-cron-secret-value'
-
 
 describe('Cron route authorization', () => {
 	beforeEach(() => {

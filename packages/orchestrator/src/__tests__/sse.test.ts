@@ -16,7 +16,6 @@ import {
 } from '../sse'
 import type { OrchestratorEvent } from '../types'
 
-
 /**
  * Create a `ReadableStream<Uint8Array>` from one or more text chunks. Each
  * chunk is enqueued as its own pull, simulating real network chunking
@@ -44,7 +43,6 @@ async function collectStream(
 	for await (const ev of gen) out.push(ev)
 	return out
 }
-
 
 describe('formatSseEvent + parseSseRecord roundtrip', () => {
 	const cases: OrchestratorEvent[] = [
@@ -102,7 +100,6 @@ describe('formatSseEvent + parseSseRecord roundtrip', () => {
 	})
 })
 
-
 describe('parseSseRecord', () => {
 	it('returns null for the [DONE] sentinel', () => {
 		const record = `event: done\ndata: ${SSE_DONE_SENTINEL}`
@@ -139,7 +136,6 @@ describe('parseSseRecord', () => {
 	})
 })
 
-
 describe('formatSseDone', () => {
 	it('emits a record that parseSseRecord recognizes as the sentinel', () => {
 		const wire = formatSseDone()
@@ -147,7 +143,6 @@ describe('formatSseDone', () => {
 		expect(parseSseRecord(wire.trimEnd())).toBeNull()
 	})
 })
-
 
 describe('consumeSseStream', () => {
 	it('yields events from a single-chunk stream', async () => {

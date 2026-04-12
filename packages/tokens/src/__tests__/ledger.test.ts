@@ -126,13 +126,11 @@ describe('TokenLedger day boundary', () => {
 		await ledger.tryDebit('user_1', 100)
 		expect((await ledger.getSnapshot('user_1')).spentCentsToday).toBe(100)
 
-		// Tick forward one day
 		day = '2026-04-07'
 		const snap = await ledger.getSnapshot('user_1')
 		expect(snap.spentCentsToday).toBe(0)
 		expect(snap.remainingCentsToday).toBe(100)
 
-		// New day's ceiling is fresh
 		const r = await ledger.tryDebit('user_1', 100)
 		expect(r.ok).toBe(true)
 	})

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-
 const { mockDbExecute } = vi.hoisted(() => ({
 	mockDbExecute: vi.fn(),
 }))
@@ -18,9 +17,7 @@ vi.mock('drizzle-orm', () => ({
 	}),
 }))
 
-
 import { GET } from '../../purge/route'
-
 
 function makeRequest(headers?: Record<string, string>): Request {
 	return new Request('http://localhost/api/cron/purge', {
@@ -28,7 +25,6 @@ function makeRequest(headers?: Record<string, string>): Request {
 		headers: headers ?? {},
 	})
 }
-
 
 describe('GET /api/cron/purge', () => {
 	beforeEach(() => {

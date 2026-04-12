@@ -18,7 +18,6 @@ vi.mock('@anthropic-ai/sdk', () => ({
 
 import { generateAdaptiveFollowUps } from '../adaptive'
 
-
 const validInput = {
 	screenTimeApps: [
 		{ name: 'Instagram', usageMinutes: 90, category: 'social' },
@@ -52,7 +51,6 @@ function mockFollowUpToolResponse(input: Record<string, unknown>): void {
 		makeAnthropicMessage({ content: [makeToolUseBlock('generate_follow_ups', input)] }),
 	)
 }
-
 
 describe('generateAdaptiveFollowUps', () => {
 	afterEach(() => {

@@ -66,5 +66,4 @@ export interface BlobStorage {
 	delete(projectId: string, contentHash: string): Promise<void>
 }
 
-// Re-export so callers importing BlobStorage get the errors too.
 export { BlobIntegrityError, BlobStorageError }

@@ -2,7 +2,6 @@ import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-
 const { mockDbInsert, mockDbValues, mockCheckRateLimit, mockNanoid } = vi.hoisted(() => ({
 	mockDbInsert: vi.fn(),
 	mockDbValues: vi.fn(),
@@ -36,9 +35,7 @@ vi.mock('nanoid', () => ({
 	nanoid: mockNanoid,
 }))
 
-
 import { POST } from '../../session/route'
-
 
 function makeRequest(body: unknown): NextRequest {
 	return makeNextJsonRequest('http://localhost/api/discovery/session', body)
@@ -51,7 +48,6 @@ const validBody = {
 	aiComfort: 2,
 	aiToolsUsed: ['ChatGPT'],
 }
-
 
 describe('POST /api/discovery/session', () => {
 	beforeEach(() => {

@@ -2,7 +2,6 @@ import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-
 const {
 	mockDbSelect,
 	mockDbFrom,
@@ -72,9 +71,7 @@ vi.mock('@/server/discovery/analyze', () => ({
 	runCrossAnalysis: mockRunCrossAnalysis,
 }))
 
-
 import { POST } from '../../analyze/route'
-
 
 function makeRequest(body: unknown): NextRequest {
 	return makeNextJsonRequest('http://localhost/api/discovery/analyze', body)
@@ -120,7 +117,6 @@ function setupUpdateChain() {
 	mockDbSet.mockReturnValue({ where: mockDbUpdateWhere })
 	mockDbUpdateWhere.mockResolvedValue(undefined)
 }
-
 
 describe('POST /api/discovery/analyze', () => {
 	beforeEach(() => {

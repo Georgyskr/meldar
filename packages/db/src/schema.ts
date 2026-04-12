@@ -24,7 +24,6 @@ export type TokenTransactionReason =
 	| 'monthly_allowance'
 	| 'refund'
 
-
 export const xrayResults = pgTable(
 	'xray_results',
 	{
@@ -42,7 +41,6 @@ export const xrayResults = pgTable(
 	},
 	() => [],
 )
-
 
 export const auditOrders = pgTable(
 	'audit_orders',
@@ -62,7 +60,6 @@ export const auditOrders = pgTable(
 	},
 	(table) => [index('idx_audit_email').on(table.email)],
 )
-
 
 export const users = pgTable(
 	'users',
@@ -94,7 +91,6 @@ export const users = pgTable(
 	],
 )
 
-
 export const subscribers = pgTable(
 	'subscribers',
 	{
@@ -107,7 +103,6 @@ export const subscribers = pgTable(
 	},
 	(_table) => [],
 )
-
 
 export const discoverySessions = pgTable(
 	'discovery_sessions',
@@ -275,7 +270,6 @@ export const projectFiles = pgTable(
 	],
 )
 
-
 export const kanbanCards = pgTable(
 	'kanban_cards',
 	{
@@ -331,7 +325,6 @@ export const kanbanCards = pgTable(
 	],
 )
 
-
 export const tokenTransactions = pgTable(
 	'token_transactions',
 	{
@@ -353,7 +346,6 @@ export const tokenTransactions = pgTable(
 		),
 	],
 )
-
 
 export type AiCallKind =
 	| 'build'
@@ -407,7 +399,6 @@ export const aiCallLog = pgTable(
 	],
 )
 
-
 export type AgentEventType =
 	| 'proposal'
 	| 'approval'
@@ -438,7 +429,6 @@ export const agentEvents = pgTable(
 		),
 	],
 )
-
 
 export type AgentTaskStatus =
 	| 'proposed'
@@ -483,7 +473,6 @@ export const agentTasks = pgTable(
 	],
 )
 
-
 export type DomainType = 'subdomain' | 'custom'
 export type DomainState =
 	| 'searching'
@@ -527,7 +516,6 @@ export const projectDomains = pgTable(
 		),
 	],
 )
-
 
 export type DeploymentStatus =
 	| 'shadow'

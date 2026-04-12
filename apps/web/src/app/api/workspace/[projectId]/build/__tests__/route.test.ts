@@ -28,7 +28,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { sseStreamFromGenerator } from '@/server/build/run-build'
 
-
 async function* gen(events: OrchestratorEvent[]): AsyncGenerator<OrchestratorEvent, void, unknown> {
 	for (const e of events) yield e
 }
@@ -45,7 +44,6 @@ async function readAll(stream: ReadableStream<Uint8Array>): Promise<string> {
 	out += decoder.decode()
 	return out
 }
-
 
 describe('sseStreamFromGenerator', () => {
 	it('emits one SSE frame per event followed by the [DONE] sentinel', async () => {
@@ -136,7 +134,6 @@ describe('sseStreamFromGenerator', () => {
 		expect(doneRecord).toContain(SSE_DONE_SENTINEL)
 	})
 })
-
 
 vi.mock('@/server/email', () => ({
 	sendFirstBuildEmail: vi.fn(),

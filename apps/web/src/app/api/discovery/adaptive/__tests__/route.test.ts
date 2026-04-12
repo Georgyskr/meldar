@@ -2,7 +2,6 @@ import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-
 const {
 	mockDbSelect,
 	mockDbFrom,
@@ -54,9 +53,7 @@ vi.mock('@/server/discovery/adaptive', () => ({
 	generateAdaptiveFollowUps: mockGenerateAdaptiveFollowUps,
 }))
 
-
 import { POST } from '../../adaptive/route'
-
 
 function makeRequest(body: unknown): NextRequest {
 	return makeNextJsonRequest('http://localhost/api/discovery/adaptive', body)
@@ -99,7 +96,6 @@ function setupDbChain(result: unknown[]) {
 	mockDbWhere.mockReturnValue({ limit: mockDbLimit })
 	mockDbLimit.mockResolvedValue(result)
 }
-
 
 describe('POST /api/discovery/adaptive', () => {
 	beforeEach(() => {

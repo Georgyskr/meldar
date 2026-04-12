@@ -2,7 +2,6 @@ import JSZip from 'jszip'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseGoogleTakeout } from '../google-takeout'
 
-
 async function makeTakeoutZip(files: Record<string, string>): Promise<File> {
 	const zip = new JSZip()
 	for (const [path, content] of Object.entries(files)) {
@@ -43,7 +42,6 @@ function makeYoutubeEntries(count: number): unknown[] {
 		title: `Watched video ${i}`,
 	}))
 }
-
 
 describe('parseGoogleTakeout', () => {
 	afterEach(() => {

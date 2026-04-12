@@ -67,7 +67,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		if (!config.workerUrl || !config.hmacSecret) {
 			throw new Error('CloudflareSandboxProvider: workerUrl and hmacSecret are required')
 		}
-		// Strip trailing slash so we can construct paths cleanly.
 		this.workerUrl = config.workerUrl.replace(/\/$/, '')
 		this.hmacSecret = config.hmacSecret
 		this.timeoutMs = config.timeoutMs ?? 30_000
@@ -89,7 +88,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		})
 	}
 
-
 	async prewarm(projectId: string): Promise<void> {
 		// Fire-and-forget semantics: log on failure, never throw. Callers
 		// (Stripe webhook, magic-link click) rely on this.
@@ -102,9 +100,7 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-
 	async start(options: StartSandboxOptions): Promise<SandboxHandle> {
-		// Validate every initial file path BEFORE the network round trip.
 		for (const file of options.initialFiles ?? []) {
 			assertSafeSandboxPath(file.path, { projectId: options.projectId })
 		}
@@ -140,9 +136,7 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-
 	async writeFiles(options: WriteFilesOptions): Promise<SandboxHandle> {
-		// Validate paths up front (avoid wasted network round-trip on bad input).
 		for (const file of options.files) {
 			assertSafeSandboxPath(file.path, { projectId: options.projectId })
 		}
@@ -162,7 +156,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 			})
 		}
 
-		// If the worker reports a failed-file path, surface it as a typed error.
 		if (response.failedPath) {
 			throw new SandboxWriteFailedError(
 				response.error ?? `worker reported file write failure: ${response.failedPath}`,
@@ -178,7 +171,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-
 	async getPreviewUrl(projectId: string): Promise<string | null> {
 		try {
 			const response = await this.callWorker<WorkerStatusResponse>('POST', '/api/v1/status', {
@@ -191,7 +183,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-
 	async stop(projectId: string): Promise<void> {
 		try {
 			await this.callWorker('POST', '/api/v1/stop', { projectId })
@@ -202,7 +193,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 			throw err
 		}
 	}
-
 
 	private async callWorker<T = unknown>(
 		method: 'POST' | 'GET',
@@ -263,7 +253,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 	}
 }
 
-
 type WorkerStartResponse = {
 	sandboxId?: string
 	previewUrl?: string
@@ -284,10 +273,7 @@ type WorkerStatusResponse = {
 	status?: string
 }
 
-// Re-export so callers can construct sandbox files cleanly
-// without importing from `./types` separately.
 export type { SandboxFile, SandboxHandle }
-
 
 /**
  * HMAC-SHA256 signing for request authentication. Returns a hex digest the

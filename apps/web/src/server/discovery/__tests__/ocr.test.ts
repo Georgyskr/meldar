@@ -36,7 +36,6 @@ function mockToolUseResponse(input: Record<string, unknown>): void {
 	)
 }
 
-
 describe('extractScreenTime', () => {
 	afterEach(() => {
 		vi.clearAllMocks()

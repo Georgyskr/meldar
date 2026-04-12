@@ -2,7 +2,6 @@ import { makeNextRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-
 const {
 	mockDbSelect,
 	mockDbFrom,
@@ -106,9 +105,7 @@ vi.mock('@/server/discovery/extract-topics', () => ({
 	extractGoogleTopics: mockExtractGoogleTopics,
 }))
 
-
 import { POST } from '../../upload/route'
-
 
 function makeFormDataRequest(fields: Record<string, string | File>): NextRequest {
 	const formData = new FormData()
@@ -162,7 +159,6 @@ const validScreenTimeResult = {
 		confidence: 'high',
 	},
 }
-
 
 describe('POST /api/discovery/upload', () => {
 	beforeEach(() => {

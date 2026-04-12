@@ -37,7 +37,6 @@ function mockGoogleTopicToolResponse(input: Record<string, unknown>): void {
 	)
 }
 
-
 describe('extractTopicsFromMessages', () => {
 	afterEach(() => {
 		vi.clearAllMocks()
@@ -139,7 +138,6 @@ describe('extractTopicsFromMessages', () => {
 		warnSpy.mockRestore()
 	})
 })
-
 
 describe('extractGoogleTopics', () => {
 	afterEach(() => {

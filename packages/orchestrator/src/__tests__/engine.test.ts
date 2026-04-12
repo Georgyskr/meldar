@@ -18,7 +18,6 @@ function makeStubSandbox(overrides: Partial<SandboxProvider> = {}): SandboxProvi
 	} satisfies SandboxProvider
 }
 
-// Zeroed SDK `Usage` — spread into per-test usage so callers only restate the fields that matter.
 const EMPTY_USAGE: Anthropic.Messages.Usage = {
 	input_tokens: 0,
 	output_tokens: 0,
@@ -74,7 +73,6 @@ async function collectEvents(
 	return events
 }
 
-
 async function setupFixture(): Promise<{
 	storage: ProjectStorage
 	ledger: TokenLedger
@@ -99,7 +97,6 @@ async function setupFixture(): Promise<{
 		userId: 'user_1',
 	}
 }
-
 
 describe('orchestrateBuild', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -168,7 +165,6 @@ describe('orchestrateBuild', () => {
 			const project1 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
 			expect(project1.currentBuildId).not.toBe(project0.currentBuildId)
 
-			// New file content is the live version
 			const live = await fixture.storage.readFile(fixture.projectId, 'src/app/page.tsx')
 			expect(live).toContain('v2')
 		})
@@ -224,7 +220,6 @@ describe('orchestrateBuild', () => {
 				),
 			)
 
-			// Batched: a single writeFiles call for all files (was N+1 per file).
 			expect(writeFiles).toHaveBeenCalledTimes(1)
 			const callArg = writeFiles.mock.calls[0][0]
 			expect(callArg.files).toHaveLength(2)
@@ -316,7 +311,6 @@ describe('orchestrateBuild', () => {
 		})
 
 		it('emits failed when token ledger is exhausted', async () => {
-			// Exhaust the user's daily ceiling first
 			await fixture.ledger.tryDebit(fixture.userId, 200)
 
 			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'x' }])
@@ -371,7 +365,6 @@ describe('orchestrateBuild', () => {
 			if (failed.type === 'failed') {
 				expect(failed.code).toBe('ceiling_exhausted')
 			}
-			// The critical part: the Sonnet call must not have happened.
 			expect(messagesCreate).not.toHaveBeenCalled()
 		})
 
@@ -492,8 +485,6 @@ describe('orchestrateBuild', () => {
 				expect(failed.code).toBe('aborted')
 			}
 
-			// And the original streaming build should be transitioned to failed,
-			// not orphaned.
 			const started = events.find((e) => e.type === 'started')
 			if (started?.type !== 'started') throw new Error('expected started')
 			const build = await fixture.storage.getBuild(fixture.projectId, started.buildId)
@@ -542,8 +533,6 @@ describe('orchestrateBuild', () => {
 				expect(failed.code).toBe('max_tokens_truncated')
 			}
 
-			// And nothing should have been committed: the project's HEAD is
-			// still the genesis build.
 			const project = await fixture.storage.getProject(fixture.projectId, fixture.userId)
 			const head = project.currentBuildId
 			if (!head) throw new Error('expected a HEAD')
@@ -552,11 +541,6 @@ describe('orchestrateBuild', () => {
 		})
 
 		it('marks the streaming build as failed (does not leave it orphaned)', async () => {
-			// Regression: the catch block used to call beginBuild() AGAIN on the
-			// failure path, leaving the original streaming build row in 'streaming'
-			// status forever (waiting on a reaper that does not exist). Verify that
-			// after a failed run, the build whose `started` event the user saw is
-			// actually transitioned to 'failed'.
 			const { client: anthropic } = makeTextOnlyMock('I cannot help with that.')
 			const events = await collectEvents(
 				orchestrateBuild(

@@ -60,7 +60,6 @@ export function XRayCardActions({
 			link.href = dataUrl
 			link.click()
 		} catch {
-			// Fallback to copy link
 			await navigator.clipboard.writeText(shareUrl)
 		} finally {
 			setSaving(false)

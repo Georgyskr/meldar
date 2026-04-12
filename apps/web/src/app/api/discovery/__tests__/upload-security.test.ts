@@ -89,9 +89,7 @@ vi.mock('@/server/lib/rate-limit', () => ({
 	subscribeLimit: null,
 }))
 
-
 import { POST } from '../upload/route'
-
 
 function makeFormDataRequest(fields: Record<string, string | File>): NextRequest {
 	const formData = new FormData()
@@ -121,7 +119,6 @@ function setupDbUpdate() {
 	mockDbSet.mockReturnValue({ where: mockDbUpdateWhere })
 	mockDbUpdateWhere.mockResolvedValue(undefined)
 }
-
 
 describe('Upload security', () => {
 	beforeEach(() => {

@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-
 export const aiChatPatternSchema = z.object({
 	totalConversations: z.number(),
 	topTopics: z.array(
@@ -29,7 +28,6 @@ export type AiChatPattern = z.infer<typeof aiChatPatternSchema>
 export type AiChatRawParseResult = AiChatPattern & {
 	_rawMessages: { text: string; timestamp: number }[]
 }
-
 
 export const googlePatternSchema = z.object({
 	searchTopics: z.array(

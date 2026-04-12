@@ -92,7 +92,6 @@ function makeDeps(
 	}
 }
 
-
 describe('realistic AI output passes validation and commits', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
 
@@ -197,7 +196,6 @@ export function clamp(value: number, min: number, max: number): number {
 		expect(fw.sizeBytes).toBe(new TextEncoder().encode(content).length)
 	})
 })
-
 
 describe('second build on same project sees files from first build', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -330,7 +328,6 @@ describe('second build on same project sees files from first build', () => {
 	})
 })
 
-
 describe('path safety validation rejects dangerous AI output', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
 
@@ -439,7 +436,6 @@ describe('path safety validation rejects dangerous AI output', () => {
 		expect(events.some((e) => e.type === 'committed')).toBe(true)
 	})
 })
-
 
 describe('SSE stream round-trip preserves all event data', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -572,7 +568,6 @@ describe('SSE stream round-trip preserves all event data', () => {
 	})
 })
 
-
 describe('build without sandbox provider (deploy not configured)', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
 
@@ -638,7 +633,6 @@ describe('build without sandbox provider (deploy not configured)', () => {
 		consoleErrorSpy.mockRestore()
 	})
 })
-
 
 describe('token ledger behavior on build failure', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -755,7 +749,6 @@ describe('token ledger behavior on build failure', () => {
 		expect(mock).not.toHaveBeenCalled()
 	})
 })
-
 
 describe('edge cases', () => {
 	it('first build on a project with only the genesis file works', async () => {

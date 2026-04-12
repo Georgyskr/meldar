@@ -24,6 +24,5 @@ export type RedisMockHandlers = {
  * throw — the type cast does NOT add stub implementations.
  */
 export function makeRedisMock(handlers: RedisMockHandlers): Redis {
-	// Single intentional cast across the test codebase. See module doc above.
 	return handlers as unknown as Redis
 }

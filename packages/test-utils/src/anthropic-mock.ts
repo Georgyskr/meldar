@@ -44,7 +44,6 @@ type MessageOverrides = Partial<Anthropic.Messages.Message> & {
 	content: Anthropic.Messages.ContentBlock[]
 }
 
-// Fills in every required SDK field so tests can spread `{ content: [...] }` and get a valid Message.
 export function makeAnthropicMessage(overrides: MessageOverrides): Anthropic.Messages.Message {
 	return {
 		id: 'msg_test',
