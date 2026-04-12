@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { parseClaudeExport } from '../claude-export'
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeFile(content: string, name = 'claude-export.json'): File {
 	return new File([content], name, { type: 'application/json' })
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('parseClaudeExport', () => {
 	describe('array format', () => {
@@ -191,7 +189,6 @@ describe('parseClaudeExport', () => {
 			await expect(parseClaudeExport(file)).rejects.toThrow('invalid JSON')
 		})
 
-		// ── Malformed shape guards (Zod validation at the boundary) ──────
 		// Before the Zod boundary was added, a non-array, non-object root
 		// was silently coerced to an empty conversations list — the parser
 		// returned `{ totalConversations: 0, _rawMessages: [] }` and the

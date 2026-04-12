@@ -24,7 +24,6 @@ export type TokenTransactionReason =
 	| 'monthly_allowance'
 	| 'refund'
 
-// ── Table 1: X-Ray Results ──────────────────────────────────────────────────
 
 export const xrayResults = pgTable(
 	'xray_results',
@@ -44,7 +43,6 @@ export const xrayResults = pgTable(
 	() => [],
 )
 
-// ── Table 2: Audit Orders ───────────────────────────────────────────────────
 
 export const auditOrders = pgTable(
 	'audit_orders',
@@ -65,7 +63,6 @@ export const auditOrders = pgTable(
 	(table) => [index('idx_audit_email').on(table.email)],
 )
 
-// ── Table 3: Users ─────────────────────────────────────────────────────────
 
 export const users = pgTable(
 	'users',
@@ -97,7 +94,6 @@ export const users = pgTable(
 	],
 )
 
-// ── Table 4: Subscribers ────────────────────────────────────────────────────
 
 export const subscribers = pgTable(
 	'subscribers',
@@ -112,7 +108,6 @@ export const subscribers = pgTable(
 	(_table) => [],
 )
 
-// ── Table 5: Discovery Sessions ────────────────────────────────────────────
 
 export const discoverySessions = pgTable(
 	'discovery_sessions',
@@ -121,14 +116,12 @@ export const discoverySessions = pgTable(
 		userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
 		email: text('email'),
 
-		// Phase 1
 		occupation: text('occupation'),
 		ageBracket: text('age_bracket'),
 		quizPicks: text('quiz_picks').array(),
 		aiComfort: integer('ai_comfort'), // 1-4
 		aiToolsUsed: text('ai_tools_used').array(),
 
-		// Phase 2 (processed extractions)
 		screenTimeData: jsonb('screen_time_data'),
 		chatgptData: jsonb('chatgpt_data'),
 		claudeData: jsonb('claude_data'),
@@ -141,12 +134,10 @@ export const discoverySessions = pgTable(
 		adaptiveData: jsonb('adaptive_data'),
 		sourcesProvided: text('sources_provided').array().notNull().default([]),
 
-		// Phase 3 (AI output)
 		analysis: jsonb('analysis'),
 		recommendedApp: text('recommended_app'),
 		learningModules: jsonb('learning_modules'),
 
-		// Conversion
 		tierPurchased: text('tier_purchased'), // null | 'base' | 'build'
 		stripeSessionId: text('stripe_session_id'),
 		paidAt: timestamp('paid_at', { withTimezone: true }),
@@ -157,25 +148,9 @@ export const discoverySessions = pgTable(
 	(table) => [index('idx_discovery_user_id').on(table.userId)],
 )
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Meldar v3 — Project file storage (event-sourced builds + content-addressed R2)
-//
-// Decision record: docs/v3/engineering/{data-engineer,software-architect,database-optimizer}-review.md
-// Architecture memory: ~/.claude/projects/-Users-georgyskr-projects-pet-agentgate/memory/v3_storage_architecture.md
-//
-// Unit of truth = the Build event, not the file. Files are payloads.
-// R2 layout = projects/{projectId}/content/{sha256}, immutable, content-addressed.
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ── Table 6: Projects (v3) ─────────────────────────────────────────────────
-// One row per Meldar project. `currentBuildId` is HEAD — rollback is a single
-// UPDATE to flip this pointer (zero R2 operations).
-//
-// The FK from current_build_id → builds.id is a CIRCULAR dependency (builds
-// also FKs projects.id). Drizzle can't emit DEFERRABLE constraints natively,
-// so the FK is added in the hand-edited migration SQL with
-// `DEFERRABLE INITIALLY DEFERRED` to allow a single transaction to insert a
-// project + its genesis build + flip HEAD atomically.
+// The FK from current_build_id → builds.id is circular (builds also FKs
+// projects.id). Drizzle can't emit DEFERRABLE constraints, so the FK is
+// added in hand-edited migration SQL with `DEFERRABLE INITIALLY DEFERRED`.
 
 export const projects = pgTable(
 	'projects',
@@ -197,25 +172,15 @@ export const projects = pgTable(
 		deletedAt: timestamp('deleted_at', { withTimezone: true }),
 	},
 	(table) => [
-		// Drives Hot Path 4 (dashboard: list user's projects by recency).
-		// Partial excludes soft-deleted rows to keep the index lean.
 		index('idx_projects_user_lastbuild')
 			.on(table.userId, table.lastBuildAt.desc().nullsLast())
 			.where(sql`${table.deletedAt} IS NULL`),
-		// Rare lookup: "which projects have HEAD pointing at this build?" Used by
-		// the rollback reconciliation job.
 		index('idx_projects_current_build')
 			.on(table.currentBuildId)
 			.where(sql`${table.currentBuildId} IS NOT NULL`),
 		check('projects_tier_valid', sql`${table.tier} IN ('builder', 'pro', 'vip')`),
 	],
 )
-
-// ── Table 7: Builds (v3) ───────────────────────────────────────────────────
-// Immutable, append-only event log. Each Build is a causally-traceable unit of
-// work with a producer (Sonnet + prompt + model version), a parent pointer
-// (DAG, not just a list), and a status. Phase-2 GitHub export maps each Build
-// → one git commit.
 
 export const builds = pgTable(
 	'builds',
@@ -224,8 +189,6 @@ export const builds = pgTable(
 		projectId: uuid('project_id')
 			.notNull()
 			.references(() => projects.id, { onDelete: 'cascade' }),
-		// Self-referential FK for build DAG. `parentBuildId` is null only for the
-		// genesis build (template instantiation).
 		parentBuildId: uuid('parent_build_id'),
 		status: text('status').notNull(), // 'streaming' | 'completed' | 'failed' | 'rolled_back'
 		triggeredBy: text('triggered_by').notNull(), // 'template' | 'user_prompt' | 'kanban_card' | 'rollback' | 'upload' (phase 2)
@@ -238,30 +201,19 @@ export const builds = pgTable(
 		completedAt: timestamp('completed_at', { withTimezone: true }),
 	},
 	(table) => [
-		// Drives "show me all builds for this project, newest first" (build history).
-		// Composite index-ordered avoids a sort step.
 		index('idx_builds_project_created').on(table.projectId, table.createdAt.desc()),
-		// Partial index on the tiny "in-flight" set — used by the resume-incomplete
-		// and the orphaned-build reaper jobs.
 		index('idx_builds_project_status')
 			.on(table.projectId, table.status)
 			.where(sql`${table.status} IN ('streaming', 'failed')`),
-		// Scopes the workspace-load "is there an active streaming build?" query
-		// down to the streaming set so the planner doesn't walk completed rows.
 		index('idx_builds_project_streaming_created')
 			.on(table.projectId, table.createdAt.desc())
 			.where(sql`${table.status} = 'streaming'`),
-		// Enforces "at most one streaming build per project" at the DB level.
-		// Fixes the race where two concurrent POSTs to the build route both pass
-		// the non-atomic getActiveStreamingBuild guard — the second INSERT now
-		// fails with a unique constraint violation that the route catches and
-		// converts to BUILD_IN_PROGRESS.
+		// Enforces at most one streaming build per project — prevents the race
+		// where two concurrent POSTs both pass the non-atomic guard.
 		uniqueIndex('ux_builds_project_streaming')
 			.on(table.projectId)
 			.where(sql`${table.status} = 'streaming'`),
-		// Self-referential FK via the Drizzle foreignKey helper can't be used with
-		// a forward ref to the same table's column inside the columns object, so
-		// we add this FK in the hand-edited migration SQL alongside the circular FK.
+		// Self-referential FK added in hand-edited migration SQL (Drizzle limitation).
 		check(
 			'builds_status_valid',
 			sql`${table.status} IN ('streaming', 'completed', 'failed', 'rolled_back')`,
@@ -273,11 +225,6 @@ export const builds = pgTable(
 		check('builds_token_cost_positive', sql`${table.tokenCost} IS NULL OR ${table.tokenCost} >= 0`),
 	],
 )
-
-// ── Table 8: Build Files (v3) ──────────────────────────────────────────────
-// Per-build manifest. Immutable once written (each Build is append-only).
-// Used for rollback, diff, and historical queries. The composite (build_id, path)
-// IS the PK — no surrogate ID, because build_files is a join table.
 
 export const buildFiles = pgTable(
 	'build_files',
@@ -292,17 +239,10 @@ export const buildFiles = pgTable(
 	},
 	(table) => [
 		primaryKey({ columns: [table.buildId, table.path] }),
-		// Supports Hot Path 5 (diff between builds: SQL set difference on content_hash)
-		// and reference-counted GC of orphaned R2 blobs.
 		index('idx_build_files_content_hash').on(table.contentHash),
 		check('build_files_size_positive', sql`${table.sizeBytes} >= 0`),
 	],
 )
-
-// ── Table 9: Project Files (v3) ────────────────────────────────────────────
-// The LIVE working set — what the sandbox reads on restore. Denormalized from
-// build_files for fast lookup. One row per (project, path) where deleted_at
-// IS NULL. Maintained via upsert during Build streaming.
 
 export const projectFiles = pgTable(
 	'project_files',
@@ -321,27 +261,20 @@ export const projectFiles = pgTable(
 		deletedAt: timestamp('deleted_at', { withTimezone: true }),
 	},
 	(table) => [
-		// THE critical index from the database-optimizer review. Without it, the
-		// upsert in Build streaming (Hot Path 2) has nothing to conflict on, falls
-		// back to inserting duplicate rows, and triggers file-flicker corruption
-		// that's only noticeable after hundreds of duplicates accumulate. Partial
-		// clause lets soft-deleted rows coexist with a live row at the same path.
+		// Without this unique index, the upsert during build streaming falls back to
+		// inserting duplicate rows, causing file-flicker corruption.
 		uniqueIndex('ux_project_files_project_path')
 			.on(table.projectId, table.path)
 			.where(sql`${table.deletedAt} IS NULL`),
-		// Drives Hot Path 1 (workspace entry: load all live files for project).
 		index('idx_project_files_project_active')
 			.on(table.projectId)
 			.where(sql`${table.deletedAt} IS NULL`),
-		// Content hash index — supports Phase 2 content dedup across projects.
-		// Cheap to add now.
 		index('idx_project_files_content_hash').on(table.contentHash),
 		check('project_files_size_positive', sql`${table.sizeBytes} >= 0`),
 		check('project_files_version_positive', sql`${table.version} >= 1`),
 	],
 )
 
-// ── Table 10: Kanban Cards (v3) ──────────────────────────────────────────
 
 export const kanbanCards = pgTable(
 	'kanban_cards',
@@ -398,7 +331,6 @@ export const kanbanCards = pgTable(
 	],
 )
 
-// ── Table 11: Token Transactions ──────────────────────────────────────────
 
 export const tokenTransactions = pgTable(
 	'token_transactions',
@@ -422,9 +354,6 @@ export const tokenTransactions = pgTable(
 	],
 )
 
-// ── Table 12: AI Call Log ───────────────────────────────────────────────────
-// Append-only log of every Anthropic API call. Fire-and-forget write path.
-// Used for cost telemetry, anomaly detection, and the founder alert cron.
 
 export type AiCallKind =
 	| 'build'
@@ -469,7 +398,7 @@ export const aiCallLog = pgTable(
 		index('idx_ai_call_log_status_created').on(table.status, table.createdAt.desc()),
 		check(
 			'ai_call_kind_valid',
-			sql`${table.kind} IN ('build', 'chat', 'improve_prompt', 'ask_question', 'generate_plan', 'discovery_ocr', 'discovery_extract_topics', 'discovery_extract_text', 'discovery_extract_screenshot', 'discovery_analyze', 'discovery_adaptive', 'discovery_insights')`,
+			sql`${table.kind} IN ('build', 'chat', 'improve_prompt', 'ask_question', 'generate_plan', 'discovery_ocr', 'discovery_extract_topics', 'discovery_extract_text', 'discovery_extract_screenshot', 'discovery_analyze', 'discovery_adaptive', 'discovery_insights', 'generate_proposal')`,
 		),
 		check(
 			'ai_call_status_valid',
@@ -478,14 +407,6 @@ export const aiCallLog = pgTable(
 	],
 )
 
-// ── Table 13: Deployment Log ────────────────────────────────────────────────
-// Append-only log of every Vercel deployment attempt. Fire-and-forget write path.
-// Used for cost telemetry, quota enforcement, and the stuck-deployment janitor.
-
-// ── Table 14: Agent Events ────────────────────────────────────────────────
-// Append-only audit trail of every agent action. Each event is a record of
-// what the agent proposed, what the human approved, and what the system
-// executed. Used for the admin panel activity feed and compliance audit.
 
 export type AgentEventType =
 	| 'proposal'
@@ -503,9 +424,7 @@ export const agentEvents = pgTable(
 		projectId: uuid('project_id')
 			.notNull()
 			.references(() => projects.id, { onDelete: 'cascade' }),
-		userId: uuid('user_id')
-			.notNull()
-			.references(() => users.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
 		eventType: text('event_type').notNull().$type<AgentEventType>(),
 		payload: jsonb('payload').notNull(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -520,10 +439,6 @@ export const agentEvents = pgTable(
 	],
 )
 
-// ── Table 15: Agent Tasks ─────────────────────────────────────────────────
-// The agent's work queue. Each row is a proposed action that flows through
-// the approval loop: proposed → approved → executing → verifying → done.
-// The admin panel shows filtered views of this table by status.
 
 export type AgentTaskStatus =
 	| 'proposed'
@@ -568,10 +483,6 @@ export const agentTasks = pgTable(
 	],
 )
 
-// ── Table 16: Project Domains ─────────────────────────────────────────────
-// Every project gets one free subdomain row on creation. A custom domain is
-// a second row added when the user upgrades. Both coexist — the subdomain
-// is a permanent fallback if the custom domain lapses.
 
 export type DomainType = 'subdomain' | 'custom'
 export type DomainState =
@@ -617,7 +528,6 @@ export const projectDomains = pgTable(
 	],
 )
 
-// ── Table 13: Deployment Log ────────────────────────────────────────────────
 
 export type DeploymentStatus =
 	| 'shadow'

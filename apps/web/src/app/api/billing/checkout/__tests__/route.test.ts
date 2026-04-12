@@ -2,15 +2,11 @@ import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
-
 const { mockCheckoutSessionsCreate, mockCheckRateLimit } = vi.hoisted(() => ({
 	mockCheckoutSessionsCreate: vi.fn(),
 	mockCheckRateLimit: vi.fn<typeof import('@/server/lib/rate-limit').checkRateLimit>(),
 }))
 
-// Provide a fake STRIPE_PRICE_BUILDER so the v3 builder slug resolves cleanly
-// in tests without requiring real Stripe products.
 vi.stubEnv('STRIPE_PRICE_BUILDER', 'price_test_builder_19eur')
 
 vi.mock('@/server/billing/stripe', () => ({
@@ -31,17 +27,11 @@ vi.mock('@/server/lib/rate-limit', () => ({
 	subscribeLimit: null,
 }))
 
-// ── Imports ─────────────────────────────────────────────────────────────────
-
 import { POST } from '../../checkout/route'
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeRequest(body: unknown): NextRequest {
 	return makeNextJsonRequest('http://localhost/api/billing/checkout', body)
 }
-
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('POST /api/billing/checkout', () => {
 	beforeEach(() => {
@@ -129,7 +119,6 @@ describe('POST /api/billing/checkout', () => {
 					mode: 'payment',
 				}),
 			)
-			// v3 metadata uses canonical slug, not the legacy alias
 			const call = mockCheckoutSessionsCreate.mock.calls[0][0]
 			expect(call.metadata.product).toBe('vipBuild')
 		})

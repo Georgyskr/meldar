@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
 		const { sessionId } = parsed.data
 		const db = getDb()
 
-		// First check if analysis already exists with a lightweight query
 		const [cacheCheck] = await db
 			.select({
 				id: discoverySessions.id,
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Don't re-run analysis if already done
 		if (cacheCheck.analysis) {
 			return NextResponse.json({
 				success: true,
@@ -75,7 +73,6 @@ export async function POST(request: NextRequest) {
 			})
 		}
 
-		// Only fetch full session data when analysis is needed
 		const [session] = await db
 			.select({
 				quizPicks: discoverySessions.quizPicks,
@@ -121,7 +118,6 @@ export async function POST(request: NextRequest) {
 
 		const analysis = await runCrossAnalysis(input)
 
-		// Save analysis to session
 		await db
 			.update(discoverySessions)
 			.set({

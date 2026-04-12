@@ -1,7 +1,7 @@
 import { getDb } from '@meldar/db/client'
 import type { AgentTaskStatus, AgentType } from '@meldar/db/schema'
 import * as schema from '@meldar/db/schema'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, lt, sql } from 'drizzle-orm'
 
 export type AgentTask = typeof schema.agentTasks.$inferSelect
 
@@ -36,6 +36,7 @@ const VALID_TRANSITIONS: Record<string, AgentTaskStatus> = {
 	'proposed→rejected': 'rejected',
 	'approved→executing': 'executing',
 	'executing→verifying': 'verifying',
+	'executing→failed': 'failed',
 	'verifying→done': 'done',
 	'verifying→failed': 'failed',
 	'failed→escalated': 'escalated',
@@ -64,7 +65,7 @@ async function findTaskOrThrow(taskId: string): Promise<AgentTask> {
 
 async function logEvent(
 	projectId: string,
-	userId: string,
+	userId: string | null,
 	eventType: schema.AgentEventType,
 	payload: Record<string, unknown>,
 ): Promise<void> {
@@ -97,7 +98,7 @@ export async function proposeTask(
 
 	await db.insert(schema.agentEvents).values({
 		projectId,
-		userId: '00000000-0000-0000-0000-000000000000',
+		userId: null,
 		eventType: 'proposal',
 		payload: { taskId: task.id, agentType, payload },
 	})
@@ -164,7 +165,7 @@ export async function executeTask(taskId: string): Promise<AgentTask> {
 		.where(eq(schema.agentTasks.id, taskId))
 		.returning()
 
-	await logEvent(task.projectId, '00000000-0000-0000-0000-000000000000', 'execution', { taskId })
+	await logEvent(task.projectId, null, 'execution', { taskId })
 
 	return rows[0]
 }
@@ -183,7 +184,7 @@ export async function verifyTask(
 		.where(eq(schema.agentTasks.id, taskId))
 		.returning()
 
-	await logEvent(task.projectId, '00000000-0000-0000-0000-000000000000', 'execution', {
+	await logEvent(task.projectId, null, 'execution', {
 		taskId,
 		result,
 	})
@@ -206,7 +207,7 @@ export async function completeTask(
 		.where(eq(schema.agentTasks.id, taskId))
 		.returning()
 
-	await logEvent(task.projectId, '00000000-0000-0000-0000-000000000000', 'verification', {
+	await logEvent(task.projectId, null, 'verification', {
 		taskId,
 		result,
 	})
@@ -225,7 +226,7 @@ export async function escalateTask(taskId: string, reason: string): Promise<Agen
 		.where(eq(schema.agentTasks.id, taskId))
 		.returning()
 
-	await logEvent(task.projectId, '00000000-0000-0000-0000-000000000000', 'escalation', {
+	await logEvent(task.projectId, null, 'escalation', {
 		taskId,
 		reason,
 	})
@@ -244,7 +245,7 @@ export async function failTask(taskId: string, reason: string): Promise<AgentTas
 		.where(eq(schema.agentTasks.id, taskId))
 		.returning()
 
-	await logEvent(task.projectId, '00000000-0000-0000-0000-000000000000', 'error', {
+	await logEvent(task.projectId, null, 'error', {
 		taskId,
 		reason,
 	})
@@ -280,4 +281,19 @@ export async function getTaskHistory(projectId: string, limit: number): Promise<
 		.where(eq(schema.agentTasks.projectId, projectId))
 		.orderBy(desc(schema.agentTasks.proposedAt))
 		.limit(limit)
+}
+
+export async function reapStuckExecutingTasks(olderThan: Date): Promise<number> {
+	const db = getDb()
+	const rows = await db
+		.update(schema.agentTasks)
+		.set({
+			status: 'failed' as AgentTaskStatus,
+			result: { reason: 'execution timeout' },
+		})
+		.where(
+			and(eq(schema.agentTasks.status, 'executing'), lt(schema.agentTasks.proposedAt, olderThan)),
+		)
+		.returning()
+	return rows.length
 }

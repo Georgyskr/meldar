@@ -3,6 +3,7 @@ import { aiCallLog } from '@meldar/db/schema'
 import { Redis } from '@upstash/redis'
 import { and, desc, gte, sql } from 'drizzle-orm'
 import { sendFounderAlertEmail } from '@/server/email'
+import { verifyCronAuth } from '@/server/lib/cron-auth'
 
 function getRedis(): Redis | null {
 	if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return null
@@ -36,8 +37,7 @@ function formatCents(cents: number): string {
 }
 
 export async function GET(request: Request) {
-	const authHeader = request.headers.get('authorization')
-	if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+	if (!verifyCronAuth(request)) {
 		return Response.json({ error: 'Unauthorized' }, { status: 401 })
 	}
 

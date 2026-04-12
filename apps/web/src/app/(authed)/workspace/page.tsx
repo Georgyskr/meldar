@@ -1,5 +1,4 @@
-import { getDb } from '@meldar/db/client'
-import { getTokenBalance, trackVisitStreak } from '@meldar/tokens'
+import { trackVisitStreak } from '@meldar/tokens'
 import { Box, Flex, Grid, styled } from '@styled-system/jsx'
 import { ArrowRight } from 'lucide-react'
 import type { Metadata } from 'next'
@@ -34,19 +33,13 @@ export default async function WorkspaceDashboardPage() {
 
 	let projectsList: WorkspaceProjectListItem[] = []
 	let loadFailed = false
-	let tokenBalance = 0
 	let streak = 0
 	let isNewDay = false
 
-	const db = getDb()
-	const [projectsResult, balanceResult, streakResult] = await Promise.all([
+	const [projectsResult, streakResult] = await Promise.all([
 		listUserProjects(session.userId).catch((err) => {
 			console.error('[workspace/page] listUserProjects failed', err)
 			return null
-		}),
-		getTokenBalance(db, session.userId).catch((err) => {
-			console.error('[workspace/page] getTokenBalance failed', err)
-			return 0
 		}),
 		trackVisitStreak(session.userId).catch((err) => {
 			console.error('[workspace/page] trackVisitStreak failed', err)
@@ -54,7 +47,6 @@ export default async function WorkspaceDashboardPage() {
 		}),
 	])
 
-	tokenBalance = balanceResult
 	streak = streakResult.streak
 	isNewDay = streakResult.isNewDay
 

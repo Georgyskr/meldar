@@ -2,7 +2,6 @@ import JSZip from 'jszip'
 import { describe, expect, it, vi } from 'vitest'
 import { parseChatGptExport } from '../chatgpt'
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeConversation(
 	userMessages: { text: string; createTime?: number }[],
@@ -75,7 +74,6 @@ async function makeBombFile(): Promise<File> {
 	return file
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('parseChatGptExport', () => {
 	describe('valid export', () => {

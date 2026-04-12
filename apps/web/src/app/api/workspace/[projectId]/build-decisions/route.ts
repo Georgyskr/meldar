@@ -1,9 +1,8 @@
-// TODO: Route through guardedAnthropicCall for unified spend ceilings (architecture review #7)
 import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@meldar/storage'
 import { usageToCents } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 import { recordAiCall } from '@/server/lib/ai-call-log'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
 import { checkRateLimit, mustHaveRateLimit, projectsListLimit } from '@/server/lib/rate-limit'
@@ -59,15 +58,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
-	const { success } = await checkRateLimit(limiter, session.userId)
+	const { success } = await checkRateLimit(limiter, auth.userId)
 	if (!success) {
 		return NextResponse.json(
 			{ error: { code: 'RATE_LIMITED', message: 'Slow down.' } },
@@ -75,7 +69,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const project = await verifyProjectOwnership(projectId, session.userId)
+	const project = await verifyProjectOwnership(projectId, auth.userId)
 	if (!project) {
 		return NextResponse.json(
 			{ error: { code: 'NOT_FOUND', message: 'Project not found' } },
@@ -83,7 +77,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const spendCheck = await checkAllSpendCeilings(session.userId)
+	const spendCheck = await checkAllSpendCeilings(auth.userId)
 	if (!spendCheck.allowed) {
 		return NextResponse.json({ decisions: [] })
 	}
@@ -143,12 +137,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 		Promise.all([
 			recordGlobalSpend(cents),
-			recordUserHourlySpend(session.userId, cents),
-			recordUserDailySpend(session.userId, cents),
+			recordUserHourlySpend(auth.userId, cents),
+			recordUserDailySpend(auth.userId, cents),
 		]).catch(() => {})
 
 		recordAiCall({
-			userId: session.userId,
+			userId: auth.userId,
 			projectId,
 			kind: 'generate_plan',
 			model: MODELS.HAIKU,

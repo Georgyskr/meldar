@@ -26,7 +26,6 @@ function mockToolUseResponse(toolName: string, input: Record<string, unknown>): 
 
 const validOcrText = 'Instagram 6h 22m\nTikTok 2h 15m\nTotal Screen Time 8h 37m'
 
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('extractFromOcrText', () => {
 	afterEach(() => {

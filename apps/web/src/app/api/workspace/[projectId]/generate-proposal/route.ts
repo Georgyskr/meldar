@@ -1,7 +1,7 @@
 import { usageToCents } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 import { recordAiCall } from '@/server/lib/ai-call-log'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
 import { checkRateLimit, generateProposalLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
@@ -54,15 +54,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
-	const { success, serviceError } = await checkRateLimit(limiter, session.userId, true)
+	const { success, serviceError } = await checkRateLimit(limiter, auth.userId, true)
 	if (!success) {
 		return NextResponse.json(
 			{
@@ -77,7 +72,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const project = await verifyProjectOwnership(projectId, session.userId)
+	const project = await verifyProjectOwnership(projectId, auth.userId)
 	if (!project) {
 		return NextResponse.json(
 			{ error: { code: 'NOT_FOUND', message: 'Project not found' } },
@@ -109,7 +104,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const spendCheck = await checkAllSpendCeilings(session.userId)
+	const spendCheck = await checkAllSpendCeilings(auth.userId)
 	if (!spendCheck.allowed) {
 		const status =
 			spendCheck.reason === 'user_hourly' ? 429 : spendCheck.reason === 'user_daily' ? 402 : 503
@@ -143,8 +138,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 		Promise.all([
 			recordGlobalSpend(actualCents),
-			recordUserHourlySpend(session.userId, actualCents),
-			recordUserDailySpend(session.userId, actualCents),
+			recordUserHourlySpend(auth.userId, actualCents),
+			recordUserDailySpend(auth.userId, actualCents),
 		]).catch((err) => {
 			console.error('[generate-proposal] spend recording failed:', err)
 		})
@@ -152,7 +147,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		const textBlock = response.content.find((block) => block.type === 'text')
 		if (!textBlock || textBlock.type !== 'text') {
 			recordAiCall({
-				userId: session.userId,
+				userId: auth.userId,
 				projectId,
 				kind: 'generate_proposal',
 				model: MODELS.HAIKU,
@@ -179,7 +174,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 				jsonContent = JSON.parse(stripped)
 			} catch {
 				recordAiCall({
-					userId: session.userId,
+					userId: auth.userId,
 					projectId,
 					kind: 'generate_proposal',
 					model: MODELS.HAIKU,
@@ -201,7 +196,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		const validated = proposalSchema.safeParse(jsonContent)
 		if (!validated.success) {
 			recordAiCall({
-				userId: session.userId,
+				userId: auth.userId,
 				projectId,
 				kind: 'generate_proposal',
 				model: MODELS.HAIKU,
@@ -220,7 +215,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		}
 
 		recordAiCall({
-			userId: session.userId,
+			userId: auth.userId,
 			projectId,
 			kind: 'generate_proposal',
 			model: MODELS.HAIKU,

@@ -4,35 +4,51 @@ import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getBaseUrl } from '@/server/email'
+import { setAuthCookie } from '@/server/identity/auth-cookie'
 import { signToken } from '@/server/identity/jwt'
 import { hashPassword } from '@/server/identity/password'
+import { checkRateLimit, googleCallbackLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
+
+const limiter = mustHaveRateLimit(googleCallbackLimit, 'google-callback')
+
+function errorRedirect(baseUrl: string, error: string): NextResponse {
+	const response = NextResponse.redirect(`${baseUrl}/sign-in?error=${error}`)
+	response.cookies.delete('oauth_state')
+	return response
+}
 
 export async function GET(request: NextRequest) {
 	const baseUrl = getBaseUrl()
 
 	try {
+		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+		const rateResult = await checkRateLimit(limiter, ip)
+		if (!rateResult.success) {
+			return errorRedirect(baseUrl, 'rate-limited')
+		}
+
 		const code = request.nextUrl.searchParams.get('code')
 		const error = request.nextUrl.searchParams.get('error')
 		const state = request.nextUrl.searchParams.get('state')
 
 		if (error || !code) {
-			return NextResponse.redirect(`${baseUrl}/sign-in?error=google-auth-failed`)
+			return errorRedirect(baseUrl, 'google-auth-failed')
 		}
 
 		const cookieStore = await cookies()
 		const storedState = cookieStore.get('oauth_state')?.value
 
 		if (!state || !storedState || state !== storedState) {
-			return NextResponse.redirect(`${baseUrl}/sign-in?error=google-auth-failed`)
+			return errorRedirect(baseUrl, 'google-auth-failed')
 		}
 
 		const clientId = process.env.GOOGLE_CLIENT_ID
 		const clientSecret = process.env.GOOGLE_CLIENT_SECRET
 		if (!clientId || !clientSecret) {
-			return NextResponse.redirect(`${baseUrl}/sign-in?error=google-auth-failed`)
+			return errorRedirect(baseUrl, 'google-auth-failed')
 		}
 
 		const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
@@ -48,7 +64,7 @@ export async function GET(request: NextRequest) {
 		})
 
 		if (!tokenResponse.ok) {
-			return NextResponse.redirect(`${baseUrl}/sign-in?error=google-token-exchange-failed`)
+			return errorRedirect(baseUrl, 'google-token-exchange-failed')
 		}
 
 		const tokens = await tokenResponse.json()
@@ -58,7 +74,7 @@ export async function GET(request: NextRequest) {
 		})
 
 		if (!userInfoResponse.ok) {
-			return NextResponse.redirect(`${baseUrl}/sign-in?error=google-userinfo-failed`)
+			return errorRedirect(baseUrl, 'google-userinfo-failed')
 		}
 
 		const googleUser = await userInfoResponse.json()
@@ -66,11 +82,11 @@ export async function GET(request: NextRequest) {
 		const emailVerified: boolean = googleUser.verified_email === true
 
 		if (!email) {
-			return NextResponse.redirect(`${baseUrl}/sign-in?error=google-no-email`)
+			return errorRedirect(baseUrl, 'google-no-email')
 		}
 
 		if (!emailVerified) {
-			return NextResponse.redirect(`${baseUrl}/sign-in?error=google-email-not-verified`)
+			return errorRedirect(baseUrl, 'google-email-not-verified')
 		}
 
 		const db = getDb()
@@ -92,7 +108,7 @@ export async function GET(request: NextRequest) {
 
 		if (existingUser) {
 			if (existingUser.authProvider !== 'google') {
-				return NextResponse.redirect(`${baseUrl}/sign-in?error=google-account-exists`)
+				return errorRedirect(baseUrl, 'google-account-exists')
 			}
 			userId = existingUser.id
 			tokenVersion = existingUser.tokenVersion
@@ -129,18 +145,12 @@ export async function GET(request: NextRequest) {
 		const token = signToken({ userId, email, emailVerified: true, tokenVersion })
 
 		const response = NextResponse.redirect(`${baseUrl}${isNewUser ? '/onboarding' : '/workspace'}`)
-		response.cookies.set('meldar-auth', token, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'lax',
-			maxAge: 60 * 60 * 24 * 7,
-			path: '/',
-		})
+		setAuthCookie(response, token)
 		response.cookies.delete('oauth_state')
 
 		return response
 	} catch (err) {
 		console.error('Google OAuth callback error:', err instanceof Error ? err.message : 'Unknown')
-		return NextResponse.redirect(`${baseUrl}/sign-in?error=google-auth-failed`)
+		return errorRedirect(baseUrl, 'google-auth-failed')
 	}
 }

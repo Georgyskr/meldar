@@ -1,22 +1,17 @@
 import { getDb } from '@meldar/db/client'
 import { getTokenBalance, getTransactionHistory } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 import { checkRateLimit, tokenReadLimit } from '@/server/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
-	const { success } = await checkRateLimit(tokenReadLimit, session.userId)
+	const { success } = await checkRateLimit(tokenReadLimit, auth.userId)
 	if (!success) {
 		return NextResponse.json(
 			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Wait a moment.' } },
@@ -27,8 +22,8 @@ export async function GET(request: NextRequest) {
 	try {
 		const db = getDb()
 		const [balance, transactions] = await Promise.all([
-			getTokenBalance(db, session.userId),
-			getTransactionHistory(db, session.userId, 20),
+			getTokenBalance(db, auth.userId),
+			getTransactionHistory(db, auth.userId, 20),
 		])
 
 		return NextResponse.json({ balance, transactions })

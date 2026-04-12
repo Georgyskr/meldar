@@ -1,28 +1,17 @@
 import { getDb } from '@meldar/db/client'
 import { projects } from '@meldar/db/schema'
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getTaskHistory, proposeTask } from '@/server/agents/agent-task-service'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
+import { bookingPublicLimit, checkRateLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const bookingLimiter =
-	process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-		? new Ratelimit({
-				redis: new Redis({
-					url: process.env.UPSTASH_REDIS_REST_URL,
-					token: process.env.UPSTASH_REDIS_REST_TOKEN,
-				}),
-				limiter: Ratelimit.slidingWindow(10, '1 m'),
-				prefix: 'rl:booking-public',
-			})
-		: null
+const limiter = mustHaveRateLimit(bookingPublicLimit, 'booking-public')
 
 const projectIdSchema = z.string().uuid()
 
@@ -47,20 +36,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	if (bookingLimiter) {
-		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-		const { success } = await bookingLimiter.limit(ip)
-		if (!success) {
-			return NextResponse.json(
-				{
-					error: {
-						code: 'RATE_LIMITED',
-						message: 'Too many booking requests. Try again in a minute.',
-					},
+	const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+	const rateResult = await checkRateLimit(limiter, ip)
+	if (!rateResult.success) {
+		return NextResponse.json(
+			{
+				error: {
+					code: 'RATE_LIMITED',
+					message: 'Too many booking requests. Try again in a minute.',
 				},
-				{ status: 429 },
-			)
-		}
+			},
+			{ status: 429 },
+		)
 	}
 
 	let body: unknown
@@ -97,8 +84,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 		if (!project) {
 			return NextResponse.json(
-				{ error: { code: 'NOT_FOUND', message: 'Project not found' } },
-				{ status: 404 },
+				{ error: { code: 'VALIDATION_ERROR', message: 'Invalid request' } },
+				{ status: 400 },
 			)
 		}
 
@@ -121,13 +108,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
 	const { projectId } = await context.params
 
@@ -138,7 +120,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const project = await verifyProjectOwnership(projectId, session.userId)
+	const project = await verifyProjectOwnership(projectId, auth.userId)
 	if (!project) {
 		return NextResponse.json(
 			{ error: { code: 'NOT_FOUND', message: 'Project not found' } },

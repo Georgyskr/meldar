@@ -13,13 +13,11 @@ const resend = new Resend(process.env.RESEND_API_KEY)
  * resolve to the right name. New code emits canonical slugs only.
  */
 const PRODUCT_NAMES: Record<string, string> = {
-	// Canonical v3 slugs
 	timeAudit: 'Personal Time Audit',
 	vipBuild: 'Skip-the-Line VIP',
 	builder: 'Meldar Builder',
-	// Legacy slugs (still in historical webhook events / Stripe metadata)
-	appBuild: 'Skip-the-Line VIP', // renamed from "App Build" in v3
-	starter: 'AI Automation Toolkit', // retired in v3 but old subscriptions may still emit events
+	appBuild: 'Skip-the-Line VIP',
+	starter: 'AI Automation Toolkit',
 }
 
 export async function POST(request: NextRequest) {
@@ -55,7 +53,6 @@ export async function POST(request: NextRequest) {
 
 		const db = getDb()
 
-		// Both canonical and legacy slugs map to the same audit_orders rows.
 		const isOneTimePurchase =
 			product === 'timeAudit' || product === 'vipBuild' || product === 'appBuild'
 
@@ -77,7 +74,6 @@ export async function POST(request: NextRequest) {
 
 			const productName = PRODUCT_NAMES[product] || product
 
-			// Send purchase confirmation to buyer
 			await resend.emails.send({
 				from: 'Meldar <hello@meldar.ai>',
 				to: email,
@@ -105,7 +101,6 @@ export async function POST(request: NextRequest) {
 				`,
 			})
 
-			// Notify founder
 			await resend.emails.send({
 				from: 'Meldar <hello@meldar.ai>',
 				to: 'gosha.skryuchenkov@gmail.com',
@@ -130,15 +125,9 @@ export async function POST(request: NextRequest) {
 	}
 
 	if (event.type === 'customer.subscription.created') {
-		// v3 subscription product: Meldar Builder (EUR 19/mo) — entitlement
-		// model lives in the user_entitlements table (added in a future task).
-		// For now we log; the orchestrator's token ledger gates spend
-		// independently via the EUR 2/day ceiling.
 		const subscription = event.data.object as Stripe.Subscription
 		const customerId =
 			typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
-		// `items.data[0].price.product` is sometimes absent on synthesized test
-		// events; defensively extract it for logging.
 		const productMeta = subscription.items?.data?.[0]?.price?.product ?? 'unknown'
 		console.log(
 			`[stripe] subscription.created: customer=${customerId}, status=${subscription.status}, trial_end=${subscription.trial_end}, product=${productMeta}`,
@@ -146,8 +135,6 @@ export async function POST(request: NextRequest) {
 	}
 
 	if (event.type === 'customer.subscription.deleted') {
-		// User churn: revoke Builder entitlement here once the user_entitlements
-		// table exists. For now, log so we can correlate against Stripe Dashboard.
 		const subscription = event.data.object as Stripe.Subscription
 		const customerId =
 			typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id

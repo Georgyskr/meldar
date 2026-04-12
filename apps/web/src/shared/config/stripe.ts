@@ -112,12 +112,6 @@ export const PRODUCT_META: Record<ProductSlug, ProductMeta> = {
 	},
 }
 
-// ── Legacy export, retained for files not yet migrated ──────────────────────
-//
-// These constants are deprecated. New code should use {@link getStripePriceId}
-// and {@link resolveProductSlug}. Keeping the export prevents breaking the few
-// remaining test files until they're migrated.
-
 /** @deprecated Use {@link getStripePriceId} */
 export const STRIPE_PRICES = {
 	timeAudit: 'price_1TGgkpE6hO9BfX87JM1IzXi0',

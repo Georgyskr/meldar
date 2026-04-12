@@ -16,7 +16,6 @@ import {
 } from '../sse'
 import type { OrchestratorEvent } from '../types'
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
  * Create a `ReadableStream<Uint8Array>` from one or more text chunks. Each
@@ -46,7 +45,6 @@ async function collectStream(
 	return out
 }
 
-// ── formatSseEvent / parseSseRecord roundtrip ─────────────────────────────
 
 describe('formatSseEvent + parseSseRecord roundtrip', () => {
 	const cases: OrchestratorEvent[] = [
@@ -104,7 +102,6 @@ describe('formatSseEvent + parseSseRecord roundtrip', () => {
 	})
 })
 
-// ── parseSseRecord edge cases ─────────────────────────────────────────────
 
 describe('parseSseRecord', () => {
 	it('returns null for the [DONE] sentinel', () => {
@@ -142,7 +139,6 @@ describe('parseSseRecord', () => {
 	})
 })
 
-// ── formatSseDone ──────────────────────────────────────────────────────────
 
 describe('formatSseDone', () => {
 	it('emits a record that parseSseRecord recognizes as the sentinel', () => {
@@ -152,7 +148,6 @@ describe('formatSseDone', () => {
 	})
 })
 
-// ── consumeSseStream ──────────────────────────────────────────────────────
 
 describe('consumeSseStream', () => {
 	it('yields events from a single-chunk stream', async () => {

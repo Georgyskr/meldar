@@ -4,14 +4,22 @@ import { and, eq, gt, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { hashPassword } from '@/server/identity/password'
-import { checkRateLimit, mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
+import { hashToken } from '@/server/identity/token-hash'
+import { checkRateLimit, mustHaveRateLimit, resetPasswordLimit } from '@/server/lib/rate-limit'
+
+const passwordSchema = z
+	.string()
+	.min(8, 'Password must be at least 8 characters')
+	.refine((p) => /[a-z]/.test(p), 'Password must contain a lowercase letter')
+	.refine((p) => /[A-Z]/.test(p), 'Password must contain an uppercase letter')
+	.refine((p) => /[0-9]/.test(p), 'Password must contain a digit')
 
 const resetSchema = z.object({
 	token: z.string().min(1),
-	password: z.string().min(8, 'Password must be at least 8 characters'),
+	password: passwordSchema,
 })
 
-const limiter = mustHaveRateLimit(resetLimit, 'reset-password')
+const limiter = mustHaveRateLimit(resetPasswordLimit, 'reset-password')
 
 export async function POST(request: NextRequest) {
 	try {
@@ -26,7 +34,16 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		const body = await request.json()
+		let body: unknown
+		try {
+			body = await request.json()
+		} catch {
+			return NextResponse.json(
+				{ error: { code: 'INVALID_JSON', message: 'Request body must be valid JSON' } },
+				{ status: 400 },
+			)
+		}
+
 		const parsed = resetSchema.safeParse(body)
 
 		if (!parsed.success) {
@@ -38,23 +55,10 @@ export async function POST(request: NextRequest) {
 
 		const { token, password } = parsed.data
 		const db = getDb()
-
-		const [user] = await db
-			.select({ id: users.id, email: users.email })
-			.from(users)
-			.where(and(eq(users.resetToken, token), gt(users.resetTokenExpiresAt, new Date())))
-			.limit(1)
-
-		if (!user) {
-			return NextResponse.json(
-				{ error: { code: 'UNAUTHORIZED', message: 'Invalid or expired reset link' } },
-				{ status: 401 },
-			)
-		}
-
 		const passwordHash = await hashPassword(password)
+		const tokenHash = hashToken(token)
 
-		await db
+		const [updated] = await db
 			.update(users)
 			.set({
 				passwordHash,
@@ -62,7 +66,15 @@ export async function POST(request: NextRequest) {
 				resetTokenExpiresAt: null,
 				tokenVersion: sql`token_version + 1`,
 			})
-			.where(eq(users.id, user.id))
+			.where(and(eq(users.resetToken, tokenHash), gt(users.resetTokenExpiresAt, new Date())))
+			.returning({ id: users.id })
+
+		if (!updated) {
+			return NextResponse.json(
+				{ error: { code: 'UNAUTHORIZED', message: 'Invalid or expired reset link' } },
+				{ status: 401 },
+			)
+		}
 
 		return NextResponse.json({ success: true })
 	} catch (err) {

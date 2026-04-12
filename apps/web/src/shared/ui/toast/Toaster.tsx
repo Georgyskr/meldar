@@ -58,12 +58,12 @@ export function Toaster() {
 						<Box flexShrink={0} marginBlockStart="2px">
 							<Icon size={18} color={color} />
 						</Box>
-						<Box flex={1} minWidth={0}>
-							<Text textStyle="label.md" color="onSurface">
+						<Box flex={1} minWidth={0} display="flex" flexDirection="column" gap={0.5}>
+							<Text as="p" textStyle="label.md" color="onSurface">
 								{item.title}
 							</Text>
 							{item.description && (
-								<Text textStyle="secondary.xs" color="onSurfaceVariant" marginBlockStart={0.5}>
+								<Text as="p" textStyle="secondary.xs" color="onSurfaceVariant">
 									{item.description}
 								</Text>
 							)}

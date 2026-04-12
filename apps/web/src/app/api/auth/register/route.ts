@@ -5,13 +5,22 @@ import { nanoid } from 'nanoid'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getBaseUrl, sendVerificationEmail, sendWelcomeEmail } from '@/server/email'
+import { setAuthCookie } from '@/server/identity/auth-cookie'
 import { signToken } from '@/server/identity/jwt'
 import { hashPassword } from '@/server/identity/password'
+import { hashToken } from '@/server/identity/token-hash'
 import { checkRateLimit, mustHaveRateLimit, registerLimit } from '@/server/lib/rate-limit'
+
+const passwordSchema = z
+	.string()
+	.min(8, 'Password must be at least 8 characters')
+	.refine((p) => /[a-z]/.test(p), 'Password must contain a lowercase letter')
+	.refine((p) => /[A-Z]/.test(p), 'Password must contain an uppercase letter')
+	.refine((p) => /[0-9]/.test(p), 'Password must contain a digit')
 
 const registerSchema = z.object({
 	email: z.string().email(),
-	password: z.string().min(8, 'Password must be at least 8 characters'),
+	password: passwordSchema,
 	name: z.string().min(1).optional(),
 })
 
@@ -34,7 +43,16 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		const body = await request.json()
+		let body: unknown
+		try {
+			body = await request.json()
+		} catch {
+			return NextResponse.json(
+				{ error: { code: 'INVALID_JSON', message: 'Request body must be valid JSON' } },
+				{ status: 400 },
+			)
+		}
+
 		const parsed = registerSchema.safeParse(body)
 
 		if (!parsed.success) {
@@ -47,7 +65,9 @@ export async function POST(request: NextRequest) {
 		const { email, password, name } = parsed.data
 		const db = getDb()
 		const passwordHash = await hashPassword(password)
-		const verifyToken = nanoid(32)
+		const rawVerifyToken = nanoid(32)
+
+		const startTime = performance.now()
 
 		let userId: string
 		try {
@@ -57,13 +77,16 @@ export async function POST(request: NextRequest) {
 					email,
 					passwordHash,
 					name: name || null,
-					verifyToken,
+					verifyToken: hashToken(rawVerifyToken),
 					verifyTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
 				})
 				.returning({ id: users.id })
 			userId = user.id
 		} catch (err) {
 			if (isUniqueViolation(err)) {
+				const elapsed = performance.now() - startTime
+				const remaining = Math.max(0, 150 - elapsed)
+				await new Promise((resolve) => setTimeout(resolve, remaining))
 				return NextResponse.json(
 					{
 						error: {
@@ -86,7 +109,7 @@ export async function POST(request: NextRequest) {
 			balanceAfter: 200,
 		})
 
-		sendVerificationEmail(email, verifyToken, getBaseUrl()).catch((err) => {
+		sendVerificationEmail(email, rawVerifyToken, getBaseUrl()).catch((err) => {
 			console.error('Verification email failed:', err instanceof Error ? err.message : 'Unknown')
 		})
 
@@ -101,13 +124,7 @@ export async function POST(request: NextRequest) {
 		const token = signToken({ userId, email, emailVerified: false, tokenVersion: 0 })
 
 		const response = NextResponse.json({ success: true, userId })
-		response.cookies.set('meldar-auth', token, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'lax',
-			maxAge: 60 * 60 * 24 * 7,
-			path: '/',
-		})
+		setAuthCookie(response, token)
 
 		return response
 	} catch (err) {

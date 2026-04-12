@@ -1,18 +1,24 @@
-import { makeNextJsonRequest } from '@meldar/test-utils'
+import { makeNextJsonRequest, makeNextRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
-
-const { mockDbSelect, mockDbFrom, mockDbWhere, mockDbLimit, mockVerifyPassword } = vi.hoisted(
-	() => ({
-		mockDbSelect: vi.fn(),
-		mockDbFrom: vi.fn(),
-		mockDbWhere: vi.fn(),
-		mockDbLimit: vi.fn(),
-		mockVerifyPassword: vi.fn(),
-	}),
-)
+const {
+	mockDbSelect,
+	mockDbFrom,
+	mockDbWhere,
+	mockDbLimit,
+	mockVerifyPassword,
+	mockCheckRateLimit,
+	mockSetAuthCookie,
+} = vi.hoisted(() => ({
+	mockDbSelect: vi.fn(),
+	mockDbFrom: vi.fn(),
+	mockDbWhere: vi.fn(),
+	mockDbLimit: vi.fn(),
+	mockVerifyPassword: vi.fn(),
+	mockCheckRateLimit: vi.fn<typeof import('@/server/lib/rate-limit').checkRateLimit>(),
+	mockSetAuthCookie: vi.fn(),
+}))
 
 vi.mock('@meldar/db/client', () => ({
 	getDb: () => ({
@@ -28,11 +34,18 @@ vi.mock('@/server/identity/password', () => ({
 	verifyPassword: (...args: unknown[]) => mockVerifyPassword(...args),
 }))
 
-// ── Imports ─────────────────────────────────────────────────────────────────
+vi.mock('@/server/identity/auth-cookie', () => ({
+	setAuthCookie: (...args: unknown[]) => mockSetAuthCookie(...args),
+}))
+
+vi.mock('@/server/lib/rate-limit', () => ({
+	checkRateLimit: mockCheckRateLimit,
+	loginLimit: null,
+	loginEmailLimit: null,
+	mustHaveRateLimit: () => null,
+}))
 
 import { POST } from '../../auth/login/route'
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeRequest(body: unknown): NextRequest {
 	return makeNextJsonRequest('http://localhost/api/auth/login', body)
@@ -52,13 +65,12 @@ function setupDbChain(result: unknown[]) {
 	mockDbLimit.mockResolvedValue(result)
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
-
 describe('POST /api/auth/login', () => {
 	beforeEach(() => {
-		vi.stubEnv('AUTH_SECRET', 'test-secret')
+		vi.stubEnv('AUTH_SECRET', 'test-secret-key-minimum-32-chars!')
 		setupDbChain([fakeUser])
 		mockVerifyPassword.mockResolvedValue(true)
+		mockCheckRateLimit.mockResolvedValue({ success: true })
 	})
 
 	afterEach(() => {
@@ -80,14 +92,9 @@ describe('POST /api/auth/login', () => {
 		expect(json.user.id).toBe(fakeUser.id)
 		expect(json.user.email).toBe(fakeUser.email)
 		expect(json.user.name).toBe(fakeUser.name)
-
-		// Verify password hash is NOT in response
 		expect(json.user.passwordHash).toBeUndefined()
 
-		// Check JWT cookie
-		const setCookie = res.headers.get('set-cookie')
-		expect(setCookie).toContain('meldar-auth=mock-jwt-token')
-		expect(setCookie).toContain('HttpOnly')
+		expect(mockSetAuthCookie).toHaveBeenCalledWith(expect.anything(), 'mock-jwt-token')
 	})
 
 	it('rejects wrong password with 401', async () => {
@@ -107,7 +114,7 @@ describe('POST /api/auth/login', () => {
 	})
 
 	it('rejects non-existent email with 401 (same message as wrong password)', async () => {
-		setupDbChain([]) // No user found
+		setupDbChain([])
 
 		const res = await POST(
 			makeRequest({
@@ -123,7 +130,6 @@ describe('POST /api/auth/login', () => {
 	})
 
 	it('returns same error message for wrong password and non-existent email', async () => {
-		// Wrong password
 		mockVerifyPassword.mockResolvedValue(false)
 		const res1 = await POST(
 			makeRequest({
@@ -133,7 +139,6 @@ describe('POST /api/auth/login', () => {
 		)
 		const json1 = await res1.json()
 
-		// Non-existent email
 		setupDbChain([])
 		const res2 = await POST(
 			makeRequest({
@@ -143,17 +148,14 @@ describe('POST /api/auth/login', () => {
 		)
 		const json2 = await res2.json()
 
-		// Same status and message (prevents email enumeration)
 		expect(res1.status).toBe(res2.status)
 		expect(json1.error.message).toBe(json2.error.message)
 	})
 
 	it('rejects invalid input with 400', async () => {
-		// Missing email
 		const res1 = await POST(makeRequest({ password: 'something' }))
 		expect(res1.status).toBe(400)
 
-		// Invalid email
 		const res2 = await POST(
 			makeRequest({
 				email: 'not-email',
@@ -162,11 +164,9 @@ describe('POST /api/auth/login', () => {
 		)
 		expect(res2.status).toBe(400)
 
-		// Missing password
 		const res3 = await POST(makeRequest({ email: 'valid@email.com' }))
 		expect(res3.status).toBe(400)
 
-		// Empty body
 		const res4 = await POST(makeRequest({}))
 		expect(res4.status).toBe(400)
 	})
@@ -186,5 +186,66 @@ describe('POST /api/auth/login', () => {
 		expect(res.status).toBe(500)
 		const json = await res.json()
 		expect(json.error.code).toBe('INTERNAL_ERROR')
+	})
+
+	it('returns 400 with INVALID_JSON when request body is not valid JSON', async () => {
+		const req = makeNextRequest('http://localhost/api/auth/login', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: 'not-json{{{',
+		})
+
+		const res = await POST(req)
+		expect(res.status).toBe(400)
+
+		const json = await res.json()
+		expect(json.error.code).toBe('INVALID_JSON')
+	})
+
+	it('calls verifyPassword even when user is not found (timing parity)', async () => {
+		setupDbChain([])
+
+		await POST(
+			makeRequest({
+				email: 'noone@example.com',
+				password: 'anypassword',
+			}),
+		)
+
+		expect(mockVerifyPassword).toHaveBeenCalledTimes(1)
+	})
+
+	it('calls setAuthCookie on successful login', async () => {
+		const res = await POST(
+			makeRequest({
+				email: 'user@example.com',
+				password: 'correctpassword',
+			}),
+		)
+
+		expect(res.status).toBe(200)
+		expect(mockSetAuthCookie).toHaveBeenCalledTimes(1)
+		expect(mockSetAuthCookie).toHaveBeenCalledWith(expect.anything(), 'mock-jwt-token')
+	})
+
+	describe('per-email rate limiting', () => {
+		it('returns 429 when the email-based rate limit is exceeded', async () => {
+			mockCheckRateLimit
+				.mockResolvedValueOnce({ success: true })
+				.mockResolvedValueOnce({ success: false })
+
+			const res = await POST(
+				makeRequest({
+					email: 'target@example.com',
+					password: 'anything',
+				}),
+			)
+
+			expect(res.status).toBe(429)
+			const json = await res.json()
+			expect(json.error.code).toBe('RATE_LIMITED')
+			expect(mockCheckRateLimit).toHaveBeenCalledTimes(2)
+			expect(mockCheckRateLimit.mock.calls[1][1]).toBe('target@example.com')
+		})
 	})
 })

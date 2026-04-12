@@ -2,12 +2,12 @@ import { getDb } from '@meldar/db/client'
 import { builds, users } from '@meldar/db/schema'
 import { and, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import { sendNudgeEmail } from '@/server/email'
+import { verifyCronAuth } from '@/server/lib/cron-auth'
 
 const MAX_EMAILS_PER_BATCH = 50
 
 export async function GET(request: Request) {
-	const authHeader = request.headers.get('authorization')
-	if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+	if (!verifyCronAuth(request)) {
 		return Response.json({ error: 'Unauthorized' }, { status: 401 })
 	}
 

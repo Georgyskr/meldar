@@ -18,7 +18,6 @@ vi.mock('@anthropic-ai/sdk', () => ({
 
 import { generateAdaptiveFollowUps } from '../adaptive'
 
-// ── Fixtures ────────────────────────────────────────────────────────────────
 
 const validInput = {
 	screenTimeApps: [
@@ -54,7 +53,6 @@ function mockFollowUpToolResponse(input: Record<string, unknown>): void {
 	)
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('generateAdaptiveFollowUps', () => {
 	afterEach(() => {

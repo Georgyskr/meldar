@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getUserFromRequest, signToken, verifyToken } from '../jwt'
 
-const TEST_SECRET = 'test-secret-key-for-jwt-signing'
+const TEST_SECRET = 'test-secret-key-for-jwt-signing!'
 
 describe('JWT utilities', () => {
 	beforeEach(() => {
@@ -175,6 +175,20 @@ describe('JWT utilities', () => {
 			expect(() =>
 				signToken({ userId: 'u', email: 'e', emailVerified: false, tokenVersion: 0 }),
 			).toThrow('AUTH_SECRET is not set')
+		})
+
+		it('throws if AUTH_SECRET is shorter than 32 characters', () => {
+			vi.stubEnv('AUTH_SECRET', 'only-31-chars-xxxxxxxxxxxxxxxxxxx'.slice(0, 31))
+			expect(() =>
+				signToken({ userId: 'u', email: 'e', emailVerified: false, tokenVersion: 0 }),
+			).toThrow('AUTH_SECRET must be at least 32 characters')
+		})
+
+		it('accepts AUTH_SECRET that is exactly 32 characters', () => {
+			vi.stubEnv('AUTH_SECRET', 'exactly-32-chars-xxxxxxxxxxxxxxx')
+			expect(() =>
+				signToken({ userId: 'u', email: 'e', emailVerified: false, tokenVersion: 0 }),
+			).not.toThrow()
 		})
 	})
 })

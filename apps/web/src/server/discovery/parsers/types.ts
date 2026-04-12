@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-// ── Unified shape for parsed AI chat data (ChatGPT / Claude / DeepSeek) ────
 
 export const aiChatPatternSchema = z.object({
 	totalConversations: z.number(),
@@ -27,13 +26,10 @@ export const aiChatPatternSchema = z.object({
 
 export type AiChatPattern = z.infer<typeof aiChatPatternSchema>
 
-// Raw parse result — returned by parsers, consumed by upload route.
-// Raw messages are extracted by Haiku, then discarded before DB storage.
 export type AiChatRawParseResult = AiChatPattern & {
 	_rawMessages: { text: string; timestamp: number }[]
 }
 
-// ── Google Takeout parsed data ─────────────────────────────────────────────
 
 export const googlePatternSchema = z.object({
 	searchTopics: z.array(
@@ -71,5 +67,4 @@ export type GoogleRawParseResult = GooglePattern & {
 	_skippedItemCount: number
 }
 
-// Cross-reference analysis — shared between client and server
 export { type DiscoveryAnalysis, discoveryAnalysisSchema } from '@/shared/types/discovery'

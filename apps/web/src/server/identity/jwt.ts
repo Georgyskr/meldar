@@ -21,6 +21,7 @@ const JWT_ALGORITHM = 'HS256' as const
 function getSecret(): string {
 	const secret = process.env.AUTH_SECRET
 	if (!secret) throw new Error('AUTH_SECRET is not set')
+	if (secret.length < 32) throw new Error('AUTH_SECRET must be at least 32 characters')
 	return secret
 }
 

@@ -2,10 +2,13 @@ import { getDb } from '@meldar/db/client'
 import { users } from '@meldar/db/schema'
 import { and, eq, gt } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest, signToken } from '@/server/identity/jwt'
-import { checkRateLimit, mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
+import { setAuthCookie } from '@/server/identity/auth-cookie'
+import { signToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
+import { hashToken } from '@/server/identity/token-hash'
+import { checkRateLimit, mustHaveRateLimit, verifyEmailLimit } from '@/server/lib/rate-limit'
 
-const limiter = mustHaveRateLimit(resetLimit, 'verify-email')
+const limiter = mustHaveRateLimit(verifyEmailLimit, 'verify-email')
 
 export async function GET(request: NextRequest) {
 	const token = request.nextUrl.searchParams.get('token')
@@ -26,9 +29,9 @@ export async function GET(request: NextRequest) {
 	const db = getDb()
 
 	const [user] = await db
-		.select({ id: users.id, email: users.email })
+		.select({ id: users.id, email: users.email, tokenVersion: users.tokenVersion })
 		.from(users)
-		.where(and(eq(users.verifyToken, token), gt(users.verifyTokenExpiresAt, new Date())))
+		.where(and(eq(users.verifyToken, hashToken(token)), gt(users.verifyTokenExpiresAt, new Date())))
 		.limit(1)
 
 	if (!user) {
@@ -46,21 +49,15 @@ export async function GET(request: NextRequest) {
 
 	const response = NextResponse.redirect(new URL('/workspace?verified=1', request.url))
 
-	const session = getUserFromRequest(request)
-	if (session && session.userId === user.id) {
+	const auth = await requireAuth(request)
+	if (auth.ok && auth.userId === user.id) {
 		const refreshed = signToken({
 			userId: user.id,
 			email: user.email,
 			emailVerified: true,
-			tokenVersion: session.tokenVersion,
+			tokenVersion: user.tokenVersion,
 		})
-		response.cookies.set('meldar-auth', refreshed, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'lax',
-			maxAge: 60 * 60 * 24 * 7,
-			path: '/',
-		})
+		setAuthCookie(response, refreshed)
 	}
 
 	return response

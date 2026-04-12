@@ -1,4 +1,3 @@
-// TODO: Route through guardedAnthropicCall for unified spend ceilings (architecture review #7)
 import type Anthropic from '@anthropic-ai/sdk'
 import { usageToCents } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -12,7 +11,7 @@ import {
 	type PlanOutput,
 	planOutputSchema,
 } from '@/features/project-onboarding/lib/schemas'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 import { recordAiCall } from '@/server/lib/ai-call-log'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
 import { insertPlanCards } from '@/server/lib/insert-plan-cards'
@@ -120,15 +119,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
-	const { success, serviceError } = await checkRateLimit(limiter, session.userId, true)
+	const { success, serviceError } = await checkRateLimit(limiter, auth.userId, true)
 	if (!success) {
 		return NextResponse.json(
 			{
@@ -143,7 +137,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const project = await verifyProjectOwnership(projectId, session.userId)
+	const project = await verifyProjectOwnership(projectId, auth.userId)
 	if (!project) {
 		return NextResponse.json(
 			{ error: { code: 'NOT_FOUND', message: 'Project not found' } },
@@ -175,7 +169,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const spendCheck = await checkAllSpendCeilings(session.userId)
+	const spendCheck = await checkAllSpendCeilings(auth.userId)
 	if (!spendCheck.allowed) {
 		const status =
 			spendCheck.reason === 'user_hourly' ? 429 : spendCheck.reason === 'user_daily' ? 402 : 503
@@ -190,7 +184,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 	const client = getAnthropicClient()
 
 	const plan = await generatePlanWithRetry(
-		session.userId,
+		auth.userId,
 		projectId,
 		client,
 		parsed.data.messages,

@@ -120,10 +120,12 @@ import {
 	completeTask,
 	escalateTask,
 	executeTask,
+	failTask,
 	getPendingTasks,
 	getTaskHistory,
 	InvalidTaskTransitionError,
 	proposeTask,
+	reapStuckExecutingTasks,
 	rejectTask,
 	TaskNotFoundError,
 } from '../agent-task-service'
@@ -305,6 +307,54 @@ describe('agent-task-service', () => {
 			const result = await getTaskHistory(FAKE_PROJECT_ID, 10)
 
 			expect(result).toEqual([])
+		})
+	})
+
+	describe('failTask', () => {
+		it('transitions executing to failed', async () => {
+			pushSelectResult([makeTask({ status: 'executing' })])
+			pushReturningResult([makeTask({ status: 'failed' })])
+
+			const result = await failTask(FAKE_TASK_ID, 'timeout')
+
+			expect(result.status).toBe('failed')
+		})
+
+		it('transitions verifying to failed', async () => {
+			pushSelectResult([makeTask({ status: 'verifying' })])
+			pushReturningResult([makeTask({ status: 'failed' })])
+
+			const result = await failTask(FAKE_TASK_ID, 'verification failed')
+
+			expect(result.status).toBe('failed')
+		})
+
+		it('throws InvalidTaskTransitionError when task is proposed', async () => {
+			pushSelectResult([makeTask({ status: 'proposed' })])
+
+			await expect(failTask(FAKE_TASK_ID, 'reason')).rejects.toThrow(InvalidTaskTransitionError)
+		})
+	})
+
+	describe('reapStuckExecutingTasks', () => {
+		it('returns count of reaped tasks', async () => {
+			const fiveMinutesAgo = new Date(Date.now() - 6 * 60 * 1000)
+			pushReturningResult([
+				makeTask({ id: 'stuck-1', status: 'executing', executedAt: fiveMinutesAgo }),
+				makeTask({ id: 'stuck-2', status: 'executing', executedAt: fiveMinutesAgo }),
+			])
+
+			const count = await reapStuckExecutingTasks(new Date(Date.now() - 5 * 60 * 1000))
+
+			expect(count).toBe(2)
+		})
+
+		it('returns 0 when no tasks are stuck', async () => {
+			pushReturningResult([])
+
+			const count = await reapStuckExecutingTasks(new Date(Date.now() - 5 * 60 * 1000))
+
+			expect(count).toBe(0)
 		})
 	})
 

@@ -18,7 +18,6 @@ import type { AiChatRawParseResult } from './types'
  * errors with a clear message.
  */
 
-// ── Schema ──────────────────────────────────────────────────────────────────
 
 /**
  * One message inside a conversation. Every field is optional because the
@@ -58,7 +57,6 @@ const claudeExportRootSchema = z.union([
 
 type ClaudeExportRoot = z.infer<typeof claudeExportRootSchema>
 
-// ── Parser ──────────────────────────────────────────────────────────────────
 
 export async function parseClaudeExport(file: File): Promise<AiChatRawParseResult> {
 	const text = await file.text()

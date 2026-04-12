@@ -49,7 +49,6 @@ export class InMemoryBlobStorage implements BlobStorage {
 		this.store.delete(blobKey(projectId, contentHash))
 	}
 
-	// ── Test helpers (not part of the BlobStorage contract) ───────────────
 
 	/** Number of blobs currently stored. Useful for assert-dedup tests. */
 	get size(): number {

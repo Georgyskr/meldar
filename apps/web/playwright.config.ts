@@ -7,8 +7,6 @@ dotenv.config({ path: path.resolve(__dirname, '.env.local') })
 export default defineConfig({
 	testDir: './e2e',
 	expect: {
-		// One generous ceiling for all .toBeVisible / .toHaveText retries.
-		// Dev-server route compiles can take a few seconds cold.
 		timeout: 20_000,
 	},
 	retries: 0,

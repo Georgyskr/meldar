@@ -454,7 +454,6 @@ function DeployStrip({ deployment }: { readonly deployment: DeploymentPhase }) {
 		)
 	}
 
-	// failed
 	return (
 		<Box
 			padding={5}
@@ -492,9 +491,7 @@ function CopyLinkButton({ url }: { readonly url: string }) {
 			await navigator.clipboard.writeText(url)
 			setCopied(true)
 			setTimeout(() => setCopied(false), 2000)
-		} catch {
-			// Clipboard unavailable — silent no-op, the user can triple-click the URL text
-		}
+		} catch {}
 	}
 
 	return (

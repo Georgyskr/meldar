@@ -1,23 +1,21 @@
 import { getDb } from '@meldar/db/client'
 import { sql } from 'drizzle-orm'
+import { verifyCronAuth } from '@/server/lib/cron-auth'
 
 export async function GET(request: Request) {
-	const authHeader = request.headers.get('authorization')
-	if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+	if (!verifyCronAuth(request)) {
 		return Response.json({ error: 'Unauthorized' }, { status: 401 })
 	}
 
 	const db = getDb()
 	const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
-	// Use raw SQL to get rowCount without materializing all deleted IDs
 	const sessionResult = await db.execute(
 		sql`DELETE FROM discovery_sessions
 			WHERE created_at < ${thirtyDaysAgo}
 			  AND tier_purchased IS NULL`,
 	)
 
-	// Don't delete xray results that are referenced by paid audit orders
 	const xrayResult = await db.execute(
 		sql`DELETE FROM xray_results
 			WHERE created_at < ${thirtyDaysAgo}

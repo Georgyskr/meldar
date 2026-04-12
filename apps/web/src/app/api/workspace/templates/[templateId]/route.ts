@@ -1,6 +1,6 @@
 import { TEMPLATE_PLANS } from '@meldar/orchestrator'
 import { type NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 
 export const runtime = 'nodejs'
 
@@ -9,13 +9,8 @@ type RouteContext = {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
 	const { templateId } = await context.params
 	const plan = TEMPLATE_PLANS.find((t) => t.id === templateId)

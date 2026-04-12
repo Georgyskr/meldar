@@ -169,7 +169,7 @@ type VercelDeployContext = {
 	readonly signal?: AbortSignal
 }
 
-async function* withVercelDeploy(
+async function* _withVercelDeploy(
 	generator: AsyncGenerator<OrchestratorEvent, void, unknown>,
 	ctx: VercelDeployContext,
 ): AsyncGenerator<OrchestratorEvent, void, unknown> {
@@ -309,7 +309,6 @@ async function* withTokenRefund(
 			yield event
 		}
 	} finally {
-		// file_written alone doesn't count -- only `committed` means the user got value
 		if (!committed && amount > 0) {
 			creditTokens(getDb(), userId, amount, 'refund', kanbanCardId).catch((err) => {
 				console.error(
@@ -386,17 +385,13 @@ export function sseStreamFromGenerator(
 				safeEnqueue(formatSseDone())
 				try {
 					controller.close()
-				} catch {
-					// already closed
-				}
+				} catch {}
 			}
 		},
 		async cancel() {
 			try {
 				await generator.return()
-			} catch {
-				// noop
-			}
+			} catch {}
 		},
 	})
 }

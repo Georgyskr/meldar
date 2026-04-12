@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
 
 const { mockDbExecute } = vi.hoisted(() => ({
 	mockDbExecute: vi.fn(),
@@ -19,11 +18,9 @@ vi.mock('drizzle-orm', () => ({
 	}),
 }))
 
-// ── Imports ─────────────────────────────────────────────────────────────────
 
 import { GET } from '../../purge/route'
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeRequest(headers?: Record<string, string>): Request {
 	return new Request('http://localhost/api/cron/purge', {
@@ -32,7 +29,6 @@ function makeRequest(headers?: Record<string, string>): Request {
 	})
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('GET /api/cron/purge', () => {
 	beforeEach(() => {
@@ -77,7 +73,6 @@ describe('GET /api/cron/purge', () => {
 
 		it('executes DELETE SQL for xray_results older than 30 days without linked audit_orders', async () => {
 			await GET(makeRequest({ authorization: 'Bearer test-cron-secret' }))
-			// Second call is for xray_results
 			expect(mockDbExecute).toHaveBeenCalledTimes(2)
 		})
 

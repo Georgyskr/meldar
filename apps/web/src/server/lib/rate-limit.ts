@@ -57,6 +57,30 @@ export const resetLimit = redis
 	? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'rl:reset' })
 	: null
 
+export const verifyEmailLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(5, '15 m'),
+			prefix: 'rl:verify-email',
+		})
+	: null
+
+export const forgotPasswordLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(3, '1 h'),
+			prefix: 'rl:forgot-password',
+		})
+	: null
+
+export const resetPasswordLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(3, '1 h'),
+			prefix: 'rl:reset-password',
+		})
+	: null
+
 export const projectsCreateLimit = redis
 	? new Ratelimit({
 			redis,
@@ -138,6 +162,30 @@ export const wishesLimit = redis
 			redis,
 			limiter: Ratelimit.slidingWindow(30, '1 m'),
 			prefix: 'rl:wishes',
+		})
+	: null
+
+export const googleCallbackLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(10, '1 m'),
+			prefix: 'rl:google-callback',
+		})
+	: null
+
+export const bookingPublicLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(10, '1 m'),
+			prefix: 'rl:booking-public',
+		})
+	: null
+
+export const loginEmailLimit = redis
+	? new Ratelimit({
+			redis,
+			limiter: Ratelimit.slidingWindow(10, '15 m'),
+			prefix: 'rl:login-email',
 		})
 	: null
 

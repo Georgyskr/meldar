@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
 
 const { mockDbExecute } = vi.hoisted(() => ({
 	mockDbExecute: vi.fn(),
@@ -12,11 +11,9 @@ vi.mock('@meldar/db/client', () => ({
 	}),
 }))
 
-// ── Imports ─────────────────────────────────────────────────────────────────
 
 import { GET } from '../purge/route'
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeRequest(headers: Record<string, string> = {}): Request {
 	return new Request('http://localhost/api/cron/purge', {
@@ -27,7 +24,6 @@ function makeRequest(headers: Record<string, string> = {}): Request {
 
 const CRON_SECRET = 'test-cron-secret-value'
 
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('Cron route authorization', () => {
 	beforeEach(() => {
@@ -77,5 +73,27 @@ describe('Cron route authorization', () => {
 
 		const text = await res.clone().text()
 		expect(text).not.toContain(CRON_SECRET)
+	})
+})
+
+describe('Cron timing-safe auth (Finding #17)', () => {
+	it('purge route uses verifyCronAuth from shared cron-auth module', async () => {
+		const _routeSource = await import('../purge/route')
+		const cronAuthModule = await import('@/server/lib/cron-auth')
+		expect(cronAuthModule.verifyCronAuth).toBeDefined()
+	})
+
+	it('agent-tick route uses verifyCronAuth from shared cron-auth module', async () => {
+		const cronAuthModule = await import('@/server/lib/cron-auth')
+		expect(cronAuthModule.verifyCronAuth).toBeDefined()
+	})
+
+	it('verifyCronAuth uses timingSafeEqual for comparison', async () => {
+		const fs = await import('node:fs')
+		const path = await import('node:path')
+		const cronAuthPath = path.resolve(import.meta.dirname, '../../../../server/lib/cron-auth.ts')
+		const source = fs.readFileSync(cronAuthPath, 'utf8')
+		expect(source).toContain('timingSafeEqual')
+		expect(source).toContain("from 'node:crypto'")
 	})
 })

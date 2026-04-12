@@ -99,7 +99,6 @@ export async function POST(request: NextRequest) {
 			`,
 		})
 
-		// Notify founder (escaped email to prevent HTML injection)
 		await resend.emails.send({
 			from: 'Meldar <hello@meldar.ai>',
 			to: 'gosha.skryuchenkov@gmail.com',

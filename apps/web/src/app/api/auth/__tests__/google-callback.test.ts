@@ -14,6 +14,7 @@ const {
 	mockDbSet,
 	mockDbUpdateWhere,
 	mockHashPassword,
+	mockCheckRateLimit,
 } = vi.hoisted(() => ({
 	mockDbSelect: vi.fn(),
 	mockDbFrom: vi.fn(),
@@ -26,6 +27,7 @@ const {
 	mockDbSet: vi.fn(),
 	mockDbUpdateWhere: vi.fn(),
 	mockHashPassword: vi.fn(),
+	mockCheckRateLimit: vi.fn<typeof import('@/server/lib/rate-limit').checkRateLimit>(),
 }))
 
 vi.mock('@meldar/db/client', () => ({
@@ -46,6 +48,12 @@ vi.mock('@/server/identity/password', () => ({
 
 vi.mock('@/server/email', () => ({
 	getBaseUrl: () => 'http://localhost:3000',
+}))
+
+vi.mock('@/server/lib/rate-limit', () => ({
+	checkRateLimit: mockCheckRateLimit,
+	googleCallbackLimit: null,
+	mustHaveRateLimit: () => null,
 }))
 
 const mockCookieStore = {
@@ -108,11 +116,12 @@ function mockGoogleApis(email: string, name = 'Test User', verifiedEmail = true)
 
 describe('GET /api/auth/google/callback', () => {
 	beforeEach(() => {
-		vi.stubEnv('AUTH_SECRET', 'test-secret')
+		vi.stubEnv('AUTH_SECRET', 'test-secret-key-minimum-32-chars!')
 		vi.stubEnv('GOOGLE_CLIENT_ID', 'test-client-id')
 		vi.stubEnv('GOOGLE_CLIENT_SECRET', 'test-client-secret')
 		vi.stubEnv('NEXT_PUBLIC_BASE_URL', 'http://localhost:3000')
 		mockHashPassword.mockResolvedValue('$2a$12$random-placeholder-hash')
+		mockCheckRateLimit.mockResolvedValue({ success: true })
 	})
 
 	afterEach(() => {
@@ -329,5 +338,17 @@ describe('GET /api/auth/google/callback', () => {
 
 		expect(mockDbUpdate).toHaveBeenCalled()
 		expect(mockDbSet).toHaveBeenCalledWith({ emailVerified: true })
+	})
+
+	describe('rate limiting', () => {
+		it('redirects with error when rate limited', async () => {
+			mockCheckRateLimit.mockResolvedValue({ success: false })
+
+			const res = await GET(makeCallbackRequest({ code: 'valid-code' }))
+
+			expect(res.status).toBe(307)
+			expect(res.headers.get('location')).toBe('http://localhost:3000/sign-in?error=rate-limited')
+			expect(mockFetch).not.toHaveBeenCalled()
+		})
 	})
 })

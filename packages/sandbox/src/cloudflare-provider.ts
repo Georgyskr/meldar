@@ -89,7 +89,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		})
 	}
 
-	// ── prewarm ───────────────────────────────────────────────────────────
 
 	async prewarm(projectId: string): Promise<void> {
 		// Fire-and-forget semantics: log on failure, never throw. Callers
@@ -103,7 +102,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-	// ── start ─────────────────────────────────────────────────────────────
 
 	async start(options: StartSandboxOptions): Promise<SandboxHandle> {
 		// Validate every initial file path BEFORE the network round trip.
@@ -142,7 +140,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-	// ── writeFiles ────────────────────────────────────────────────────────
 
 	async writeFiles(options: WriteFilesOptions): Promise<SandboxHandle> {
 		// Validate paths up front (avoid wasted network round-trip on bad input).
@@ -181,7 +178,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-	// ── getPreviewUrl ─────────────────────────────────────────────────────
 
 	async getPreviewUrl(projectId: string): Promise<string | null> {
 		try {
@@ -195,7 +191,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-	// ── stop ──────────────────────────────────────────────────────────────
 
 	async stop(projectId: string): Promise<void> {
 		try {
@@ -208,7 +203,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 	}
 
-	// ── private: HTTP plumbing ────────────────────────────────────────────
 
 	private async callWorker<T = unknown>(
 		method: 'POST' | 'GET',
@@ -269,7 +263,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 	}
 }
 
-// ── Worker response shapes ──────────────────────────────────────────────────
 
 type WorkerStartResponse = {
 	sandboxId?: string
@@ -295,7 +288,6 @@ type WorkerStatusResponse = {
 // without importing from `./types` separately.
 export type { SandboxFile, SandboxHandle }
 
-// ── helpers ─────────────────────────────────────────────────────────────────
 
 /**
  * HMAC-SHA256 signing for request authentication. Returns a hex digest the

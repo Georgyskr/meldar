@@ -1,10 +1,30 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/server/identity/jwt', () => ({
-	verifyToken: vi.fn((token: string) => {
-		if (token === 'valid_token') return { userId: 'user_1', email: 'u@x.com' }
-		return null
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+	mockCheckRateLimit: vi.fn<typeof import('@/server/lib/rate-limit').checkRateLimit>(),
+}))
+
+vi.mock('@/server/lib/rate-limit', () => ({
+	checkRateLimit: mockCheckRateLimit,
+	bookingPublicLimit: null,
+	mustHaveRateLimit: () => null,
+}))
+
+vi.mock('@/server/identity/require-auth', () => ({
+	requireAuth: vi.fn(async (request: Request) => {
+		const cookie = request.headers.get('cookie')
+		const match = cookie?.match(/meldar-auth=([^;]+)/)
+		if (match?.[1] === 'valid_token') {
+			return { ok: true, userId: 'user_1', email: 'u@x.com', emailVerified: true }
+		}
+		return {
+			ok: false,
+			response: NextResponse.json(
+				{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
+				{ status: 401 },
+			),
+		}
 	}),
 }))
 
@@ -95,6 +115,7 @@ function setupProjectLookup(wishes: Record<string, unknown> | null = null) {
 
 beforeEach(() => {
 	vi.clearAllMocks()
+	mockCheckRateLimit.mockResolvedValue({ success: true })
 	mockVerifyProjectOwnership.mockResolvedValue({ id: PROJECT_ID, name: 'Test Business' })
 })
 
@@ -186,21 +207,6 @@ describe('POST /api/workspace/[projectId]/bookings', () => {
 		expect(json.error.code).toBe('VALIDATION_ERROR')
 	})
 
-	it('returns 404 when project does not exist', async () => {
-		mockDbSelect.mockReturnValue({
-			from: vi.fn().mockReturnValue({
-				where: vi.fn().mockReturnValue({
-					limit: vi.fn().mockResolvedValue([]),
-				}),
-			}),
-		})
-
-		const res = await POST(makePostRequest(validBody), routeContext)
-		expect(res.status).toBe(404)
-		const json = (await res.json()) as { error: { code: string } }
-		expect(json.error.code).toBe('NOT_FOUND')
-	})
-
 	it('returns 500 when proposeTask throws', async () => {
 		setupProjectLookup({ businessName: 'Cool Salon' })
 		mockProposeTask.mockRejectedValue(new Error('db down'))
@@ -209,6 +215,17 @@ describe('POST /api/workspace/[projectId]/bookings', () => {
 		expect(res.status).toBe(500)
 		const json = (await res.json()) as { error: { code: string } }
 		expect(json.error.code).toBe('INTERNAL_ERROR')
+	})
+
+	describe('rate limiting', () => {
+		it('returns 429 when rate limited', async () => {
+			mockCheckRateLimit.mockResolvedValue({ success: false })
+
+			const res = await POST(makePostRequest(validBody), routeContext)
+			expect(res.status).toBe(429)
+			const json = (await res.json()) as { error: { code: string } }
+			expect(json.error.code).toBe('RATE_LIMITED')
+		})
 	})
 })
 

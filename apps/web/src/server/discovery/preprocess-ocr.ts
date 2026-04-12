@@ -41,9 +41,7 @@ type PreprocessResult = {
 	extracted: ExtractedData
 }
 
-// Static category lookup — covers ~90% of real apps
 const CATEGORY_MAP: Record<string, AppCategory> = {
-	// Social
 	instagram: 'social',
 	tiktok: 'social',
 	twitter: 'social',
@@ -57,7 +55,6 @@ const CATEGORY_MAP: Record<string, AppCategory> = {
 	tumblr: 'social',
 	mastodon: 'social',
 	bluesky: 'social',
-	// Entertainment
 	youtube: 'entertainment',
 	netflix: 'entertainment',
 	spotify: 'entertainment',
@@ -71,7 +68,6 @@ const CATEGORY_MAP: Record<string, AppCategory> = {
 	tidal: 'entertainment',
 	soundcloud: 'entertainment',
 	podcasts: 'entertainment',
-	// Communication
 	telegram: 'communication',
 	whatsapp: 'communication',
 	messages: 'communication',
@@ -85,18 +81,15 @@ const CATEGORY_MAP: Record<string, AppCategory> = {
 	facetime: 'communication',
 	viber: 'communication',
 	line: 'communication',
-	// Email (subcategory of communication)
 	gmail: 'communication',
 	mail: 'communication',
 	outlook: 'communication',
-	// Browser
 	safari: 'browser',
 	chrome: 'browser',
 	firefox: 'browser',
 	edge: 'browser',
 	opera: 'browser',
 	brave: 'browser',
-	// Gaming
 	hearthstone: 'gaming',
 	'cup heroes': 'gaming',
 	roblox: 'gaming',
@@ -113,7 +106,6 @@ const CATEGORY_MAP: Record<string, AppCategory> = {
 	chess: 'gaming',
 	'2048': 'gaming',
 	wordle: 'gaming',
-	// Productivity
 	notion: 'productivity',
 	obsidian: 'productivity',
 	todoist: 'productivity',
@@ -126,30 +118,25 @@ const CATEGORY_MAP: Record<string, AppCategory> = {
 	'google calendar': 'productivity',
 	sheets: 'productivity',
 	docs: 'productivity',
-	// Developer
 	github: 'productivity',
 	'vs code': 'productivity',
 	terminal: 'productivity',
 	xcode: 'productivity',
-	// Finance
 	robinhood: 'finance',
 	revolut: 'finance',
 	'cash app': 'finance',
 	venmo: 'finance',
 	paypal: 'finance',
 	coinbase: 'finance',
-	// Health
 	health: 'health',
 	strava: 'health',
 	'nike run': 'health',
 	fitbit: 'health',
 	myfitnesspal: 'health',
-	// Education
 	duolingo: 'education',
 	coursera: 'education',
 	udemy: 'education',
 	khan: 'education',
-	// Shopping
 	amazon: 'utility',
 	temu: 'utility',
 	shein: 'utility',
@@ -167,14 +154,12 @@ function categorizeApp(name: string): AppCategory {
 	return 'utility'
 }
 
-// Detect platform from OCR text keywords
 function detectPlatform(text: string): 'ios' | 'android' | 'unknown' {
 	if (/screen time|pickups|most used|show categories/i.test(text)) return 'ios'
 	if (/digital wellbeing|focus mode|dashboard/i.test(text)) return 'android'
 	return 'unknown'
 }
 
-// Time extraction: "2h 30m", "2h", "30m" (English) and "2ч 30мин", "2ч", "30мин" (Russian)
 const TIME_PATTERN = /(\d+)\s*h(?:ours?)?\s*(\d+)\s*m(?:in)?/i
 const HOURS_ONLY = /(\d+)\s*h(?:ours?)?(?!\s*\d)/i
 const MINUTES_ONLY = /\b(\d+)\s*m(?:in)?(?!\w)/i // \b anchor prevents matching notification counts like "123m"
@@ -273,7 +258,6 @@ function extractScreenTimeData(text: string): ExtractedData {
 		}
 	}
 
-	// Include Russian time patterns
 	const apps: ExtractedApp[] = []
 	const appTimePattern =
 		/^(\d+\s*h\s*\d+\s*m|\d+\s*h|\d+\s*m|\d+\s*ч\s*\d+\s*мин|\d+\s*ч|\d+\s*мин)\s*>?\s*$/i
@@ -304,7 +288,6 @@ function extractScreenTimeData(text: string): ExtractedData {
 
 	if (apps.length > 0) extracted.apps = apps
 
-	// Extract "First Used After Pickup" — preserve this data
 	const firstUsedIdx = lines.findIndex((l) => /first used after pickup/i.test(l))
 	if (firstUsedIdx >= 0) {
 		const pickupApps: ExtractedPickupApp[] = []
@@ -322,7 +305,6 @@ function extractScreenTimeData(text: string): ExtractedData {
 	return extracted
 }
 
-// Only include raw OCR when extraction is partial
 function formatStructuredOutput(
 	cleaned: string,
 	extracted: ExtractedData,
@@ -361,7 +343,6 @@ function formatStructuredOutput(
 	}
 
 	if (parts.length > 0) {
-		// Only append raw OCR when extraction was partial
 		if (includeRaw) {
 			parts.push('')
 			parts.push('--- RAW OCR ---')
@@ -382,7 +363,6 @@ export function preprocessOcrText(raw: string, sourceType: string): PreprocessRe
 
 	if (sourceType === 'screentime') {
 		const extracted = extractScreenTimeData(cleaned)
-		// Include raw only when extraction is partial (< 3 apps or no total time)
 		const isComplete = !!(
 			extracted.totalScreenTimeMinutes &&
 			extracted.apps &&

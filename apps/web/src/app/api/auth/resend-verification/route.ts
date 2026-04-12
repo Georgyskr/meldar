@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getBaseUrl, sendVerificationEmail } from '@/server/email'
 import { getUserFromRequest } from '@/server/identity/jwt'
+import { hashToken } from '@/server/identity/token-hash'
 import { checkRateLimit, mustHaveRateLimit, resendVerifyLimit } from '@/server/lib/rate-limit'
 
 const limiter = mustHaveRateLimit(resendVerifyLimit, 'resend-verification')
@@ -48,19 +49,19 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ success: true })
 		}
 
-		const verifyToken = nanoid(32)
+		const rawToken = nanoid(32)
 		const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
 		await db
 			.update(users)
 			.set({
-				verifyToken,
+				verifyToken: hashToken(rawToken),
 				verifyTokenExpiresAt: expiresAt,
 			})
 			.where(eq(users.id, user.id))
 
 		try {
-			await sendVerificationEmail(session.email, verifyToken, getBaseUrl())
+			await sendVerificationEmail(session.email, rawToken, getBaseUrl())
 		} catch (err) {
 			console.error('Verification email failed:', err instanceof Error ? err.message : 'Unknown')
 		}

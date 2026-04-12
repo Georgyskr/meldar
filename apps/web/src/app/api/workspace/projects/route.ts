@@ -3,7 +3,7 @@ import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@melda
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { provisionSubdomain } from '@/server/domains'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 import {
 	checkRateLimit,
 	mustHaveRateLimit,
@@ -15,19 +15,7 @@ import { listUserProjects } from '@/server/projects/list-user-projects'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function serializeError(err: unknown): Record<string, unknown> {
-	if (!(err instanceof Error)) return { message: String(err) }
-	const out: Record<string, unknown> = {
-		name: err.name,
-		message: err.message,
-	}
-	for (const key of ['code', 'operation', 'projectId', 'buildId', 'path'] as const) {
-		if (key in err) out[key] = (err as unknown as Record<string, unknown>)[key]
-	}
-	if (err.stack) out.stack = err.stack.split('\n').slice(0, 6).join('\n')
-	if (err.cause) out.cause = serializeError(err.cause)
-	return out
-}
+import { serializeError } from './serialize-error'
 
 const createProjectSchema = z.object({
 	name: z
@@ -43,15 +31,10 @@ const limiter = mustHaveRateLimit(projectsCreateLimit, 'projectsCreate')
 const listLimiter = mustHaveRateLimit(projectsListLimit, 'projectsList')
 
 export async function GET(request: NextRequest) {
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
-	const { success } = await checkRateLimit(listLimiter, session.userId)
+	const { success } = await checkRateLimit(listLimiter, auth.userId)
 	if (!success) {
 		return NextResponse.json(
 			{
@@ -65,7 +48,7 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		const projects = await listUserProjects(session.userId)
+		const projects = await listUserProjects(auth.userId)
 		return NextResponse.json({ projects })
 	} catch (err) {
 		console.error(
@@ -79,21 +62,13 @@ export async function GET(request: NextRequest) {
 	}
 }
 
-// Starter scaffold for every new project — pre-seeded before Claude touches
-// anything so the project is always a valid buildable Next.js 16 + Panda
-// skeleton from the moment the user clicks "Make this now" on their first step.
 const STARTER_INITIAL_FILES = STARTER_FILES.map((f) => ({ path: f.path, content: f.content }))
 
 export async function POST(request: NextRequest) {
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
-	const { success: createSuccess } = await checkRateLimit(limiter, session.userId)
+	const { success: createSuccess } = await checkRateLimit(limiter, auth.userId)
 	if (!createSuccess) {
 		return NextResponse.json(
 			{
@@ -138,7 +113,6 @@ export async function POST(request: NextRequest) {
 		storage = buildProjectStorageFromEnv()
 	} catch (err) {
 		hasR2 = false
-		// TODO: replace console.warn with structured logging + alert (Victoria Metrics / Grafana)
 		console.warn(
 			'[api/workspace/projects] R2 not configured, running in degraded mode:',
 			err instanceof Error ? err.message : 'Unknown',
@@ -148,7 +122,7 @@ export async function POST(request: NextRequest) {
 
 	try {
 		const projectOpts = {
-			userId: session.userId,
+			userId: auth.userId,
 			name,
 			templateId: 'next-landing-v1',
 			initialFiles: hasR2 ? STARTER_INITIAL_FILES : [],

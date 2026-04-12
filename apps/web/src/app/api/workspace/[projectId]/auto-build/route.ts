@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { runAutoBuild, sseStreamFromGenerator } from '@/server/build/run-auto-build'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 import { checkRateLimit, mustHaveRateLimit, workspaceBuildLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
@@ -25,15 +25,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
-	const { success: rateLimitSuccess } = await checkRateLimit(rateLimit, session.userId, true)
+	const { success: rateLimitSuccess } = await checkRateLimit(rateLimit, auth.userId, true)
 	if (!rateLimitSuccess) {
 		return NextResponse.json(
 			{ error: { code: 'RATE_LIMITED', message: 'Too many builds. Wait a few minutes.' } },
@@ -41,7 +36,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const project = await verifyProjectOwnership(projectId, session.userId)
+	const project = await verifyProjectOwnership(projectId, auth.userId)
 	if (!project) {
 		return NextResponse.json(
 			{ error: { code: 'NOT_FOUND', message: 'Project not found' } },
@@ -51,7 +46,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 	const generator = runAutoBuild({
 		projectId,
-		userId: session.userId,
+		userId: auth.userId,
 		signal: request.signal,
 	})
 

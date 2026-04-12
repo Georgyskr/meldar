@@ -40,11 +40,9 @@ function resolveAdaptiveSourceType(appName: string | null): string {
 	if (!appName) return 'subscriptions'
 	const lower = appName.toLowerCase()
 
-	// Trading apps — portfolio/watchlist screenshots
 	const tradingApps = ['robinhood', 'etoro', 'trading 212', 'webull', 'interactive brokers']
 	if (tradingApps.some((a) => lower.includes(a))) return 'subscriptions'
 
-	// Banking apps — transaction screenshots
 	const bankingApps = [
 		'revolut',
 		'chase',
@@ -62,7 +60,6 @@ function resolveAdaptiveSourceType(appName: string | null): string {
 	]
 	if (bankingApps.some((a) => lower.includes(a))) return 'subscriptions'
 
-	// Fitness / health apps
 	if (
 		lower.includes('strava') ||
 		lower.includes('nike') ||
@@ -74,7 +71,6 @@ function resolveAdaptiveSourceType(appName: string | null): string {
 	)
 		return 'health'
 
-	// Food delivery apps — order history screenshots
 	const foodApps = [
 		'ubereats',
 		'uber eats',
@@ -86,7 +82,6 @@ function resolveAdaptiveSourceType(appName: string | null): string {
 	]
 	if (foodApps.some((a) => lower.includes(a))) return 'subscriptions'
 
-	// Music/streaming apps
 	if (
 		lower.includes('spotify') ||
 		lower.includes('apple music') ||
@@ -96,7 +91,6 @@ function resolveAdaptiveSourceType(appName: string | null): string {
 	)
 		return 'subscriptions'
 
-	// Calendar apps
 	if (
 		lower.includes('calendar') ||
 		lower.includes('google calendar') ||
@@ -105,7 +99,6 @@ function resolveAdaptiveSourceType(appName: string | null): string {
 	)
 		return 'calendar'
 
-	// Storage-heavy apps
 	if (lower.includes('photos') || lower.includes('files') || lower.includes('dropbox'))
 		return 'storage'
 
@@ -154,7 +147,6 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Validate sessionId format BEFORE any DB query
 		const sessionIdParsed = z.string().min(1).max(32).safeParse(sessionId)
 		if (!sessionIdParsed.success) {
 			return NextResponse.json(
@@ -163,7 +155,6 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Validate file size per platform (skip if client-side OCR provided text)
 		const isImagePlatform =
 			platform === 'screentime' ||
 			platform === 'subscriptions' ||
@@ -203,7 +194,6 @@ export async function POST(request: NextRequest) {
 				}
 			}
 
-			// MIME validation for non-screentime uploads
 			const ALLOWED_ZIP_TYPES = new Set([
 				'application/zip',
 				'application/x-zip-compressed',
@@ -238,7 +228,6 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Verify session exists and check sourcesProvided for idempotency
 		const db = getDb()
 		const [session] = await db
 			.select({
@@ -256,8 +245,7 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Skip re-extraction if this source was already uploaded (idempotent).
-		// Adaptive is intentionally multi-upload, so exclude it from this guard.
+		// Adaptive is intentionally multi-upload, so exclude it from idempotency guard.
 		if (
 			platformParsed.data !== 'adaptive' &&
 			session.sourcesProvided?.includes(platformParsed.data)
@@ -270,7 +258,6 @@ export async function POST(request: NextRequest) {
 		switch (platformParsed.data) {
 			case 'screentime': {
 				if (ocrText) {
-					// Client-side OCR provided — use text-only Haiku (cheap)
 					const result = await extractFromOcrText(ocrText, 'screentime')
 					if ('error' in result) {
 						return NextResponse.json(
@@ -280,7 +267,6 @@ export async function POST(request: NextRequest) {
 					}
 					updateData = { screenTimeData: result.data }
 				} else if (file) {
-					// Fallback: Vision API (expensive)
 					const buffer = Buffer.from(await file.arrayBuffer())
 					const base64 = buffer.toString('base64')
 					const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp'
@@ -443,7 +429,6 @@ export async function POST(request: NextRequest) {
 			}
 		}
 
-		// Guard against empty updateData
 		if (Object.keys(updateData).length === 0) {
 			return NextResponse.json(
 				{ error: { code: 'INTERNAL_ERROR', message: 'Unknown platform handler.' } },
@@ -451,7 +436,6 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Update session with parsed data and atomically append platform to sourcesProvided
 		await db
 			.update(discoverySessions)
 			.set({
@@ -461,7 +445,6 @@ export async function POST(request: NextRequest) {
 			})
 			.where(eq(discoverySessions.id, sessionId))
 
-		// Return extracted data for frontend preview ("wow" moment)
 		const extractedPreview = Object.values(updateData)[0]
 		return NextResponse.json({
 			success: true,
@@ -472,7 +455,6 @@ export async function POST(request: NextRequest) {
 		const message = err instanceof Error ? err.message : 'Unknown error'
 		console.error('Upload processing failed:', message)
 
-		// Return specific error for parse failures
 		if (
 			message.includes('invalid JSON') ||
 			message.includes('not an array') ||

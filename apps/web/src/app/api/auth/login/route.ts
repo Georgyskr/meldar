@@ -3,9 +3,15 @@ import { users } from '@meldar/db/schema'
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { setAuthCookie } from '@/server/identity/auth-cookie'
 import { signToken } from '@/server/identity/jwt'
 import { verifyPassword } from '@/server/identity/password'
-import { checkRateLimit, loginLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
+import {
+	checkRateLimit,
+	loginEmailLimit,
+	loginLimit,
+	mustHaveRateLimit,
+} from '@/server/lib/rate-limit'
 
 const loginSchema = z.object({
 	email: z.string().email(),
@@ -16,7 +22,10 @@ const INVALID_CREDENTIALS = {
 	error: { code: 'UNAUTHORIZED', message: 'Invalid email or password' },
 }
 
+const DUMMY_HASH = '$2a$12$LJ3m4ys3Lg2VBe6p0C5LUOklGPixGilqH0UbIFp5EMz/EHXFGoR2u'
+
 const limiter = mustHaveRateLimit(loginLimit, 'login')
+const emailLimiter = mustHaveRateLimit(loginEmailLimit, 'login-email')
 
 export async function POST(request: NextRequest) {
 	try {
@@ -36,7 +45,16 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		const body = await request.json()
+		let body: unknown
+		try {
+			body = await request.json()
+		} catch {
+			return NextResponse.json(
+				{ error: { code: 'INVALID_JSON', message: 'Request body must be valid JSON' } },
+				{ status: 400 },
+			)
+		}
+
 		const parsed = loginSchema.safeParse(body)
 
 		if (!parsed.success) {
@@ -47,6 +65,22 @@ export async function POST(request: NextRequest) {
 		}
 
 		const { email, password } = parsed.data
+
+		const emailRateResult = await checkRateLimit(emailLimiter, email, true)
+		if (!emailRateResult.success) {
+			const status = emailRateResult.serviceError ? 503 : 429
+			const code = emailRateResult.serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED'
+			return NextResponse.json(
+				{
+					error: {
+						code,
+						message: 'Too many login attempts. Try again in 15 minutes.',
+					},
+				},
+				{ status },
+			)
+		}
+
 		const db = getDb()
 
 		const [user] = await db
@@ -63,6 +97,7 @@ export async function POST(request: NextRequest) {
 			.limit(1)
 
 		if (!user) {
+			await verifyPassword(password, DUMMY_HASH)
 			return NextResponse.json(INVALID_CREDENTIALS, { status: 401 })
 		}
 
@@ -87,13 +122,7 @@ export async function POST(request: NextRequest) {
 			},
 		})
 
-		response.cookies.set('meldar-auth', token, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'lax',
-			maxAge: 60 * 60 * 24 * 7,
-			path: '/',
-		})
+		setAuthCookie(response, token)
 
 		return response
 	} catch (err) {

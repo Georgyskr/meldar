@@ -6,6 +6,7 @@ import {
 	type BookingConfirmationPayload,
 	executeBookingConfirmation,
 } from '@/server/agents/executors/booking-confirmation'
+import { verifyCronAuth } from '@/server/lib/cron-auth'
 import { checkGlobalSpendCeiling, recordGlobalSpend } from '@/server/lib/spend-ceiling'
 
 const INVOCATION_SPEND_CAP_CENTS = 15
@@ -106,8 +107,7 @@ async function processTasks(db: ReturnType<typeof getDb>, tasks: TaskRow[]): Pro
 }
 
 export async function GET(request: Request) {
-	const authHeader = request.headers.get('authorization')
-	if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+	if (!verifyCronAuth(request)) {
 		return Response.json({ error: 'Unauthorized' }, { status: 401 })
 	}
 

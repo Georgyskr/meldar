@@ -24,11 +24,10 @@ import {
 	parseSseRecord,
 	SSE_DONE_SENTINEL,
 } from '@meldar/orchestrator'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { sseStreamFromGenerator } from '@/server/build/run-build'
 
-// ── helpers ────────────────────────────────────────────────────────────────
 
 async function* gen(events: OrchestratorEvent[]): AsyncGenerator<OrchestratorEvent, void, unknown> {
 	for (const e of events) yield e
@@ -47,7 +46,6 @@ async function readAll(stream: ReadableStream<Uint8Array>): Promise<string> {
 	return out
 }
 
-// ── sseStreamFromGenerator ────────────────────────────────────────────────
 
 describe('sseStreamFromGenerator', () => {
 	it('emits one SSE frame per event followed by the [DONE] sentinel', async () => {
@@ -83,8 +81,6 @@ describe('sseStreamFromGenerator', () => {
 	})
 
 	it('emits a `failed` frame and still terminates with [DONE] when the generator throws', async () => {
-		// orchestrateBuild catches its own errors, but we belt-and-suspender
-		// the route handler in case future generators don't.
 		async function* throwing(): AsyncGenerator<OrchestratorEvent, void, unknown> {
 			yield { type: 'started', buildId: 'b1', projectId: 'p1' }
 			throw new Error('boom')
@@ -111,17 +107,13 @@ describe('sseStreamFromGenerator', () => {
 		const stream = sseStreamFromGenerator(counting(), ctrl.signal)
 		const reader = stream.getReader()
 
-		// Pull one frame, then abort.
 		await reader.read()
 		ctrl.abort()
-		// Drain the rest.
 		while (true) {
 			const { done } = await reader.read()
 			if (done) break
 		}
 
-		// We should have yielded MUCH less than 100 — the for-await loop
-		// breaks on the next iteration after abort.
 		expect(yielded.length).toBeLessThan(100)
 	})
 
@@ -131,11 +123,9 @@ describe('sseStreamFromGenerator', () => {
 			{ type: 'prompt_sent', promptHash: 'h', estimatedCents: 3 },
 		]
 		const wire = await readAll(sseStreamFromGenerator(gen(events)))
-		// Split on \n\n, drop empty trailer
 		const records = wire.split('\n\n').filter((r) => r.length > 0)
-		expect(records).toHaveLength(events.length + 1) // events + done sentinel
+		expect(records).toHaveLength(events.length + 1)
 
-		// First N parse to the events; the final one is the [DONE] sentinel.
 		const eventRecords = records.slice(0, events.length)
 		const doneRecord = records[records.length - 1]
 
@@ -147,9 +137,7 @@ describe('sseStreamFromGenerator', () => {
 	})
 })
 
-// ── POST handler — auth + validation guards ──────────────────────────────
 
-// We mock verifyToken so we don't need a real signing key.
 vi.mock('@/server/email', () => ({
 	sendFirstBuildEmail: vi.fn(),
 	getBaseUrl: vi.fn(() => 'https://meldar.ai'),
@@ -167,10 +155,20 @@ vi.mock('@meldar/db/client', () => ({
 	getDb: vi.fn(() => ({})),
 }))
 
-vi.mock('@/server/identity/jwt', () => ({
-	verifyToken: vi.fn((token: string) => {
-		if (token === 'valid_token') return { userId: 'user_1', email: 'u@x.com' }
-		return null
+vi.mock('@/server/identity/require-auth', () => ({
+	requireAuth: vi.fn(async (request: Request) => {
+		const cookie = request.headers.get('cookie')
+		const match = cookie?.match(/meldar-auth=([^;]+)/)
+		if (match?.[1] === 'valid_token') {
+			return { ok: true, userId: 'user_1', email: 'u@x.com', emailVerified: true }
+		}
+		return {
+			ok: false,
+			response: NextResponse.json(
+				{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
+				{ status: 401 },
+			),
+		}
 	}),
 }))
 
@@ -180,12 +178,18 @@ vi.mock('@/server/lib/rate-limit', () => ({
 	workspaceBuildLimit: null,
 }))
 
+const { mockVerifyProjectOwnership } = vi.hoisted(() => ({
+	mockVerifyProjectOwnership: vi.fn(),
+}))
+
+vi.mock('@/server/lib/verify-project-ownership', () => ({
+	verifyProjectOwnership: mockVerifyProjectOwnership,
+}))
+
 const { mockGetActiveStreamingBuild } = vi.hoisted(() => ({
 	mockGetActiveStreamingBuild: vi.fn<(projectId: string) => Promise<string | null>>(),
 }))
 
-// And we mock buildOrchestratorDeps so the route doesn't try to dial Postgres,
-// R2, Redis, or Anthropic during a unit test.
 vi.mock('@meldar/orchestrator', async () => {
 	const actual =
 		await vi.importActual<typeof import('@meldar/orchestrator')>('@meldar/orchestrator')
@@ -227,11 +231,8 @@ vi.mock('@meldar/orchestrator', async () => {
 	}
 })
 
-// Import POST AFTER the mocks so the handler picks them up.
 const { POST } = await import('../route')
 
-// A real, well-formed UUID v4. Most tests don't care about its exact value;
-// they just need it to pass the route's UUID validation.
 const VALID_PROJECT_ID = '11111111-1111-4111-8111-111111111111'
 
 function makeRequest(opts: { body: unknown; cookie?: string; projectId?: string }): {
@@ -256,6 +257,8 @@ describe('POST /api/workspace/[projectId]/build', () => {
 	beforeEach(() => {
 		mockGetActiveStreamingBuild.mockReset()
 		mockGetActiveStreamingBuild.mockResolvedValue(null)
+		mockVerifyProjectOwnership.mockReset()
+		mockVerifyProjectOwnership.mockResolvedValue({ id: 'fake_project', name: 'Test Project' })
 	})
 
 	it('returns 401 when no auth cookie is present', async () => {
@@ -295,11 +298,6 @@ describe('POST /api/workspace/[projectId]/build', () => {
 	})
 
 	it('returns 400 when projectId is not a UUID', async () => {
-		// projectId comes from the URL and must be validated at the boundary —
-		// otherwise a non-UUID flows into the orchestrator and surfaces an
-		// opaque "project not found" error after auth/rate-limit checks pass.
-		// Worse, it gives an attacker a free probe surface for shape-of-id
-		// behavioral differences.
 		const { request, context } = makeRequest({
 			body: { prompt: 'hi' },
 			cookie: 'valid_token',
@@ -309,6 +307,18 @@ describe('POST /api/workspace/[projectId]/build', () => {
 		expect(res.status).toBe(400)
 		const json = (await res.json()) as { error: { code: string } }
 		expect(json.error.code).toBe('VALIDATION_ERROR')
+	})
+
+	it('returns 404 when project ownership fails', async () => {
+		mockVerifyProjectOwnership.mockResolvedValue(null)
+		const { request, context } = makeRequest({
+			body: { prompt: 'hi' },
+			cookie: 'valid_token',
+		})
+		const res = await POST(request, context)
+		expect(res.status).toBe(404)
+		const json = (await res.json()) as { error: { code: string } }
+		expect(json.error.code).toBe('NOT_FOUND')
 	})
 
 	it('streams SSE events on a valid request', async () => {

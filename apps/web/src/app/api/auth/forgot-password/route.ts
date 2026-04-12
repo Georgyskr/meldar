@@ -5,15 +5,19 @@ import { nanoid } from 'nanoid'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getBaseUrl, sendPasswordResetEmail } from '@/server/email'
-import { checkRateLimit, mustHaveRateLimit, resetLimit } from '@/server/lib/rate-limit'
+import { hashToken } from '@/server/identity/token-hash'
+import { checkRateLimit, forgotPasswordLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 
 const forgotSchema = z.object({
 	email: z.string().email(),
 })
 
-const limiter = mustHaveRateLimit(resetLimit, 'forgot-password')
+const MIN_DURATION_MS = 500
+
+const limiter = mustHaveRateLimit(forgotPasswordLimit, 'forgot-password')
 
 export async function POST(request: NextRequest) {
+	const start = Date.now()
 	try {
 		const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 		const rateResult = await checkRateLimit(limiter, ip, true)
@@ -26,7 +30,16 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		const body = await request.json()
+		let body: unknown
+		try {
+			body = await request.json()
+		} catch {
+			return NextResponse.json(
+				{ error: { code: 'INVALID_JSON', message: 'Request body must be valid JSON' } },
+				{ status: 400 },
+			)
+		}
+
 		const parsed = forgotSchema.safeParse(body)
 
 		if (!parsed.success) {
@@ -46,27 +59,28 @@ export async function POST(request: NextRequest) {
 			.limit(1)
 
 		if (!user || user.authProvider === 'google') {
-			await new Promise((resolve) => setTimeout(resolve, 150))
+			await delay(Math.max(0, MIN_DURATION_MS - (Date.now() - start)))
 			return NextResponse.json({ success: true })
 		}
 
-		const resetToken = nanoid(32)
+		const rawToken = nanoid(32)
 		const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
 
 		await db
 			.update(users)
 			.set({
-				resetToken,
+				resetToken: hashToken(rawToken),
 				resetTokenExpiresAt: expiresAt,
 			})
 			.where(eq(users.email, email))
 
 		try {
-			await sendPasswordResetEmail(email, resetToken, getBaseUrl())
+			await sendPasswordResetEmail(email, rawToken, getBaseUrl())
 		} catch (err) {
 			console.error('Password reset email failed:', err instanceof Error ? err.message : 'Unknown')
 		}
 
+		await delay(Math.max(0, MIN_DURATION_MS - (Date.now() - start)))
 		return NextResponse.json({ success: true })
 	} catch (err) {
 		console.error('Forgot password error:', err instanceof Error ? err.message : 'Unknown')
@@ -75,4 +89,9 @@ export async function POST(request: NextRequest) {
 			{ status: 500 },
 		)
 	}
+}
+
+function delay(ms: number): Promise<void> {
+	if (ms <= 0) return Promise.resolve()
+	return new Promise((resolve) => setTimeout(resolve, ms))
 }

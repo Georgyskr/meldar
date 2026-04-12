@@ -46,9 +46,6 @@ test.describe('Workspace empty state', () => {
 
 		await page.goto(`/workspace/${projectId}?skip-onboarding=1`)
 
-		// If the project already has cards (from rate-limit fallback), this won't
-		// show the picker — it'll show the workspace. Only assert the picker if
-		// the project is genuinely empty.
 		const bodyText = (await page.textContent('body')) ?? ''
 		const hasCards = bodyText.includes('Your plan') || bodyText.includes('of')
 		if (!hasCards) {

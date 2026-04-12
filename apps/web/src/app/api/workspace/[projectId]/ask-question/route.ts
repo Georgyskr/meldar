@@ -1,4 +1,3 @@
-// TODO: Route through guardedAnthropicCall for unified spend ceilings (architecture review #7)
 import { usageToCents } from '@meldar/tokens'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -7,7 +6,7 @@ import {
 	askQuestionRequestSchema,
 	askQuestionResponseSchema,
 } from '@/features/project-onboarding/lib/schemas'
-import { verifyToken } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 import { recordAiCall } from '@/server/lib/ai-call-log'
 import { getAnthropicClient, MODELS } from '@/server/lib/anthropic'
 import { adaptiveLimit, checkRateLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
@@ -46,15 +45,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const session = verifyToken(request.cookies.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		return NextResponse.json(
-			{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
-			{ status: 401 },
-		)
-	}
+	const auth = await requireAuth(request)
+	if (!auth.ok) return auth.response
 
-	const { success, serviceError } = await checkRateLimit(limiter, session.userId, true)
+	const { success, serviceError } = await checkRateLimit(limiter, auth.userId, true)
 	if (!success) {
 		if (serviceError) {
 			return NextResponse.json({ question: FALLBACK_QUESTIONS[0] }, { status: 503 })
@@ -65,7 +59,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	const project = await verifyProjectOwnership(projectId, session.userId)
+	const project = await verifyProjectOwnership(projectId, auth.userId)
 	if (!project) {
 		return NextResponse.json(
 			{ error: { code: 'NOT_FOUND', message: 'Project not found' } },
@@ -100,7 +94,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 	const { messages, questionIndex } = parsed.data
 	const systemPrompt = buildAskQuestionSystemPrompt(questionIndex)
 
-	const spendCheck = await checkAllSpendCeilings(session.userId)
+	const spendCheck = await checkAllSpendCeilings(auth.userId)
 	if (!spendCheck.allowed) {
 		return NextResponse.json({ question: FALLBACK_QUESTIONS[questionIndex - 1] })
 	}
@@ -124,13 +118,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		const actualCents = usageToCents(MODELS.HAIKU, { inputTokens, outputTokens })
 		Promise.all([
 			recordGlobalSpend(actualCents),
-			recordUserHourlySpend(session.userId, actualCents),
-			recordUserDailySpend(session.userId, actualCents),
+			recordUserHourlySpend(auth.userId, actualCents),
+			recordUserDailySpend(auth.userId, actualCents),
 		]).catch((err) => {
 			console.error('[ask-question] spend recording failed:', err)
 		})
 		recordAiCall({
-			userId: session.userId,
+			userId: auth.userId,
 			projectId,
 			kind: 'ask_question',
 			model: MODELS.HAIKU,

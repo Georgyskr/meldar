@@ -92,7 +92,6 @@ function makeDeps(
 	}
 }
 
-// ── Test 1: Realistic AI output passes validation and commits ──────────────
 
 describe('realistic AI output passes validation and commits', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -199,7 +198,6 @@ export function clamp(value: number, min: number, max: number): number {
 	})
 })
 
-// ── Test 2: Sequential builds on the same project ──────────────────────────
 
 describe('second build on same project sees files from first build', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -332,7 +330,6 @@ describe('second build on same project sees files from first build', () => {
 	})
 })
 
-// ── Test 3: Path safety validation rejects dangerous paths ─────────────────
 
 describe('path safety validation rejects dangerous AI output', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -443,7 +440,6 @@ describe('path safety validation rejects dangerous AI output', () => {
 	})
 })
 
-// ── Test 4: SSE stream round-trip preserves all event data ─────────────────
 
 describe('SSE stream round-trip preserves all event data', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -576,7 +572,6 @@ describe('SSE stream round-trip preserves all event data', () => {
 	})
 })
 
-// ── Test 5: Build without sandbox emits committed with no sandbox_ready ────
 
 describe('build without sandbox provider (deploy not configured)', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -644,7 +639,6 @@ describe('build without sandbox provider (deploy not configured)', () => {
 	})
 })
 
-// ── Test 6: Token ledger is not charged when build fails before commit ─────
 
 describe('token ledger behavior on build failure', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>
@@ -762,7 +756,6 @@ describe('token ledger behavior on build failure', () => {
 	})
 })
 
-// ── Edge cases: empty project first build, many existing files ─────────────
 
 describe('edge cases', () => {
 	it('first build on a project with only the genesis file works', async () => {

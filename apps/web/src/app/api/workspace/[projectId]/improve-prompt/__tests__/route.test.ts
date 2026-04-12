@@ -1,10 +1,20 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/server/identity/jwt', () => ({
-	verifyToken: vi.fn((token: string) => {
-		if (token === 'valid_token') return { userId: 'user_1', email: 'u@x.com' }
-		return null
+vi.mock('@/server/identity/require-auth', () => ({
+	requireAuth: vi.fn(async (request: Request) => {
+		const cookie = request.headers.get('cookie')
+		const match = cookie?.match(/meldar-auth=([^;]+)/)
+		if (match?.[1] === 'valid_token') {
+			return { ok: true, userId: 'user_1', email: 'u@x.com', emailVerified: true }
+		}
+		return {
+			ok: false,
+			response: NextResponse.json(
+				{ error: { code: 'UNAUTHENTICATED', message: 'Sign in required' } },
+				{ status: 401 },
+			),
+		}
 	}),
 }))
 

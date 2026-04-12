@@ -1,6 +1,7 @@
 import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { hashToken } from '@/server/identity/token-hash'
 
 const {
 	mockDbInsert,
@@ -65,7 +66,7 @@ function setupDbChain() {
 
 describe('POST /api/auth/register', () => {
 	beforeEach(() => {
-		vi.stubEnv('AUTH_SECRET', 'test-secret')
+		vi.stubEnv('AUTH_SECRET', 'test-secret-key-minimum-32-chars!')
 		vi.stubEnv('RESEND_API_KEY', 'test-resend-key')
 		setupDbChain()
 		mockSendVerificationEmail.mockResolvedValue(undefined)
@@ -81,7 +82,7 @@ describe('POST /api/auth/register', () => {
 		const res = await POST(
 			makeRequest({
 				email: 'new@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
 				name: 'Test User',
 			}),
 		)
@@ -97,17 +98,36 @@ describe('POST /api/auth/register', () => {
 		expect(setCookie).toContain('Path=/')
 	})
 
-	it('includes verifyToken and verifyTokenExpiresAt in insert payload', async () => {
+	it('stores hashed verifyToken in DB, sends raw token in email', async () => {
 		await POST(
 			makeRequest({
 				email: 'new@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
+			}),
+		)
+
+		const storedToken = mockDbValues.mock.calls[0][0].verifyToken as string
+		expect(storedToken).toBe(hashToken('mock-verify-token-32chars-xxxxxxx'))
+		expect(storedToken).toMatch(/^[a-f0-9]{64}$/)
+		expect(storedToken).not.toBe('mock-verify-token-32chars-xxxxxxx')
+
+		expect(mockSendVerificationEmail).toHaveBeenCalledWith(
+			'new@example.com',
+			'mock-verify-token-32chars-xxxxxxx',
+			'http://localhost',
+		)
+	})
+
+	it('includes verifyTokenExpiresAt in insert payload', async () => {
+		await POST(
+			makeRequest({
+				email: 'new@example.com',
+				password: 'Secure1pass',
 			}),
 		)
 
 		expect(mockDbValues).toHaveBeenCalledWith(
 			expect.objectContaining({
-				verifyToken: 'mock-verify-token-32chars-xxxxxxx',
 				verifyTokenExpiresAt: expect.any(Date),
 			}),
 		)
@@ -123,7 +143,7 @@ describe('POST /api/auth/register', () => {
 		await POST(
 			makeRequest({
 				email: 'new@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
 			}),
 		)
 
@@ -141,7 +161,7 @@ describe('POST /api/auth/register', () => {
 		const res = await POST(
 			makeRequest({
 				email: 'new@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
 			}),
 		)
 
@@ -163,7 +183,7 @@ describe('POST /api/auth/register', () => {
 		const res = await POST(
 			makeRequest({
 				email: 'existing@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
 			}),
 		)
 
@@ -176,7 +196,7 @@ describe('POST /api/auth/register', () => {
 		const res = await POST(
 			makeRequest({
 				email: 'not-an-email',
-				password: 'securepassword',
+				password: 'Secure1pass',
 			}),
 		)
 
@@ -198,6 +218,19 @@ describe('POST /api/auth/register', () => {
 		expect(json.error.code).toBe('VALIDATION_ERROR')
 	})
 
+	it('returns 400 with INVALID_JSON for malformed JSON body', async () => {
+		const req = new Request('http://localhost/api/auth/register', {
+			method: 'POST',
+			headers: { 'Content-Type': 'text/plain' },
+			body: 'not json',
+		}) as unknown as NextRequest
+
+		const res = await POST(req)
+		const json = await res.json()
+		expect(res.status).toBe(400)
+		expect(json.error.code).toBe('INVALID_JSON')
+	})
+
 	it('rejects missing fields with 400', async () => {
 		const res = await POST(makeRequest({}))
 		expect(res.status).toBe(400)
@@ -205,8 +238,56 @@ describe('POST /api/auth/register', () => {
 		const res2 = await POST(makeRequest({ email: 'a@b.com' }))
 		expect(res2.status).toBe(400)
 
-		const res3 = await POST(makeRequest({ password: 'longenough' }))
+		const res3 = await POST(makeRequest({ password: 'Longenough1' }))
 		expect(res3.status).toBe(400)
+	})
+
+	it('rejects all-lowercase password (Finding #14)', async () => {
+		const res = await POST(
+			makeRequest({
+				email: 'valid@example.com',
+				password: 'password',
+			}),
+		)
+		expect(res.status).toBe(400)
+		const json = await res.json()
+		expect(json.error.code).toBe('VALIDATION_ERROR')
+	})
+
+	it('rejects all-digit password (Finding #14)', async () => {
+		const res = await POST(
+			makeRequest({
+				email: 'valid@example.com',
+				password: '12345678',
+			}),
+		)
+		expect(res.status).toBe(400)
+		const json = await res.json()
+		expect(json.error.code).toBe('VALIDATION_ERROR')
+	})
+
+	it('rejects all-uppercase password (Finding #14)', async () => {
+		const res = await POST(
+			makeRequest({
+				email: 'valid@example.com',
+				password: 'ALLUPPERCASE',
+			}),
+		)
+		expect(res.status).toBe(400)
+		const json = await res.json()
+		expect(json.error.code).toBe('VALIDATION_ERROR')
+	})
+
+	it('accepts password with uppercase, lowercase and digit (Finding #14)', async () => {
+		const res = await POST(
+			makeRequest({
+				email: 'valid@example.com',
+				password: 'Str0ngPass',
+			}),
+		)
+		expect(res.status).toBe(200)
+		const json = await res.json()
+		expect(json.success).toBe(true)
 	})
 
 	it('returns 500 on unexpected error', async () => {
@@ -215,7 +296,7 @@ describe('POST /api/auth/register', () => {
 		const res = await POST(
 			makeRequest({
 				email: 'error@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
 			}),
 		)
 
@@ -224,11 +305,36 @@ describe('POST /api/auth/register', () => {
 		expect(json.error.code).toBe('INTERNAL_ERROR')
 	})
 
+	it('duplicate-email path takes similar time to success path (Finding #20)', async () => {
+		const successStart = performance.now()
+		await POST(
+			makeRequest({
+				email: 'new@example.com',
+				password: 'Secure1pass',
+			}),
+		)
+		const _successDuration = performance.now() - successStart
+
+		const uniqueViolation = Object.assign(new Error('duplicate key value'), { code: '23505' })
+		mockDbReturning.mockRejectedValueOnce(uniqueViolation)
+
+		const dupStart = performance.now()
+		await POST(
+			makeRequest({
+				email: 'existing@example.com',
+				password: 'Secure1pass',
+			}),
+		)
+		const dupDuration = performance.now() - dupStart
+
+		expect(dupDuration).toBeGreaterThanOrEqual(100)
+	})
+
 	it('sends welcome email after registration', async () => {
 		await POST(
 			makeRequest({
 				email: 'new@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
 				name: 'Test User',
 			}),
 		)
@@ -241,7 +347,7 @@ describe('POST /api/auth/register', () => {
 		await POST(
 			makeRequest({
 				email: 'noname@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
 			}),
 		)
 
@@ -255,7 +361,7 @@ describe('POST /api/auth/register', () => {
 		const res = await POST(
 			makeRequest({
 				email: 'new@example.com',
-				password: 'securepassword',
+				password: 'Secure1pass',
 			}),
 		)
 

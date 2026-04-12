@@ -19,7 +19,6 @@ vi.mock('@anthropic-ai/sdk', () => ({
 import type { AnalysisInput } from '../analyze'
 import { runCrossAnalysis } from '../analyze'
 
-// ── Fixtures ────────────────────────────────────────────────────────────────
 
 const minimalInput: AnalysisInput = {
 	quizPicks: ['meal_planning', 'email_overload'],
@@ -69,7 +68,6 @@ function mockAnalysisToolResponse(input: Record<string, unknown>): void {
 	)
 }
 
-// ── Tests: buildDataContext (verified via runCrossAnalysis user message) ────
 
 describe('buildDataContext — verified via runCrossAnalysis user message content', () => {
 	afterEach(() => {
@@ -328,7 +326,6 @@ describe('buildDataContext — verified via runCrossAnalysis user message conten
 	})
 })
 
-// ── Tests: runCrossAnalysis ─────────────────────────────────────────────────
 
 describe('runCrossAnalysis', () => {
 	afterEach(() => {

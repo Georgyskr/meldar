@@ -80,21 +80,13 @@ function assert(condition: boolean, msg: string) {
 	if (!condition) throw new Error(msg)
 }
 
-// ── Steps ────────────────────────────────────────────────────────────────────
-
 async function login(): Promise<string> {
 	const res = await api('POST', '/api/auth/login', { email: EMAIL, password: PASSWORD })
 	assert(res.status === 200, `Login failed: ${res.status} ${JSON.stringify(res.data)}`)
 
-	const setCookie = res.raw // The fetch API doesn't give us Set-Cookie easily
-	// Try extracting from a second request - verify /me works
-	// Actually, fetch doesn't forward Set-Cookie. Let's extract the token from response if available.
-	// Workaround: use the login response to get user, then make a second call
 	const body = res.data as { success?: boolean; token?: string }
 	assert(body.success === true, `Login response: ${JSON.stringify(body)}`)
 
-	// The cookie is httpOnly so we can't read it from JS.
-	// Use a raw HTTP approach instead.
 	const rawRes = await fetch(`${BASE}/api/auth/login`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -200,7 +192,6 @@ async function triggerBuild(): Promise<string> {
 		kanbanCardId: cardId,
 	}, { timeout: 120000 })
 
-	// The response is an SSE stream
 	assert(res.status === 200, `Build: ${res.status} ${JSON.stringify(res.data)}`)
 
 	const events = res.raw.split('\n\n').filter((chunk) => chunk.includes('data:'))
@@ -239,7 +230,6 @@ async function improvePrompt(): Promise<string> {
 	const res = await api('POST', `/api/workspace/${projectId}/improve-prompt`, {
 		prompt: 'add a button that clears completed tasks',
 	}, { timeout: 30000 })
-	// 200 = improved, 402 = insufficient balance, 429 = rate limited — all acceptable
 	assert(
 		res.status === 200 || res.status === 402 || res.status === 429,
 		`Improve prompt: ${res.status} ${JSON.stringify(res.data)}`,
@@ -288,14 +278,11 @@ async function checkRoutes(): Promise<string> {
 	return `all ${routes.length} routes respond (no 404s)`
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
-
 async function main() {
 	console.log(`\n🔍 Meldar E2E API Flow Test`)
 	console.log(`   Target: ${BASE}`)
 	console.log(`   User: ${EMAIL}\n`)
 
-	// Auth
 	if (authCookie) {
 		skip('1. Login', 'using MELDAR_AUTH_COOKIE env var')
 	} else {
@@ -304,7 +291,6 @@ async function main() {
 	}
 	await step('2. Verify auth', verifyAuth)
 
-	// Project creation
 	if (process.env.PROJECT_ID) {
 		projectId = process.env.PROJECT_ID
 		skip('3. Create project', `using PROJECT_ID env var: ${projectId}`)
@@ -313,32 +299,25 @@ async function main() {
 		if (!created) { console.log('\n⛔ Cannot continue without project.'); return }
 	}
 
-	// Route existence check
 	await step('4. All routes exist (no 404s)', checkRoutes)
 
-	// Proposal flow
 	await step('5. Generate proposal (Haiku)', generateProposal)
 	await step('6. Save wishes', saveWishes)
 
-	// Plan generation — try Haiku first, fall back to template
 	let planned = await step('7a. Generate plan (Haiku)', generatePlan)
 	if (!planned) {
 		planned = await step('7b. Apply template (fallback)', applyTemplate)
 		if (!planned) { console.log('\n⛔ Cannot continue without plan.'); return }
 	}
 
-	// Cards
 	const gotCards = await step('8. Get cards', getCards)
 	if (!gotCards) { console.log('\n⛔ Cannot continue without cards.'); return }
 
-	// Build
 	await step('9. Trigger build (Sonnet)', triggerBuild)
 
-	// Post-build
 	await step('10. Get files', getFiles)
 	await step('11. Improve prompt (Haiku)', improvePrompt)
 
-	// Summary
 	console.log('\n' + '═'.repeat(60))
 	const passed = results.filter((r) => r.status === 'PASS').length
 	const failed = results.filter((r) => r.status === 'FAIL').length

@@ -1,20 +1,20 @@
 import { getDb } from '@meldar/db/client'
 import { users } from '@meldar/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest } from '@/server/identity/jwt'
+import { requireAuth } from '@/server/identity/require-auth'
 import { checkRateLimit, meLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 
 const limiter = mustHaveRateLimit(meLimit, 'me')
 
 export async function GET(request: NextRequest) {
-	const tokenPayload = getUserFromRequest(request)
+	const auth = await requireAuth(request)
 
-	if (!tokenPayload) {
+	if (!auth.ok) {
 		return NextResponse.json({ user: null })
 	}
 
-	const { success } = await checkRateLimit(limiter, tokenPayload.userId)
+	const { success } = await checkRateLimit(limiter, auth.userId)
 	if (!success) {
 		return NextResponse.json(
 			{ error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } },
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 			name: users.name,
 		})
 		.from(users)
-		.where(eq(users.id, tokenPayload.userId))
+		.where(eq(users.id, auth.userId))
 		.limit(1)
 
 	if (!user) {
@@ -42,7 +42,18 @@ export async function GET(request: NextRequest) {
 	return NextResponse.json({ user })
 }
 
-export async function DELETE(_request: NextRequest) {
+export async function DELETE(request: NextRequest) {
+	const auth = await requireAuth(request)
+	if (!auth.ok) {
+		return auth.response
+	}
+
+	const db = getDb()
+	await db
+		.update(users)
+		.set({ tokenVersion: sql`token_version + 1` })
+		.where(eq(users.id, auth.userId))
+
 	const response = NextResponse.json({ success: true })
 	response.cookies.delete('meldar-auth')
 	return response

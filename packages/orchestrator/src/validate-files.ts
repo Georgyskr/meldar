@@ -378,9 +378,7 @@ export function validateStructure(files: readonly FileInput[]): ValidationResult
 }
 
 const VALID_COLOR_TOKENS = new Set([
-	// Sand palette 1-12
 	...Array.from({ length: 12 }, (_, i) => `sand.${i + 1}`),
-	// Semantic surface colors
 	'bg.canvas',
 	'bg.default',
 	'bg.subtle',
@@ -398,7 +396,6 @@ const VALID_COLOR_TOKENS = new Set([
 	'border.disabled',
 	'border.outline',
 	'border.error',
-	// Special
 	'colorPalette',
 	'current',
 	'currentColor',
@@ -406,11 +403,8 @@ const VALID_COLOR_TOKENS = new Set([
 	'transparent',
 	'black',
 	'white',
-	// Red palette
 	...Array.from({ length: 12 }, (_, i) => `red.${i + 1}`),
-	// Gray palette
 	...Array.from({ length: 12 }, (_, i) => `gray.${i + 1}`),
-	// Semantic variants
 	'sand.default',
 	'sand.emphasized',
 	'sand.fg',
@@ -423,7 +417,6 @@ const VALID_COLOR_TOKENS = new Set([
 	'gray.emphasized',
 	'gray.fg',
 	'gray.text',
-	// Custom theme tokens
 	'primary',
 	'primaryMid',
 	'primaryDark',
@@ -457,56 +450,46 @@ const VALID_COLOR_TOKENS = new Set([
 ])
 
 const VALID_TEXT_STYLES = new Set([
-	// Primary (headlines)
 	'primary.xxl',
 	'primary.xl',
 	'primary.lg',
 	'primary.md',
 	'primary.sm',
 	'primary.xs',
-	// Secondary (body)
 	'secondary.xl',
 	'secondary.lg',
 	'secondary.md',
 	'secondary.sm',
 	'secondary.xs',
-	// Tertiary (labels, captions)
 	'tertiary.xl',
 	'tertiary.lg',
 	'tertiary.md',
 	'tertiary.sm',
 	'tertiary.xs',
-	// Label
 	'label.lg',
 	'label.md',
 	'label.sm',
-	// Display (numeric stats)
 	'display.xl',
 	'display.lg',
 	'display.md',
 	'display.sm',
-	// Button
 	'button.lg',
 	'button.md',
 	'button.sm',
-	// Italic
 	'italic.lg',
 	'italic.md',
 	'italic.sm',
-	// Legacy heading scale (from CLAUDE.md)
 	'heading.1',
 	'heading.2',
 	'heading.3',
 	'heading.4',
 	'heading.5',
 	'heading.6',
-	// Legacy body
 	'body.xl',
 	'body.lg',
 	'body.md',
 	'body.sm',
 	'body.xs',
-	// Legacy compat names
 	'heading.hero',
 	'heading.display',
 	'heading.section',

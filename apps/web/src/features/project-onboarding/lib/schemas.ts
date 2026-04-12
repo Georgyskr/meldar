@@ -1,11 +1,6 @@
 import { COMPONENT_VOCABULARY, type ComponentTypeId } from '@meldar/orchestrator'
 import { z } from 'zod'
 
-const COMPONENT_TYPE_IDS = COMPONENT_VOCABULARY.map((c) => c.id) as [
-	ComponentTypeId,
-	...ComponentTypeId[],
-]
-
 export const onboardingMessageSchema = z.object({
 	role: z.enum(['user', 'assistant']),
 	content: z.string().min(1).max(2000),

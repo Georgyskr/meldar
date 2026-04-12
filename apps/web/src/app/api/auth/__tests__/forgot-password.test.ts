@@ -1,8 +1,7 @@
 import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
+import { hashToken } from '@/server/identity/token-hash'
 
 const {
 	mockDbSelect,
@@ -40,30 +39,22 @@ vi.mock('nanoid', () => ({
 	nanoid: vi.fn(() => 'mock-reset-token-32chars-xxxxxxxx'),
 }))
 
-// ── Imports ─────────────────────────────────────────────────────────────────
-
 import { POST } from '../../auth/forgot-password/route'
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeRequest(body: unknown): NextRequest {
 	return makeNextJsonRequest('http://localhost/api/auth/forgot-password', body)
 }
 
 function setupDbChain(selectResult: unknown[]) {
-	// select().from().where().limit()
 	mockDbSelect.mockReturnValue({ from: mockDbFrom })
 	mockDbFrom.mockReturnValue({ where: mockDbWhere })
 	mockDbWhere.mockReturnValue({ limit: mockDbLimit })
 	mockDbLimit.mockResolvedValue(selectResult)
 
-	// update().set().where()
 	mockDbUpdate.mockReturnValue({ set: mockDbSet })
 	mockDbSet.mockReturnValue({ where: mockDbUpdateWhere })
 	mockDbUpdateWhere.mockResolvedValue([])
 }
-
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('POST /api/auth/forgot-password', () => {
 	beforeEach(() => {
@@ -85,11 +76,10 @@ describe('POST /api/auth/forgot-password', () => {
 		expect(res.status).toBe(200)
 		expect(json.success).toBe(true)
 
-		// Should set reset token in DB
 		expect(mockDbUpdate).toHaveBeenCalled()
 		expect(mockDbSet).toHaveBeenCalledWith(
 			expect.objectContaining({
-				resetToken: 'mock-reset-token-32chars-xxxxxxxx',
+				resetToken: hashToken('mock-reset-token-32chars-xxxxxxxx'),
 			}),
 		)
 
@@ -99,6 +89,16 @@ describe('POST /api/auth/forgot-password', () => {
 			'mock-reset-token-32chars-xxxxxxxx',
 			'http://localhost',
 		)
+	})
+
+	it('stores a SHA-256 hash in DB, not the raw token', async () => {
+		setupDbChain([{ id: 'user-uuid' }])
+
+		await POST(makeRequest({ email: 'user@example.com' }))
+
+		const storedToken = mockDbSet.mock.calls[0][0].resetToken as string
+		expect(storedToken).toMatch(/^[a-f0-9]{64}$/)
+		expect(storedToken).not.toBe('mock-reset-token-32chars-xxxxxxxx')
 	})
 
 	it('returns success for non-existing email (prevents enumeration)', async () => {
@@ -111,7 +111,6 @@ describe('POST /api/auth/forgot-password', () => {
 		expect(json.success).toBe(true)
 
 		expect(mockSendPasswordResetEmail).not.toHaveBeenCalled()
-		// Should NOT update DB
 		expect(mockDbUpdate).not.toHaveBeenCalled()
 	})
 
@@ -126,10 +125,32 @@ describe('POST /api/auth/forgot-password', () => {
 		const expiresAt = setCall.resetTokenExpiresAt as Date
 		const expiryMs = expiresAt.getTime()
 
-		// Should be approximately 1 hour from now (within 5 seconds tolerance)
 		const oneHourMs = 60 * 60 * 1000
 		expect(expiryMs).toBeGreaterThanOrEqual(before + oneHourMs - 5000)
 		expect(expiryMs).toBeLessThanOrEqual(after + oneHourMs + 5000)
+	})
+
+	it('takes at least 500ms regardless of whether user exists', async () => {
+		setupDbChain([])
+
+		const start = Date.now()
+		await POST(makeRequest({ email: 'nobody@example.com' }))
+		const elapsed = Date.now() - start
+
+		expect(elapsed).toBeGreaterThanOrEqual(450)
+	})
+
+	it('returns 400 with INVALID_JSON for malformed JSON body', async () => {
+		const req = new Request('http://localhost/api/auth/forgot-password', {
+			method: 'POST',
+			headers: { 'Content-Type': 'text/plain' },
+			body: 'not json',
+		}) as unknown as NextRequest
+
+		const res = await POST(req)
+		const json = await res.json()
+		expect(res.status).toBe(400)
+		expect(json.error.code).toBe('INVALID_JSON')
 	})
 
 	it('rejects invalid email with 400', async () => {

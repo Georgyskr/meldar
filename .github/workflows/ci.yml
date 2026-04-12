@@ -34,3 +34,6 @@ jobs:
 
       - name: Test @meldar/web
         run: pnpm --filter @meldar/web test
+
+      - name: Build
+        run: pnpm build

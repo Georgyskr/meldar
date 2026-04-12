@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
 
 		const extraction = result.data
 
-		// Rule-based: zero AI cost
 		const insights = generateInsights(extraction, { focusMode })
 		const upsells = generateUpsells(extraction)
 		const painPoints = mapToPainPoints(extraction)

@@ -1,32 +1,19 @@
 import { makeNextJsonRequest } from '@meldar/test-utils'
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { hashToken } from '@/server/identity/token-hash'
 
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
-
-const {
-	mockDbSelect,
-	mockDbUpdate,
-	mockDbFrom,
-	mockDbWhere,
-	mockDbLimit,
-	mockDbSet,
-	mockDbUpdateWhere,
-	mockHashPassword,
-} = vi.hoisted(() => ({
-	mockDbSelect: vi.fn(),
-	mockDbUpdate: vi.fn(),
-	mockDbFrom: vi.fn(),
-	mockDbWhere: vi.fn(),
-	mockDbLimit: vi.fn(),
-	mockDbSet: vi.fn(),
-	mockDbUpdateWhere: vi.fn(),
-	mockHashPassword: vi.fn(),
-}))
+const { mockDbUpdate, mockDbSet, mockDbUpdateWhere, mockDbReturning, mockHashPassword } =
+	vi.hoisted(() => ({
+		mockDbUpdate: vi.fn(),
+		mockDbSet: vi.fn(),
+		mockDbUpdateWhere: vi.fn(),
+		mockDbReturning: vi.fn(),
+		mockHashPassword: vi.fn(),
+	}))
 
 vi.mock('@meldar/db/client', () => ({
 	getDb: () => ({
-		select: mockDbSelect,
 		update: mockDbUpdate,
 	}),
 }))
@@ -35,30 +22,36 @@ vi.mock('@/server/identity/password', () => ({
 	hashPassword: (...args: unknown[]) => mockHashPassword(...args),
 }))
 
-// ── Imports ─────────────────────────────────────────────────────────────────
-
 import { POST } from '../../auth/reset-password/route'
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeRequest(body: unknown): NextRequest {
 	return makeNextJsonRequest('http://localhost/api/auth/reset-password', body)
 }
 
-function setupDbChain(selectResult: unknown[]) {
-	// select().from().where().limit()
-	mockDbSelect.mockReturnValue({ from: mockDbFrom })
-	mockDbFrom.mockReturnValue({ where: mockDbWhere })
-	mockDbWhere.mockReturnValue({ limit: mockDbLimit })
-	mockDbLimit.mockResolvedValue(selectResult)
-
-	// update().set().where()
-	mockDbUpdate.mockReturnValue({ set: mockDbSet })
-	mockDbSet.mockReturnValue({ where: mockDbUpdateWhere })
-	mockDbUpdateWhere.mockResolvedValue([])
+function flattenDrizzleExpr(expr: unknown, seen = new WeakSet()): string[] {
+	if (expr === null || expr === undefined) return []
+	if (typeof expr === 'string') return [expr]
+	if (typeof expr === 'number' || typeof expr === 'boolean') return [String(expr)]
+	if (typeof expr !== 'object') return []
+	if (seen.has(expr as object)) return []
+	seen.add(expr as object)
+	const results: string[] = []
+	if (Array.isArray(expr)) {
+		for (const item of expr) results.push(...flattenDrizzleExpr(item, seen))
+	} else {
+		for (const val of Object.values(expr as Record<string, unknown>)) {
+			results.push(...flattenDrizzleExpr(val, seen))
+		}
+	}
+	return results
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
+function setupAtomicUpdate(returningResult: unknown[]) {
+	mockDbUpdate.mockReturnValue({ set: mockDbSet })
+	mockDbSet.mockReturnValue({ where: mockDbUpdateWhere })
+	mockDbUpdateWhere.mockReturnValue({ returning: mockDbReturning })
+	mockDbReturning.mockResolvedValue(returningResult)
+}
 
 describe('POST /api/auth/reset-password', () => {
 	beforeEach(() => {
@@ -69,13 +62,13 @@ describe('POST /api/auth/reset-password', () => {
 		vi.clearAllMocks()
 	})
 
-	it('resets password with valid token', async () => {
-		setupDbChain([{ id: 'user-uuid', email: 'user@example.com' }])
+	it('resets password with valid token using atomic update', async () => {
+		setupAtomicUpdate([{ id: 'user-uuid' }])
 
 		const res = await POST(
 			makeRequest({
 				token: 'valid-reset-token',
-				password: 'newpassword123',
+				password: 'NewPass123',
 			}),
 		)
 
@@ -83,10 +76,8 @@ describe('POST /api/auth/reset-password', () => {
 		expect(res.status).toBe(200)
 		expect(json.success).toBe(true)
 
-		// Should hash the new password
-		expect(mockHashPassword).toHaveBeenCalledWith('newpassword123')
+		expect(mockHashPassword).toHaveBeenCalledWith('NewPass123')
 
-		// Should update user with new hash and clear reset token
 		expect(mockDbSet).toHaveBeenCalledWith(
 			expect.objectContaining({
 				passwordHash: '$2a$12$newhashedpassword',
@@ -96,14 +87,47 @@ describe('POST /api/auth/reset-password', () => {
 		)
 	})
 
-	it('rejects expired token with 401', async () => {
-		// No user found (token expired or invalid -- the WHERE clause filters expired tokens)
-		setupDbChain([])
+	it('uses a single atomic UPDATE...RETURNING (no separate SELECT)', async () => {
+		setupAtomicUpdate([{ id: 'user-uuid' }])
+
+		await POST(
+			makeRequest({
+				token: 'valid-token',
+				password: 'NewPass123',
+			}),
+		)
+
+		expect(mockDbUpdate).toHaveBeenCalledTimes(1)
+		expect(mockDbReturning).toHaveBeenCalled()
+	})
+
+	it('hashes the incoming token before DB lookup', async () => {
+		const rawToken = 'raw-token-from-email-link'
+		const expectedHash = hashToken(rawToken)
+
+		setupAtomicUpdate([{ id: 'user-uuid' }])
+
+		await POST(
+			makeRequest({
+				token: rawToken,
+				password: 'NewPass123',
+			}),
+		)
+
+		expect(mockDbUpdateWhere).toHaveBeenCalled()
+		const whereArg = mockDbUpdateWhere.mock.calls[0][0]
+		const flat = flattenDrizzleExpr(whereArg)
+		expect(flat).toContain(expectedHash)
+		expect(flat).not.toContain(rawToken)
+	})
+
+	it('returns 401 when token was already consumed (atomic prevents race)', async () => {
+		setupAtomicUpdate([])
 
 		const res = await POST(
 			makeRequest({
-				token: 'expired-token',
-				password: 'newpassword123',
+				token: 'already-used-token',
+				password: 'NewPass123',
 			}),
 		)
 
@@ -113,26 +137,28 @@ describe('POST /api/auth/reset-password', () => {
 		expect(json.error.message).toBe('Invalid or expired reset link')
 	})
 
-	it('rejects invalid (non-existent) token with 401', async () => {
-		setupDbChain([])
+	it('rejects expired token with 401', async () => {
+		setupAtomicUpdate([])
 
 		const res = await POST(
 			makeRequest({
-				token: 'nonexistent-token',
-				password: 'newpassword123',
+				token: 'expired-token',
+				password: 'NewPass123',
 			}),
 		)
 
+		const json = await res.json()
 		expect(res.status).toBe(401)
+		expect(json.error.code).toBe('UNAUTHORIZED')
 	})
 
-	it('clears reset token after successful use', async () => {
-		setupDbChain([{ id: 'user-uuid', email: 'user@example.com' }])
+	it('clears reset token atomically on success', async () => {
+		setupAtomicUpdate([{ id: 'user-uuid' }])
 
 		await POST(
 			makeRequest({
 				token: 'valid-token',
-				password: 'newpassword123',
+				password: 'NewPass123',
 			}),
 		)
 
@@ -157,10 +183,23 @@ describe('POST /api/auth/reset-password', () => {
 		expect(json.error.code).toBe('VALIDATION_ERROR')
 	})
 
+	it('returns 400 with INVALID_JSON for malformed JSON body', async () => {
+		const req = new Request('http://localhost/api/auth/reset-password', {
+			method: 'POST',
+			headers: { 'Content-Type': 'text/plain' },
+			body: 'not json',
+		}) as unknown as NextRequest
+
+		const res = await POST(req)
+		const json = await res.json()
+		expect(res.status).toBe(400)
+		expect(json.error.code).toBe('INVALID_JSON')
+	})
+
 	it('rejects missing token with 400', async () => {
 		const res = await POST(
 			makeRequest({
-				password: 'newpassword123',
+				password: 'NewPass123',
 			}),
 		)
 
@@ -171,7 +210,7 @@ describe('POST /api/auth/reset-password', () => {
 		const res = await POST(
 			makeRequest({
 				token: '',
-				password: 'newpassword123',
+				password: 'NewPass123',
 			}),
 		)
 
@@ -188,30 +227,52 @@ describe('POST /api/auth/reset-password', () => {
 		expect(res.status).toBe(400)
 	})
 
-	it('does not update DB when token is invalid', async () => {
-		setupDbChain([])
-
-		await POST(
+	it('rejects all-lowercase password', async () => {
+		const res = await POST(
 			makeRequest({
-				token: 'invalid-token',
-				password: 'newpassword123',
+				token: 'valid-token',
+				password: 'password',
 			}),
 		)
+		expect(res.status).toBe(400)
+		const json = await res.json()
+		expect(json.error.code).toBe('VALIDATION_ERROR')
+	})
 
-		// update should not be called
-		expect(mockDbUpdate).not.toHaveBeenCalled()
-		expect(mockHashPassword).not.toHaveBeenCalled()
+	it('rejects all-digit password', async () => {
+		const res = await POST(
+			makeRequest({
+				token: 'valid-token',
+				password: '12345678',
+			}),
+		)
+		expect(res.status).toBe(400)
+		const json = await res.json()
+		expect(json.error.code).toBe('VALIDATION_ERROR')
+	})
+
+	it('accepts strong password', async () => {
+		setupAtomicUpdate([{ id: 'user-uuid' }])
+		const res = await POST(
+			makeRequest({
+				token: 'valid-token',
+				password: 'Str0ngPass',
+			}),
+		)
+		expect(res.status).toBe(200)
+		const json = await res.json()
+		expect(json.success).toBe(true)
 	})
 
 	it('returns 500 on unexpected error', async () => {
-		mockDbSelect.mockImplementation(() => {
+		mockDbUpdate.mockImplementation(() => {
 			throw new Error('DB error')
 		})
 
 		const res = await POST(
 			makeRequest({
 				token: 'valid-token',
-				password: 'newpassword123',
+				password: 'NewPass123',
 			}),
 		)
 

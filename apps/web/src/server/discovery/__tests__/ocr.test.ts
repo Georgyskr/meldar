@@ -36,7 +36,6 @@ function mockToolUseResponse(input: Record<string, unknown>): void {
 	)
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('extractScreenTime', () => {
 	afterEach(() => {

@@ -3,8 +3,6 @@ import type { NextRequest } from 'next/server'
 import type Stripe from 'stripe'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
-
 const {
 	mockWebhooksConstructEvent,
 	mockDbInsert,
@@ -44,11 +42,7 @@ vi.mock('resend', () => {
 	}
 })
 
-// ── Imports ─────────────────────────────────────────────────────────────────
-
 import { POST } from '../../webhook/route'
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeWebhookRequest(body: string, sig: string): NextRequest {
 	return makeNextRequest('http://localhost/api/billing/webhook', {
@@ -90,8 +84,6 @@ function makeSubscriptionEvent(
 		},
 	} as Stripe.Event
 }
-
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('POST /api/billing/webhook', () => {
 	beforeEach(() => {
@@ -163,7 +155,6 @@ describe('POST /api/billing/webhook', () => {
 			await POST(makeWebhookRequest('payload', 'sig'))
 
 			expect(mockDbInsert).toHaveBeenCalled()
-			// First insert call should be auditOrders
 			const firstInsertValues = mockDbValues.mock.calls[0][0]
 			expect(firstInsertValues.product).toBe('time_audit')
 		})
@@ -191,7 +182,6 @@ describe('POST /api/billing/webhook', () => {
 		it('inserts buyer into subscribers table with source: "checkout"', async () => {
 			await POST(makeWebhookRequest('payload', 'sig'))
 
-			// The last insert call should be subscribers
 			const lastInsertValues = mockDbValues.mock.calls[mockDbValues.mock.calls.length - 1][0]
 			expect(lastInsertValues.email).toBe('buyer@example.com')
 			expect(lastInsertValues.source).toBe('checkout')
@@ -222,7 +212,6 @@ describe('POST /api/billing/webhook', () => {
 		it('sends purchase confirmation and founder notification emails', async () => {
 			await POST(makeWebhookRequest('payload', 'sig'))
 
-			// 2 emails: buyer confirmation + founder notification
 			expect(mockResendEmailsSend).toHaveBeenCalledTimes(2)
 		})
 
@@ -263,7 +252,6 @@ describe('POST /api/billing/webhook', () => {
 		it('does NOT insert into auditOrders (subscriptions are not one-time purchases)', async () => {
 			await POST(makeWebhookRequest('payload', 'sig'))
 
-			// Only 1 insert call: subscribers (not auditOrders)
 			expect(mockDbInsert).toHaveBeenCalledTimes(1)
 			const insertValues = mockDbValues.mock.calls[0][0]
 			expect(insertValues.source).toBe('checkout')
@@ -291,7 +279,6 @@ describe('POST /api/billing/webhook', () => {
 		it('does NOT insert into auditOrders', async () => {
 			await POST(makeWebhookRequest('payload', 'sig'))
 
-			// Only 1 insert call: subscribers (not auditOrders)
 			expect(mockDbInsert).toHaveBeenCalledTimes(1)
 			const insertValues = mockDbValues.mock.calls[0][0]
 			expect(insertValues.source).toBe('checkout')

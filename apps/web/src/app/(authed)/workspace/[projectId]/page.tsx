@@ -49,7 +49,6 @@ export default async function WorkspacePage({ params }: PageProps) {
 	try {
 		storage = buildProjectStorageFromEnv()
 	} catch (err) {
-		// TODO: replace console.warn with structured logging + alert (Victoria Metrics / Grafana)
 		console.warn(
 			'[workspace/project] R2 not configured, running in degraded mode:',
 			err instanceof Error ? err.message : 'Unknown',

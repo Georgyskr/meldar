@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { hashToken } from '@/server/identity/token-hash'
 
 const {
 	mockDbSelect,
@@ -132,7 +133,7 @@ describe('POST /api/auth/resend-verification', () => {
 		expect(mockDbUpdate).toHaveBeenCalled()
 		expect(mockDbSet).toHaveBeenCalledWith(
 			expect.objectContaining({
-				verifyToken: 'mock-verify-token-32chars-xxxxxxx',
+				verifyToken: hashToken('mock-verify-token-32chars-xxxxxxx'),
 				verifyTokenExpiresAt: expect.any(Date),
 			}),
 		)

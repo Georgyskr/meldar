@@ -114,7 +114,6 @@ export async function* runAutoBuild(
 
 	yield { type: 'pipeline_complete', totalBuilt, totalCards: subtasks.length }
 
-	// Deploy once at the end
 	const slug = slugForProjectId(input.projectId)
 	const appsDomain = process.env.VERCEL_APPS_DOMAIN ?? 'apps.meldar.ai'
 	const hostname = `${slug}.${appsDomain}`

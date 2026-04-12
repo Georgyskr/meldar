@@ -37,7 +37,6 @@ function mockGoogleTopicToolResponse(input: Record<string, unknown>): void {
 	)
 }
 
-// ── Tests: extractTopicsFromMessages ────────────────────────────────────────
 
 describe('extractTopicsFromMessages', () => {
 	afterEach(() => {
@@ -141,7 +140,6 @@ describe('extractTopicsFromMessages', () => {
 	})
 })
 
-// ── Tests: extractGoogleTopics ──────────────────────────────────────────────
 
 describe('extractGoogleTopics', () => {
 	afterEach(() => {

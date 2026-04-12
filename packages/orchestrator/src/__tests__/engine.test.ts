@@ -74,7 +74,6 @@ async function collectEvents(
 	return events
 }
 
-// ── Test fixture builder ────────────────────────────────────────────────────
 
 async function setupFixture(): Promise<{
 	storage: ProjectStorage
@@ -101,7 +100,6 @@ async function setupFixture(): Promise<{
 	}
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('orchestrateBuild', () => {
 	let fixture: Awaited<ReturnType<typeof setupFixture>>

@@ -1,7 +1,3 @@
-// This file will be rewritten by the /api/write endpoint to prove that runtime
-// file injection (the core "AI generates code → iframe updates" loop) works.
-// Edit it to test HMR manually.
-
 export default function HomePage() {
 	return (
 		<main
