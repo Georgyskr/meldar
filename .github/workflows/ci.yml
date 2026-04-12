@@ -37,3 +37,28 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  integration:
+    runs-on: ubuntu-latest
+    if: ${{ vars.DATABASE_URL != '' || secrets.DATABASE_URL != '' }}
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Push schema to DB
+        run: pnpm --filter @meldar/db db:push
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Integration tests
+        run: pnpm --filter @meldar/web exec vitest run src/__tests__/integration/

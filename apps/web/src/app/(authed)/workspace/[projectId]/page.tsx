@@ -78,23 +78,26 @@ export default async function WorkspacePage({ params }: PageProps) {
 	let tokenBalance: number
 	let subdomain: string | null = null
 	try {
-		const [cards, balance, domainRows] = await Promise.all([
+		;[kanbanCards, tokenBalance] = await Promise.all([
 			storage.getKanbanCards(projectId),
 			getTokenBalance(db, session.userId),
-			db
-				.select({ domain: projectDomains.domain })
-				.from(projectDomains)
-				.where(and(eq(projectDomains.projectId, projectId), eq(projectDomains.state, 'active')))
-				.limit(1),
 		])
-		kanbanCards = cards
-		tokenBalance = balance
-		subdomain = domainRows[0]?.domain ?? null
 	} catch (err) {
 		if (err instanceof ProjectNotFoundError) {
 			notFound()
 		}
 		throw err
+	}
+
+	try {
+		const [domainRow] = await db
+			.select({ domain: projectDomains.domain })
+			.from(projectDomains)
+			.where(and(eq(projectDomains.projectId, projectId), eq(projectDomains.state, 'active')))
+			.limit(1)
+		subdomain = domainRow?.domain ?? null
+	} catch {
+		subdomain = null
 	}
 
 	const isPreviewStale =

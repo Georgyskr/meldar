@@ -40,14 +40,18 @@ export default async function AdminPage({ params }: PageProps) {
 		notFound()
 	}
 
-	const db = getDb()
-	const [domainRow] = await db
-		.select({ domain: projectDomains.domain })
-		.from(projectDomains)
-		.where(and(eq(projectDomains.projectId, projectId), eq(projectDomains.state, 'active')))
-		.limit(1)
-
-	const subdomain = domainRow?.domain ?? null
+	let subdomain: string | null = null
+	try {
+		const db = getDb()
+		const [domainRow] = await db
+			.select({ domain: projectDomains.domain })
+			.from(projectDomains)
+			.where(and(eq(projectDomains.projectId, projectId), eq(projectDomains.state, 'active')))
+			.limit(1)
+		subdomain = domainRow?.domain ?? null
+	} catch {
+		subdomain = null
+	}
 
 	return (
 		<>

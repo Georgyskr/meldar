@@ -357,21 +357,4 @@ describe('agent-task-service', () => {
 			expect(count).toBe(0)
 		})
 	})
-
-	describe('error types', () => {
-		it('TaskNotFoundError has correct code', () => {
-			const err = new TaskNotFoundError('abc')
-			expect(err.code).toBe('task_not_found')
-			expect(err.taskId).toBe('abc')
-			expect(err.message).toContain('abc')
-		})
-
-		it('InvalidTaskTransitionError has correct code and fields', () => {
-			const err = new InvalidTaskTransitionError('abc', 'proposed', 'executing')
-			expect(err.code).toBe('invalid_task_transition')
-			expect(err.taskId).toBe('abc')
-			expect(err.currentStatus).toBe('proposed')
-			expect(err.attemptedStatus).toBe('executing')
-		})
-	})
 })

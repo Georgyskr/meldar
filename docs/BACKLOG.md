@@ -190,6 +190,12 @@ Unlock after 10 paying users on subdomains. Custom domains are the upgrade trigg
 - [ ] **Open template system** — third parties build verticals (restaurant, gym, real estate). "Shopify for AI business tools."
 - [ ] **Template marketplace** — creators publish, users subscribe, Meldar takes cut
 
+## Future: Testing
+
+- [ ] **Integration tests against real Neon test DB** — schema drift is invisible to mocked tests. The `project_domains` crash (1025 tests green, production 500) proved it. Need: test Neon branch, `db:push` in CI before tests, at least 1 test per table that does INSERT + SELECT + DELETE against real Postgres.
+- [ ] **Smoke test for critical user flows** — create project → load workspace → create booking → load admin. Against real DB. Catches what 1025 mock tests can't.
+- [ ] **Delete or rewrite mock-only tests that test nothing real** — audit every test that only verifies mock wiring. If removing the implementation doesn't break the test, the test is waste.
+
 ## Future: Infrastructure
 
 - [ ] Add Sentry error monitoring
