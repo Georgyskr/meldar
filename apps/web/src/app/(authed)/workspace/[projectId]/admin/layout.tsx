@@ -1,6 +1,6 @@
 import { Box, Flex, HStack, styled } from '@styled-system/jsx'
 import Link from 'next/link'
-import { Heading, Text } from '@/shared/ui'
+import { Text } from '@/shared/ui'
 
 export default async function AdminLayout({
 	children,
@@ -39,7 +39,10 @@ export default async function AdminLayout({
 								Bookings
 							</Text>
 						</Link>
-						<Link href={`/workspace/${projectId}/admin/settings`} style={{ textDecoration: 'none' }}>
+						<Link
+							href={`/workspace/${projectId}/admin/settings`}
+							style={{ textDecoration: 'none' }}
+						>
 							<Text textStyle="label.sm" color="onSurfaceVariant">
 								Settings
 							</Text>

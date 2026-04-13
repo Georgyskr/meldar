@@ -56,6 +56,42 @@ pnpm biome check --fix . # Auto-fix
 pnpm panda codegen # Regenerate Panda CSS styled-system
 ```
 
+## Testing
+
+```bash
+# Unit tests only (fast, no external deps, runs on every push in CI)
+pnpm --filter @meldar/web exec vitest run --exclude='src/__tests__/integration/**'
+
+# Integration tests only (hits real Neon DB, runs on main branch CI only)
+DATABASE_URL=... pnpm --filter @meldar/web exec vitest run src/__tests__/integration/
+
+# Full suite (unit + integration if DATABASE_URL is set)
+DATABASE_URL=... pnpm --filter @meldar/web exec vitest run
+
+# Storage package tests
+pnpm --filter @meldar/storage test
+```
+
+## CI/CD
+
+GitHub Actions at `.github/workflows/ci.yml`. Two jobs:
+
+- **check** — runs on every push, every branch. Lint + typecheck + unit tests + build. Free.
+- **integration** — runs on `main` only, after check passes. Real Neon DB. Requires `DATABASE_URL` secret.
+
+### Reading CI logs (gh CLI)
+
+```bash
+gh run list                        # List recent CI runs
+gh run list --status=failure       # Show only failures
+gh run view <run-id>               # Summary of a specific run
+gh run view <run-id> --log-failed  # Logs from failed steps only
+gh run view <run-id> --log         # Full logs
+gh run watch                       # Live-watch the current run
+```
+
+When debugging a CI failure: `gh run list --status=failure -L 1` → get the run ID → `gh run view <id> --log-failed` → read the error → fix → push.
+
 ## Project Structure (Feature-Sliced Design)
 
 Architecture follows FSD: `app → widgets → features → entities → shared`. Each layer only imports from layers below it. Barrels (`index.ts`) are the public API.

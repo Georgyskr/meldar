@@ -52,3 +52,6 @@ test-results/
 e2e/.auth/
 blob-report/
 playwright/.cache/
+
+# graphify knowledge graph (regenerable)
+graphify-out/

@@ -189,19 +189,23 @@ describe.skipIf(!HAS_DATABASE)('agent operations integration tests — real DB',
 			const projectB = await createTestProject(userId)
 			projectIdB = projectB.id
 
-			await db().insert(agentTasks).values({
-				projectId: projectIdA,
-				agentType: 'lead_research',
-				status: 'proposed',
-				payload: { source: 'project-a' },
-			})
+			await db()
+				.insert(agentTasks)
+				.values({
+					projectId: projectIdA,
+					agentType: 'lead_research',
+					status: 'proposed',
+					payload: { source: 'project-a' },
+				})
 
-			await db().insert(agentTasks).values({
-				projectId: projectIdB,
-				agentType: 'email_drip',
-				status: 'proposed',
-				payload: { source: 'project-b' },
-			})
+			await db()
+				.insert(agentTasks)
+				.values({
+					projectId: projectIdB,
+					agentType: 'email_drip',
+					status: 'proposed',
+					payload: { source: 'project-b' },
+				})
 
 			const tasksA = await db()
 				.select()
@@ -228,15 +232,23 @@ describe.skipIf(!HAS_DATABASE)('agent operations integration tests — real DB',
 			const project = await createTestProject(userId)
 			projectId = project.id
 
-			const eventTypes = ['proposal', 'approval', 'execution', 'verification', 'escalation'] as const
+			const eventTypes = [
+				'proposal',
+				'approval',
+				'execution',
+				'verification',
+				'escalation',
+			] as const
 
 			for (const eventType of eventTypes) {
-				await db().insert(agentEvents).values({
-					projectId,
-					userId,
-					eventType,
-					payload: { step: eventType },
-				})
+				await db()
+					.insert(agentEvents)
+					.values({
+						projectId,
+						userId,
+						eventType,
+						payload: { step: eventType },
+					})
 			}
 
 			const events = await db()
@@ -309,7 +321,8 @@ describe.skipIf(!HAS_DATABASE)('agent operations integration tests — real DB',
 			const [updated] = await db().select().from(projects).where(eq(projects.id, projectId))
 			expect(updated.wishes).toEqual(wishes)
 			expect(
-				(updated.wishes as Record<string, Record<string, boolean>>).autoApprove.booking_confirmation,
+				(updated.wishes as Record<string, Record<string, boolean>>).autoApprove
+					.booking_confirmation,
 			).toBe(true)
 		})
 	})

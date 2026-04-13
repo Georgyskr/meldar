@@ -9,7 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
+  check:
+    name: Lint + Type + Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,15 +33,17 @@ jobs:
       - name: Test @meldar/storage
         run: pnpm --filter @meldar/storage test
 
-      - name: Test @meldar/web
-        run: pnpm --filter @meldar/web test
+      - name: Test @meldar/web (unit only — no integration or smoke)
+        run: pnpm --filter @meldar/web exec vitest run --exclude='src/__tests__/integration/**' --exclude='src/__tests__/smoke/**'
 
       - name: Build
         run: pnpm build
 
   integration:
+    name: Integration Tests (real DB — main only)
     runs-on: ubuntu-latest
-    if: ${{ vars.DATABASE_URL != '' || secrets.DATABASE_URL != '' }}
+    needs: check
+    if: github.ref == 'refs/heads/main'
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
@@ -55,10 +58,33 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Push schema to DB
-        run: pnpm --filter @meldar/db db:push
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Integration tests
+      - name: Integration tests (real Neon DB)
         run: pnpm --filter @meldar/web exec vitest run src/__tests__/integration/
+
+  smoke:
+    name: Smoke Tests (real APIs — main only)
+    runs-on: ubuntu-latest
+    needs: integration
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 3
+    env:
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CF_SANDBOX_WORKER_URL: ${{ secrets.CF_SANDBOX_WORKER_URL }}
+      CF_SANDBOX_HMAC_SECRET: ${{ secrets.CF_SANDBOX_HMAC_SECRET }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Smoke tests (real APIs)
+        run: pnpm --filter @meldar/web exec vitest run src/__tests__/smoke/ --testTimeout 60000

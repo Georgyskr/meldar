@@ -41,7 +41,10 @@ const PROCESS_ID = 'next-dev-server'
 const HMAC_WINDOW_MS = 5 * 60 * 1000
 const DEV_SERVER_TIMEOUT_MS = 8_000
 
-const API_HOSTNAMES = new Set(['sandbox.meldar.ai', 'meldar-sandbox-worker.gosha-skryuchenkov.workers.dev'])
+const API_HOSTNAMES = new Set([
+	'sandbox.meldar.ai',
+	'meldar-sandbox-worker.gosha-skryuchenkov.workers.dev',
+])
 const PREVIEW_BASE_HOSTNAME = 'meldar.ai'
 
 export function createSandboxWorker(deps: SandboxWorkerDeps) {
@@ -57,7 +60,11 @@ export function createSandboxWorker(deps: SandboxWorkerDeps) {
 
 			const url = new URL(request.url)
 
-			if (!API_HOSTNAMES.has(url.host) && !url.pathname.startsWith('/api/v1/') && url.pathname !== '/healthz') {
+			if (
+				!API_HOSTNAMES.has(url.host) &&
+				!url.pathname.startsWith('/api/v1/') &&
+				url.pathname !== '/healthz'
+			) {
 				return passthrough(request)
 			}
 

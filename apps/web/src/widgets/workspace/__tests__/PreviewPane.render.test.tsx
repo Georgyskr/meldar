@@ -11,7 +11,20 @@ function makePassthrough(defaultTag: string) {
 			if (
 				key.startsWith('aria-') ||
 				key.startsWith('data-') ||
-				['href', 'target', 'rel', 'role', 'type', 'onClick', 'className', 'id', 'title', 'src', 'sandbox', 'style'].includes(key)
+				[
+					'href',
+					'target',
+					'rel',
+					'role',
+					'type',
+					'onClick',
+					'className',
+					'id',
+					'title',
+					'src',
+					'sandbox',
+					'style',
+				].includes(key)
 			) {
 				htmlProps[key] = val
 			}
@@ -26,8 +39,7 @@ vi.mock('@styled-system/jsx', () => ({
 }))
 
 vi.mock('@/shared/ui/typography', () => ({
-	Text: ({ children }: { children?: ReactNode }) =>
-		createElement('span', null, children),
+	Text: ({ children }: { children?: ReactNode }) => createElement('span', null, children),
 	Heading: ({ as, children }: { as?: string; children?: ReactNode }) =>
 		createElement(as || 'h2', null, children),
 }))

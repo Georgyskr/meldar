@@ -213,12 +213,19 @@ describe('PUT /api/workspace/[projectId]/settings', () => {
 		setupDbMocks({ businessName: 'Cool Salon' })
 
 		const res = await PUT(
-			makePutRequest({ services: [{ name: 'Haircut' }, { name: 'Color' }, { name: 'Blowout' }] }, 'valid_token'),
+			makePutRequest(
+				{ services: [{ name: 'Haircut' }, { name: 'Color' }, { name: 'Blowout' }] },
+				'valid_token',
+			),
 			routeContext,
 		)
 		expect(res.status).toBe(200)
 		const json = (await res.json()) as { settings: Record<string, unknown> }
-		expect(json.settings.services).toEqual([{ name: 'Haircut' }, { name: 'Color' }, { name: 'Blowout' }])
+		expect(json.settings.services).toEqual([
+			{ name: 'Haircut' },
+			{ name: 'Color' },
+			{ name: 'Blowout' },
+		])
 		expect(json.settings.businessName).toBe('Cool Salon')
 	})
 

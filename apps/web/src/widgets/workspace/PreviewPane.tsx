@@ -86,7 +86,8 @@ export function PreviewPane({ previewUrl, activeBuildCardId, failureMessage }: P
 								Describe what you want to build
 							</Text>
 							<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="440px">
-								Use the input below to get started. Try "create a booking page for a hair salon with 3 services" or "build a landing page with email capture."
+								Use the input below to get started. Try "create a booking page for a hair salon with
+								3 services" or "build a landing page with email capture."
 							</Text>
 							<Text textStyle="secondary.xs" color="onSurfaceVariant/60" maxWidth="400px">
 								Your live preview will appear here once the first build completes.

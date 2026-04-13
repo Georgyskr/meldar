@@ -28,10 +28,7 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 
 			const project = await createTestProject(userId)
 
-			const userProjects = await db()
-				.select()
-				.from(projects)
-				.where(eq(projects.userId, userId))
+			const userProjects = await db().select().from(projects).where(eq(projects.userId, userId))
 
 			expect(userProjects).toHaveLength(1)
 			expect(userProjects[0].id).toBe(project.id)
@@ -62,10 +59,7 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 				.returning()
 			projectId = project.id
 
-			const [found] = await db()
-				.select()
-				.from(projects)
-				.where(eq(projects.id, projectId))
+			const [found] = await db().select().from(projects).where(eq(projects.id, projectId))
 
 			expect(found.templateId).toBe('booking-page')
 		})
@@ -96,22 +90,24 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 				})
 				.returning()
 
-			await db().insert(kanbanCards).values([
-				{
-					projectId,
-					parentId: parent.id,
-					position: 0,
-					title: 'Child Card 1',
-					taskType: 'page',
-				},
-				{
-					projectId,
-					parentId: parent.id,
-					position: 1,
-					title: 'Child Card 2',
-					taskType: 'fix',
-				},
-			])
+			await db()
+				.insert(kanbanCards)
+				.values([
+					{
+						projectId,
+						parentId: parent.id,
+						position: 0,
+						title: 'Child Card 1',
+						taskType: 'page',
+					},
+					{
+						projectId,
+						parentId: parent.id,
+						position: 1,
+						title: 'Child Card 2',
+						taskType: 'fix',
+					},
+				])
 
 			const cards = await db()
 				.select()
@@ -124,7 +120,7 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 			const children = cards.filter((c) => c.parentId === parent.id)
 
 			expect(parentCard).toBeDefined()
-			expect(parentCard!.parentId).toBeNull()
+			expect(parentCard?.parentId).toBeNull()
 			expect(children).toHaveLength(2)
 			expect(children.map((c) => c.title).sort()).toEqual(['Child Card 1', 'Child Card 2'])
 		})
@@ -161,10 +157,7 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 				.set({ status: 'completed', completedAt: sql`now()` })
 				.where(eq(builds.id, build.id))
 
-			const [updated] = await db()
-				.select()
-				.from(builds)
-				.where(eq(builds.id, build.id))
+			const [updated] = await db().select().from(builds).where(eq(builds.id, build.id))
 
 			expect(updated.status).toBe('completed')
 			expect(updated.completedAt).not.toBeNull()
@@ -196,18 +189,17 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 				})
 				.returning()
 
-			await db().insert(buildFiles).values({
-				buildId: build.id,
-				path: '/src/app.tsx',
-				r2Key: `projects/${projectId}/content/sha256hash`,
-				contentHash: 'sha256hash',
-				sizeBytes: 4096,
-			})
+			await db()
+				.insert(buildFiles)
+				.values({
+					buildId: build.id,
+					path: '/src/app.tsx',
+					r2Key: `projects/${projectId}/content/sha256hash`,
+					contentHash: 'sha256hash',
+					sizeBytes: 4096,
+				})
 
-			const files = await db()
-				.select()
-				.from(buildFiles)
-				.where(eq(buildFiles.buildId, build.id))
+			const files = await db().select().from(buildFiles).where(eq(buildFiles.buildId, build.id))
 
 			expect(files).toHaveLength(1)
 			expect(files[0].path).toBe('/src/app.tsx')
@@ -257,10 +249,7 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 				})
 				.where(and(eq(projectFiles.projectId, projectId), eq(projectFiles.path, '/index.html')))
 
-			const [updated] = await db()
-				.select()
-				.from(projectFiles)
-				.where(eq(projectFiles.id, pf.id))
+			const [updated] = await db().select().from(projectFiles).where(eq(projectFiles.id, pf.id))
 
 			expect(updated.contentHash).toBe('hash_v2')
 			expect(updated.version).toBe(2)
@@ -328,15 +317,9 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 				features: { analytics: true, blog: false },
 			}
 
-			await db()
-				.update(projects)
-				.set({ wishes })
-				.where(eq(projects.id, projectId))
+			await db().update(projects).set({ wishes }).where(eq(projects.id, projectId))
 
-			const [found] = await db()
-				.select()
-				.from(projects)
-				.where(eq(projects.id, projectId))
+			const [found] = await db().select().from(projects).where(eq(projects.id, projectId))
 
 			expect(found.wishes).toEqual(wishes)
 		})
@@ -357,10 +340,7 @@ describe.skipIf(!HAS_DATABASE)('workspace routes — real DB', () => {
 			const project = await createTestProject(userId)
 			projectId = project.id
 
-			await db()
-				.update(projects)
-				.set({ deletedAt: sql`now()` })
-				.where(eq(projects.id, projectId))
+			await db().update(projects).set({ deletedAt: sql`now()` }).where(eq(projects.id, projectId))
 
 			const active = await db()
 				.select()

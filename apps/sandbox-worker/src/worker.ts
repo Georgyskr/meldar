@@ -5,13 +5,16 @@ export default {
 		const url = new URL(request.url)
 
 		if (url.pathname === '/healthz') {
-			return new Response(JSON.stringify({
-				status: 'ok',
-				host: url.host,
-				bindings: Object.keys(env),
-				hasSandbox: !!env.Sandbox,
-				hasHmacSecret: !!env.HMAC_SECRET,
-			}), { headers: { 'content-type': 'application/json' } })
+			return new Response(
+				JSON.stringify({
+					status: 'ok',
+					host: url.host,
+					bindings: Object.keys(env),
+					hasSandbox: !!env.Sandbox,
+					hasHmacSecret: !!env.HMAC_SECRET,
+				}),
+				{ headers: { 'content-type': 'application/json' } },
+			)
 		}
 
 		try {
@@ -32,11 +35,14 @@ export default {
 			return await handler.fetch(request, env as never)
 		} catch (err) {
 			console.error('[sandbox-worker] fatal:', err)
-			return new Response(JSON.stringify({
-				error: 'WORKER_INIT_FAILED',
-				message: err instanceof Error ? err.message : String(err),
-				stack: err instanceof Error ? err.stack?.split('\n').slice(0, 5) : undefined,
-			}), { status: 500, headers: { 'content-type': 'application/json' } })
+			return new Response(
+				JSON.stringify({
+					error: 'WORKER_INIT_FAILED',
+					message: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack?.split('\n').slice(0, 5) : undefined,
+				}),
+				{ status: 500, headers: { 'content-type': 'application/json' } },
+			)
 		}
 	},
 }

@@ -18,7 +18,7 @@
 			"recommended": true,
 			"correctness": {
 				"noUnusedImports": "error",
-				"noUnusedVariables": "warn",
+				"noUnusedVariables": "error",
 				"useExhaustiveDependencies": "warn"
 			},
 			"style": {

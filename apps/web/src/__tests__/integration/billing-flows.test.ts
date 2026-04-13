@@ -109,10 +109,7 @@ describe.skipIf(!HAS_DATABASE)('billing flow integration tests — real DB', () 
 				})
 				.returning()
 
-			const results = await db()
-				.select()
-				.from(aiCallLog)
-				.where(eq(aiCallLog.userId, userId))
+			const results = await db().select().from(aiCallLog).where(eq(aiCallLog.userId, userId))
 
 			expect(results).toHaveLength(1)
 			expect(results[0].id).toBe(entry.id)
@@ -139,10 +136,7 @@ describe.skipIf(!HAS_DATABASE)('billing flow integration tests — real DB', () 
 			const user = await createTestUser()
 			userId = user.id
 
-			await db()
-				.update(users)
-				.set({ tokenBalance: 10 })
-				.where(eq(users.id, userId))
+			await db().update(users).set({ tokenBalance: 10 }).where(eq(users.id, userId))
 
 			await expect(
 				db()

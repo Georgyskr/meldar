@@ -60,8 +60,7 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 
 	const handleFeedbackSubmit = useCallback(
 		async (feedback: FeedbackRequest) => {
-			const cardId = activeBuildCardId ?? 'feedback'
-			await runBuild(projectId, cardId, feedback.instruction, publish)
+			await runBuild(projectId, activeBuildCardId || undefined, feedback.instruction, publish)
 		},
 		[projectId, activeBuildCardId, publish],
 	)
@@ -82,18 +81,18 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 
 async function runBuild(
 	projectId: string,
-	cardId: string,
+	cardId: string | undefined,
 	prompt: string,
 	publish: ReturnType<typeof useWorkspaceBuild>['publish'],
 ): Promise<void> {
 	try {
+		const body: Record<string, string> = { prompt }
+		if (cardId) body.kanbanCardId = cardId
+
 		const response = await fetch(`/api/workspace/${projectId}/build`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				kanbanCardId: cardId,
-				prompt,
-			}),
+			body: JSON.stringify(body),
 		})
 
 		if (!response.ok) {
