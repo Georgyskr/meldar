@@ -63,7 +63,7 @@ describe('PreviewPane', () => {
 		container.remove()
 	})
 
-	it('renders empty state text when previewUrl is null', () => {
+	it('renders idle state when previewUrl is null and not building', () => {
 		act(() => {
 			root.render(
 				createElement(PreviewPane, {
@@ -74,7 +74,24 @@ describe('PreviewPane', () => {
 			)
 		})
 
-		expect(container.textContent).toContain('Your page is ready to customize')
+		expect(container.textContent).toContain('Describe what you want to build')
+		expect(container.textContent).toContain('live preview will appear here')
+		expect(container.querySelector('iframe')).toBeNull()
+	})
+
+	it('renders building state when previewUrl is null and building', () => {
+		act(() => {
+			root.render(
+				createElement(PreviewPane, {
+					previewUrl: null,
+					activeBuildCardId: 'some-card-id',
+					failureMessage: null,
+				}),
+			)
+		})
+
+		expect(container.textContent).toContain('Building your page')
+		expect(container.textContent).toContain('30 seconds')
 		expect(container.querySelector('iframe')).toBeNull()
 	})
 

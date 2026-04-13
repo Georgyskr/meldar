@@ -57,19 +57,42 @@ export function PreviewPane({ previewUrl, activeBuildCardId, failureMessage }: P
 					alignItems="center"
 					justifyContent="center"
 					direction="column"
-					gap={4}
+					gap={5}
 					border="1px solid"
 					borderColor="outlineVariant/30"
 					borderRadius="md"
 					paddingInline={6}
 					textAlign="center"
 				>
-					<Text textStyle="primary.sm" color="onSurface">
-						Your page is ready to customize
-					</Text>
-					<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="400px">
-						Use the input below to describe what you want. Try "add a hero section" or "create a booking form with 3 services."
-					</Text>
+					{isBuilding ? (
+						<>
+							<Box
+								width="40px"
+								height="40px"
+								borderRadius="50%"
+								bg="primary"
+								animation="softPulse 1.6s ease-in-out infinite"
+							/>
+							<Text textStyle="primary.sm" color="onSurface">
+								Building your page&hellip;
+							</Text>
+							<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="400px">
+								This takes about 30 seconds. You'll see your page appear here when it's ready.
+							</Text>
+						</>
+					) : (
+						<>
+							<Text textStyle="primary.sm" color="onSurface">
+								Describe what you want to build
+							</Text>
+							<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="440px">
+								Use the input below to get started. Try "create a booking page for a hair salon with 3 services" or "build a landing page with email capture."
+							</Text>
+							<Text textStyle="secondary.xs" color="onSurfaceVariant/60" maxWidth="400px">
+								Your live preview will appear here once the first build completes.
+							</Text>
+						</>
+					)}
 				</Flex>
 			)}
 
