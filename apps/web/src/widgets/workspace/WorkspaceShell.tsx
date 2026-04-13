@@ -10,6 +10,7 @@ import type { FeedbackRequest } from '@/features/visual-feedback'
 import { FeedbackBar } from '@/features/visual-feedback'
 import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace'
 import { toast } from '@/shared/ui'
+import { handleSseEvent } from './lib/handle-sse-event'
 import { PreviewPane } from './PreviewPane'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
 
@@ -57,7 +58,9 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 }
 
 function WorkspaceBody({ projectId }: { readonly projectId: string }) {
-	const { activeBuildCardId, failureMessage, publish, previewUrl } = useWorkspaceBuild()
+	const { activeBuildCardId, failureMessage, publish, previewUrl, writtenFiles, lastBuildAt } =
+		useWorkspaceBuild()
+	const buildJustFinished = lastBuildAt !== null && writtenFiles.length > 0 && !activeBuildCardId
 
 	const handleFeedbackSubmit = useCallback(
 		async (feedback: FeedbackRequest) => {
@@ -73,6 +76,8 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 					previewUrl={previewUrl}
 					activeBuildCardId={activeBuildCardId}
 					failureMessage={failureMessage}
+					writtenFiles={writtenFiles}
+					buildJustFinished={buildJustFinished}
 				/>
 			</Box>
 			<FeedbackBar onSubmit={handleFeedbackSubmit} />
@@ -109,16 +114,15 @@ async function runBuild(
 		}
 
 		if (!response.body) {
-			publish({
-				type: 'failed',
-				reason: 'Server returned no stream.',
-				kanbanCardId: cardId,
-			})
+			const reason = 'Server returned no stream.'
+			console.error(`[runBuild] ${reason}`)
+			toast.error('Build failed', reason)
+			publish({ type: 'failed', reason, kanbanCardId: cardId })
 			return
 		}
 
 		for await (const event of consumeSseStream(response.body)) {
-			publish(event)
+			handleSseEvent(event, publish)
 		}
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Network error'

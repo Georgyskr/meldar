@@ -7,17 +7,26 @@ import { provisionSubdomain } from '@/server/domains'
 import { requireAuth } from '@/server/identity/require-auth'
 import { insertPlanCards } from '@/server/lib/insert-plan-cards'
 import { checkRateLimit, mustHaveRateLimit, projectsCreateLimit } from '@/server/lib/rate-limit'
+import { prewarmSandbox } from '@/server/sandbox/prewarm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const validVerticalIds = BOOKING_VERTICALS.map((v) => v.id)
 
+const serviceSchema = z.object({
+	name: z.string().min(1).max(80),
+	durationMinutes: z.number().int().min(5).max(480),
+})
+
 const bodySchema = z.object({
 	verticalId: z.string().refine((id) => validVerticalIds.includes(id), {
 		message: 'Unknown business type',
 	}),
 	businessName: z.string().trim().min(1).max(80).optional(),
+	services: z.array(serviceSchema).min(1).max(10).optional(),
+	websiteUrl: z.string().url().max(200).optional(),
+	freeformDescription: z.string().max(500).optional(),
 })
 
 const limiter = mustHaveRateLimit(projectsCreateLimit, 'projectsCreate')
@@ -91,6 +100,8 @@ export async function POST(request: NextRequest) {
 		if (bookingTemplate) {
 			await insertPlanCards(created.project.id, bookingTemplate.milestones, 'template')
 		}
+
+		prewarmSandbox(created.project.id).catch(() => {})
 
 		let subdomain: string | undefined
 		try {

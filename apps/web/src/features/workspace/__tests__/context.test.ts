@@ -176,6 +176,26 @@ describe('workspaceBuildReducer', () => {
 		expect(next.cards).toBe(before.cards)
 	})
 
+	it('sets activeBuildCardId to buildId when no kanbanCardId and no selectedTaskId', () => {
+		const before = seed({ selectedTaskId: null })
+		const next = workspaceBuildReducer(before, {
+			type: 'started',
+			buildId: 'build_abc',
+			projectId: 'p',
+		})
+		expect(next.activeBuildCardId).toBe('build_abc')
+	})
+
+	it('prefers selectedTaskId over buildId when no kanbanCardId', () => {
+		const before = seed({ selectedTaskId: 'task-99' })
+		const next = workspaceBuildReducer(before, {
+			type: 'started',
+			buildId: 'build_abc',
+			projectId: 'p',
+		})
+		expect(next.activeBuildCardId).toBe('task-99')
+	})
+
 	it('transitions card to built and sets receipt on committed event', () => {
 		const c = makeCard({ id: 'c1', state: 'building', title: 'Nav bar' })
 		const before = seed({ cards: [c] })

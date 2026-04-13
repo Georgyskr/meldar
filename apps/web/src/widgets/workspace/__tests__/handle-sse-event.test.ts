@@ -1,0 +1,80 @@
+import type { OrchestratorEvent } from '@meldar/orchestrator/types'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/shared/ui', () => ({
+	toast: { error: vi.fn() },
+}))
+
+import { toast } from '@/shared/ui'
+import { handleSseEvent } from '../lib/handle-sse-event'
+
+describe('handleSseEvent', () => {
+	it('publishes every event to the dispatch function', () => {
+		const publish = vi.fn()
+		const event: OrchestratorEvent = {
+			type: 'file_written',
+			path: 'src/app/page.tsx',
+			contentHash: 'h',
+			sizeBytes: 100,
+			fileIndex: 0,
+		}
+		handleSseEvent(event, publish)
+		expect(publish).toHaveBeenCalledWith(event)
+	})
+
+	it('fires toast.error and console.error on "failed" events', () => {
+		const publish = vi.fn()
+		const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+		handleSseEvent(
+			{ type: 'failed', reason: 'Build validation failed', code: 'VALIDATION_ERROR' },
+			publish,
+		)
+
+		expect(publish).toHaveBeenCalledWith(
+			expect.objectContaining({ type: 'failed', reason: 'Build validation failed' }),
+		)
+		expect(toast.error).toHaveBeenCalledWith('Build failed', 'Build validation failed')
+		expect(spy).toHaveBeenCalledWith(
+			expect.stringContaining('VALIDATION_ERROR: Build validation failed'),
+		)
+
+		spy.mockRestore()
+	})
+
+	it('fires toast.error on "failed" events even without a code', () => {
+		const publish = vi.fn()
+		vi.spyOn(console, 'error').mockImplementation(() => {})
+
+		handleSseEvent({ type: 'failed', reason: 'Unknown error' }, publish)
+
+		expect(toast.error).toHaveBeenCalledWith('Build failed', 'Unknown error')
+
+		vi.restoreAllMocks()
+	})
+
+	it('does not fire toast for non-failed events', () => {
+		const publish = vi.fn()
+		vi.mocked(toast.error).mockClear()
+
+		handleSseEvent(
+			{ type: 'committed', buildId: 'b', tokenCost: 5, actualCents: 1, fileCount: 2 },
+			publish,
+		)
+
+		expect(toast.error).not.toHaveBeenCalled()
+	})
+
+	it('fires console.error on "pipeline_failed" events', () => {
+		const publish = vi.fn()
+		const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+		handleSseEvent({ type: 'pipeline_failed', reason: 'Card build crashed', cardId: 'c1' }, publish)
+
+		expect(publish).toHaveBeenCalled()
+		expect(toast.error).toHaveBeenCalledWith('Build failed', 'Card build crashed')
+		expect(spy).toHaveBeenCalled()
+
+		spy.mockRestore()
+	})
+})

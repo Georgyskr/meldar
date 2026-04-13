@@ -69,7 +69,7 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 		this.workerUrl = config.workerUrl.replace(/\/$/, '')
 		this.hmacSecret = config.hmacSecret
-		this.timeoutMs = config.timeoutMs ?? 30_000
+		this.timeoutMs = config.timeoutMs ?? 60_000
 		this.fetchImpl = config.fetchImpl ?? globalThis.fetch.bind(globalThis)
 	}
 

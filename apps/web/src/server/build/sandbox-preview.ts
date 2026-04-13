@@ -33,12 +33,23 @@ export async function* withSandboxPreview(
 			})),
 		)
 
-		const handle = await ctx.sandbox.start({
+		const startOpts = {
 			projectId: ctx.projectId,
 			userId: ctx.userId,
 			template: 'next-landing-v1',
 			initialFiles: files,
-		})
+		}
+
+		let handle: Awaited<ReturnType<typeof ctx.sandbox.start>>
+		try {
+			handle = await ctx.sandbox.start(startOpts)
+		} catch (firstErr) {
+			console.warn(
+				`[withSandboxPreview] first attempt failed for ${ctx.projectId}, retrying after prewarm: ${firstErr instanceof Error ? firstErr.message : String(firstErr)}`,
+			)
+			await ctx.sandbox.prewarm(ctx.projectId)
+			handle = await ctx.sandbox.start(startOpts)
+		}
 
 		yield {
 			type: 'sandbox_ready',
@@ -46,8 +57,8 @@ export async function* withSandboxPreview(
 			revision: handle.revision,
 		}
 	} catch (err) {
-		console.warn(
-			`[withSandboxPreview] sandbox start failed for project ${ctx.projectId}: ${err instanceof Error ? err.message : String(err)}`,
+		console.error(
+			`[withSandboxPreview] sandbox failed for project ${ctx.projectId} after retry: ${err instanceof Error ? err.message : String(err)}`,
 		)
 	}
 }

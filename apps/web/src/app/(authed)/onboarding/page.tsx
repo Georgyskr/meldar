@@ -1,6 +1,8 @@
 import { styled } from '@styled-system/jsx'
 import type { Metadata } from 'next'
-import { OnboardingFlow } from '@/features/onboarding'
+import { OnboardingFlow, OnboardingFunnel } from '@/features/onboarding'
+
+const useNewFunnel = process.env.NEXT_PUBLIC_ONBOARDING_V2 === 'true'
 
 export const metadata: Metadata = {
 	title: 'Set up your business — Meldar',
@@ -16,7 +18,7 @@ export default function OnboardingPage() {
 			paddingBlock={{ base: 12, md: 16 }}
 			paddingInline={{ base: 6, md: 10 }}
 		>
-			<OnboardingFlow />
+			{useNewFunnel ? <OnboardingFunnel /> : <OnboardingFlow />}
 		</styled.main>
 	)
 }

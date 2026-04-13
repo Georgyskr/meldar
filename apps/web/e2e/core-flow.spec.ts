@@ -49,6 +49,23 @@ async function injectAuthCookie(page: Page): Promise<void> {
 	])
 }
 
+const IGNORED_CONSOLE_PATTERNS = [
+	/Download the React DevTools/,
+	/Warning: Each child in a list/,
+	/migrated since no migrate function/,
+]
+
+function collectConsoleErrors(page: Page): string[] {
+	const errors: string[] = []
+	page.on('console', (msg) => {
+		if (msg.type() !== 'error') return
+		const text = msg.text()
+		if (IGNORED_CONSOLE_PATTERNS.some((p) => p.test(text))) return
+		errors.push(text)
+	})
+	return errors
+}
+
 test.describe
 	.serial('Core user flow', () => {
 		test.afterAll(async () => {
@@ -77,44 +94,30 @@ test.describe
 			await page.getByRole('button', { name: /create account/i }).click()
 
 			await page.waitForURL('**/onboarding**')
-			await expect(page.getByText("What's your business?")).toBeVisible()
+			await expect(page.getByText('What do you need today')).toBeVisible()
 			signUpSucceeded = true
 		})
 
-		test('onboarding \u2014 pick vertical, create project, land in workspace', async ({ page }) => {
+		test('onboarding \u2014 Door A through to workspace', async ({ page }) => {
 			test.skip(!signUpSucceeded, 'Sign-up did not complete')
 
 			await injectAuthCookie(page)
 			await page.goto('/onboarding')
-			await expect(page.getByText("What's your business?")).toBeVisible()
+			await expect(page.getByText('What do you need today')).toBeVisible()
 
-			await page
-				.getByRole('button')
-				.filter({ hasText: /Consulting/ })
-				.click()
-			await page.getByRole('button', { name: /create my booking page/i }).click()
+			// Door A
+			await page.getByRole('button', { name: /I need something for my business/i }).click()
+			await expect(page.getByText('What kind of business')).toBeVisible()
 
-			// Creating state must appear (ASCII dots, not unicode ellipsis)
-			await expect(page.getByText('Setting up your booking page...')).toBeVisible()
+			// Pick Consulting
+			await page.getByRole('button', { name: /Consulting/i }).click()
+			await page.getByRole('button', { name: /Continue/i }).click()
 
-			// Race: "ready" vs "timed out" vs error toast — fail fast with clear message
-			const ready = page.getByText('Your booking page is ready!')
-			const timedOut = page.getByText('Taking longer than expected...')
-			const outcome = await Promise.race([
-				expect(ready)
-					.toBeVisible({ timeout: 30_000 })
-					.then(() => 'ready' as const),
-				expect(timedOut)
-					.toBeVisible({ timeout: 30_000 })
-					.then(() => 'timedOut' as const),
-			])
-			expect(outcome, `Onboarding did not complete: got "${outcome}" instead of "ready"`).toBe(
-				'ready',
-			)
+			// Proposal Preview
+			await expect(page.getByText(/put together for you/i)).toBeVisible()
+			await page.getByRole('button', { name: /Let.*go/i }).click()
 
-			await page.getByRole('button', { name: /go to your dashboard/i }).click()
-
-			await page.waitForURL('**/workspace/**')
+			await page.waitForURL('**/workspace/**', { timeout: 30_000 })
 			const match = page.url().match(/\/workspace\/([0-9a-f-]{36})/)
 			expect(match).toBeTruthy()
 			createdProjectId = match?.[1]
@@ -134,6 +137,7 @@ test.describe
 		test('type prompt, trigger build, build completes with outcome', async ({ page }) => {
 			test.skip(!createdProjectId, 'No project from previous test')
 			test.setTimeout(180_000)
+			const consoleErrors = collectConsoleErrors(page)
 
 			await injectAuthCookie(page)
 			await page.goto(`/workspace/${createdProjectId}`)
@@ -179,6 +183,10 @@ test.describe
 				expect(text?.length).toBeGreaterThan(10)
 				expect(text).not.toContain('Something went wrong')
 			}
+
+			expect(consoleErrors, `Unexpected console errors:\n${consoleErrors.join('\n')}`).toHaveLength(
+				0,
+			)
 		})
 
 		test('admin dashboard renders tabs and settings page loads', async ({ page }) => {

@@ -417,11 +417,18 @@ export async function* orchestrateBuild(
 		// sandbox_ready MUST be yielded after committed: storage HEAD has to flip
 		// before we advertise the live sandbox URL.
 		if (deps.sandbox && validatedFiles.length > 0) {
+			const writeOpts = { projectId: request.projectId, files: validatedFiles }
 			try {
-				const sandboxHandle = await deps.sandbox.writeFiles({
-					projectId: request.projectId,
-					files: validatedFiles,
-				})
+				let sandboxHandle: Awaited<ReturnType<typeof deps.sandbox.writeFiles>>
+				try {
+					sandboxHandle = await deps.sandbox.writeFiles(writeOpts)
+				} catch (firstErr) {
+					console.warn(
+						`[orchestrator] sandbox writeFiles first attempt failed, retrying after prewarm: ${firstErr instanceof Error ? firstErr.message : String(firstErr)}`,
+					)
+					await deps.sandbox.prewarm(request.projectId)
+					sandboxHandle = await deps.sandbox.writeFiles(writeOpts)
+				}
 				if (sandboxHandle.previewUrl) {
 					const parsedUrl = previewUrlSchema.safeParse(sandboxHandle.previewUrl)
 					if (!parsedUrl.success) {
@@ -444,7 +451,7 @@ export async function* orchestrateBuild(
 					}
 				}
 			} catch (err) {
-				console.error('[orchestrator] sandbox writeFiles failed post-commit', err)
+				console.error('[orchestrator] sandbox writeFiles failed after retry', err)
 			}
 		}
 	} catch (err) {

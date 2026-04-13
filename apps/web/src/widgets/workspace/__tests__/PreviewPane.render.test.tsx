@@ -91,20 +91,55 @@ describe('PreviewPane', () => {
 		expect(container.querySelector('iframe')).toBeNull()
 	})
 
-	it('renders building state when previewUrl is null and building', () => {
+	it('shows thinking phase when building with no files yet', () => {
 		act(() => {
 			root.render(
 				createElement(PreviewPane, {
 					previewUrl: null,
 					activeBuildCardId: 'some-card-id',
 					failureMessage: null,
+					writtenFiles: [],
 				}),
 			)
 		})
 
-		expect(container.textContent).toContain('Building your page')
-		expect(container.textContent).toContain('30 seconds')
+		expect(container.textContent).toContain('Thinking')
 		expect(container.querySelector('iframe')).toBeNull()
+	})
+
+	it('shows writing phase with latest file name', () => {
+		act(() => {
+			root.render(
+				createElement(PreviewPane, {
+					previewUrl: null,
+					activeBuildCardId: 'some-card-id',
+					failureMessage: null,
+					writtenFiles: [
+						{ path: 'src/app/layout.tsx', sizeBytes: 500, writtenAt: 1 },
+						{ path: 'src/app/page.tsx', sizeBytes: 1200, writtenAt: 2 },
+					],
+				}),
+			)
+		})
+
+		expect(container.textContent).toContain('Writing')
+		expect(container.textContent).toContain('page.tsx')
+	})
+
+	it('shows deploying phase after build commits but preview not ready', () => {
+		act(() => {
+			root.render(
+				createElement(PreviewPane, {
+					previewUrl: null,
+					activeBuildCardId: null,
+					failureMessage: null,
+					writtenFiles: [{ path: 'src/app/page.tsx', sizeBytes: 1200, writtenAt: 1 }],
+					buildJustFinished: true,
+				}),
+			)
+		})
+
+		expect(container.textContent).toContain('Starting preview')
 	})
 
 	it('renders an iframe when previewUrl is set', () => {
