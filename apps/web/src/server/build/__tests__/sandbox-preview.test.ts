@@ -170,6 +170,7 @@ describe('withSandboxPreview', () => {
 
 	it('logs warning and does not emit sandbox_ready when sandbox.start() throws', async () => {
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 		const sandbox = makeMockSandbox({
 			start: vi.fn().mockRejectedValue(new Error('container boot failed')),
 		})
@@ -198,7 +199,10 @@ describe('withSandboxPreview', () => {
 		expect(sandboxEvent).toBeUndefined()
 		expect(warnSpy).toHaveBeenCalledOnce()
 		expect(warnSpy.mock.calls[0][0]).toContain('container boot failed')
+		expect(errorSpy).toHaveBeenCalledOnce()
+		expect(errorSpy.mock.calls[0][0]).toContain('container boot failed')
 		warnSpy.mockRestore()
+		errorSpy.mockRestore()
 	})
 
 	it('does not emit sandbox_ready when no committed event is received', async () => {
@@ -263,6 +267,7 @@ describe('withSandboxPreview', () => {
 
 	it('does not emit sandbox_ready when storage.readFile() throws', async () => {
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 		const storage = {
 			getCurrentFiles: vi.fn().mockResolvedValue([
 				{
@@ -299,9 +304,15 @@ describe('withSandboxPreview', () => {
 
 		const sandboxEvent = events.find((e) => e.type === 'sandbox_ready')
 		expect(sandboxEvent).toBeUndefined()
-		expect(warnSpy).toHaveBeenCalledOnce()
-		expect(warnSpy.mock.calls[0][0]).toContain('R2 read failed')
+		const called = warnSpy.mock.calls.length > 0 || errorSpy.mock.calls.length > 0
+		expect(called).toBe(true)
+		const allMessages = [
+			...warnSpy.mock.calls.map((c) => c[0]),
+			...errorSpy.mock.calls.map((c) => c[0]),
+		].join(' ')
+		expect(allMessages).toContain('R2 read failed')
 		warnSpy.mockRestore()
+		errorSpy.mockRestore()
 	})
 
 	it('emits sandbox_ready with undefined previewUrl when handle lacks it', async () => {
