@@ -1,4 +1,4 @@
-# Meldar
+# MeldarAI
 
 Your AI. Your app. Learn or fall behind
 
