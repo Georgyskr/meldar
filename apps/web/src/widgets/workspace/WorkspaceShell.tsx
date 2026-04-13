@@ -9,6 +9,7 @@ import { FirstBuildCelebration } from '@/features/kanban'
 import type { FeedbackRequest } from '@/features/visual-feedback'
 import { FeedbackBar } from '@/features/visual-feedback'
 import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace'
+import { toast } from '@/shared/ui'
 import { PreviewPane } from './PreviewPane'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
 
@@ -96,10 +97,13 @@ async function runBuild(
 		})
 
 		if (!response.ok) {
-			const body = (await response.json().catch(() => ({}))) as {
-				error?: { message?: string }
+			const errorBody = (await response.json().catch(() => ({}))) as {
+				error?: { code?: string; message?: string }
 			}
-			const message = body.error?.message ?? `Request failed (${response.status})`
+			const code = errorBody.error?.code ?? 'UNKNOWN'
+			const message = errorBody.error?.message ?? `Build failed (${response.status})`
+			console.error(`[runBuild] ${code}: ${message} (HTTP ${response.status})`)
+			toast.error('Build failed', message)
 			publish({ type: 'failed', reason: message, kanbanCardId: cardId })
 			return
 		}
@@ -118,6 +122,8 @@ async function runBuild(
 		}
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Network error'
+		console.error('[runBuild] exception:', err)
+		toast.error('Build failed', message)
 		publish({ type: 'failed', reason: message, kanbanCardId: cardId })
 	}
 }

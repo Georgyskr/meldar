@@ -335,7 +335,7 @@ test.describe('Build full flow', () => {
 		await mockCardPersistence(page, projectId)
 		await navigateToWorkspace(page, projectId)
 
-		const iframe = page.locator('iframe[title="App preview"]')
+		const iframe = page.locator('iframe[title="Live preview"]')
 		await expect(iframe).toBeVisible()
 		const initialSrc = await iframe.getAttribute('src')
 		expect(initialSrc).toBeFalsy()
