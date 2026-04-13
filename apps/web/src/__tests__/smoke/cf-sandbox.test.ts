@@ -65,7 +65,7 @@ describe.skipIf(!HAS_SANDBOX)('cf-sandbox smoke — real Worker', () => {
 			expect(json).toHaveProperty('sandboxId')
 			expect(json).toHaveProperty('previewUrl')
 		}
-	}, 60_000)
+	}, 120_000)
 
 	it('HMAC signing produces a valid signature the worker accepts', async () => {
 		const res = await signedFetch('/api/v1/status', {

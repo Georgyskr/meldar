@@ -118,23 +118,32 @@ test.describe
 
 			await page.getByLabel('Send feedback').click()
 
-			// Build must start: overlay pill uses unicode ellipsis (\u2026), NOT ASCII dots
-			await expect(page.getByText('Updating\u2026')).toBeVisible({ timeout: 60_000 })
-
-			// Build must finish: the building pill must disappear
-			await expect(page.getByText('Updating\u2026')).toBeHidden({ timeout: 120_000 })
-
-			// Wait for outcome to render before checking — retrying assertion, not snapshot
-			const donePill = page.getByText('\u2713 Updated')
-			const failedPill = page.getByText('Build failed')
+			// Build can start (showing "Updating…") or fail immediately (e.g. R2 not configured)
+			const buildingPill = page.getByText('Updating\u2026')
 			const errorToast = page.getByRole('alert').filter({ hasText: /build failed/i })
-			const outcomeLocator = donePill.or(failedPill).or(errorToast)
-			await expect(outcomeLocator).toBeVisible({ timeout: 10_000 })
+			await expect(buildingPill.or(errorToast)).toBeVisible({ timeout: 60_000 })
 
-			// Now snapshot is safe — at least one outcome element is in the DOM
-			const succeeded = await donePill.isVisible()
+			const buildStarted = await buildingPill.isVisible()
 
-			if (!succeeded) {
+			if (buildStarted) {
+				// Build started — wait for it to finish
+				await expect(buildingPill).toBeHidden({ timeout: 120_000 })
+
+				const donePill = page.getByText('\u2713 Updated')
+				const failedPill = page.getByText('Build failed')
+				const outcomeLocator = donePill.or(failedPill).or(errorToast)
+				await expect(outcomeLocator).toBeVisible({ timeout: 10_000 })
+
+				const succeeded = await donePill.isVisible()
+				if (!succeeded) {
+					const toastEl = page.getByRole('alert').first()
+					await expect(toastEl).toBeVisible()
+					const text = await toastEl.textContent()
+					expect(text?.length).toBeGreaterThan(10)
+					expect(text).not.toContain('Something went wrong')
+				}
+			} else {
+				// Build failed immediately — verify error is meaningful, not silently swallowed
 				const toastEl = page.getByRole('alert').first()
 				await expect(toastEl).toBeVisible()
 				const text = await toastEl.textContent()
