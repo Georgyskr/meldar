@@ -161,7 +161,7 @@ export function workspaceBuildReducer(
 			return {
 				...state,
 				cards: updateCardState(state.cards, action.kanbanCardId, 'building'),
-				activeBuildCardId: action.kanbanCardId ?? state.selectedTaskId,
+				activeBuildCardId: action.kanbanCardId ?? state.selectedTaskId ?? action.buildId,
 				writtenFiles: [],
 				failureMessage: null,
 				deployment: { type: 'idle' },

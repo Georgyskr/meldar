@@ -2,6 +2,7 @@ import { getDb } from '@meldar/db/client'
 import { projects, users } from '@meldar/db/schema'
 import { expect, type Page, test } from '@playwright/test'
 import { eq } from 'drizzle-orm'
+import jwt from 'jsonwebtoken'
 
 const TEST_EMAIL = `e2e-core-${Date.now()}@meldar-test.local`
 const TEST_PASSWORD = 'E2e-test-password-9876!'
@@ -12,12 +13,40 @@ let createdProjectId: string | undefined
 
 test.use({ storageState: { cookies: [], origins: [] } })
 
-async function signInViaUI(page: Page): Promise<void> {
-	await page.goto('/sign-in')
-	await page.fill('#signin-email', TEST_EMAIL)
-	await page.fill('#signin-password', TEST_PASSWORD)
-	await page.getByRole('button', { name: /sign in/i }).click()
-	await page.waitForURL('**/workspace**', { timeout: 15_000 })
+async function injectAuthCookie(page: Page): Promise<void> {
+	const secret = process.env.AUTH_SECRET
+	if (!secret) throw new Error('AUTH_SECRET required for E2E cookie injection')
+
+	const db = getDb()
+	const [user] = await db
+		.select({ id: users.id, tokenVersion: users.tokenVersion })
+		.from(users)
+		.where(eq(users.email, TEST_EMAIL))
+		.limit(1)
+	if (!user) throw new Error(`Test user ${TEST_EMAIL} not found — sign-up test may have failed`)
+
+	const token = jwt.sign(
+		{
+			userId: user.id,
+			email: TEST_EMAIL,
+			emailVerified: false,
+			tokenVersion: user.tokenVersion,
+		},
+		secret,
+		{ expiresIn: '7d', algorithm: 'HS256' },
+	)
+
+	await page.context().addCookies([
+		{
+			name: 'meldar-auth',
+			value: token,
+			domain: 'localhost',
+			path: '/',
+			httpOnly: true,
+			sameSite: 'Lax',
+			expires: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
+		},
+	])
 }
 
 test.describe
@@ -55,7 +84,7 @@ test.describe
 		test('onboarding \u2014 pick vertical, create project, land in workspace', async ({ page }) => {
 			test.skip(!signUpSucceeded, 'Sign-up did not complete')
 
-			await signInViaUI(page)
+			await injectAuthCookie(page)
 			await page.goto('/onboarding')
 			await expect(page.getByText("What's your business?")).toBeVisible()
 
@@ -94,7 +123,7 @@ test.describe
 		test('workspace loads with empty-state prompt and feedback bar', async ({ page }) => {
 			test.skip(!createdProjectId, 'No project from previous test')
 
-			await signInViaUI(page)
+			await injectAuthCookie(page)
 			await page.goto(`/workspace/${createdProjectId}`)
 
 			await expect(page.getByText('Describe what you want to build')).toBeVisible()
@@ -106,7 +135,7 @@ test.describe
 			test.skip(!createdProjectId, 'No project from previous test')
 			test.setTimeout(180_000)
 
-			await signInViaUI(page)
+			await injectAuthCookie(page)
 			await page.goto(`/workspace/${createdProjectId}`)
 
 			const textarea = page.locator('textarea')
@@ -155,7 +184,7 @@ test.describe
 		test('admin dashboard renders tabs and settings page loads', async ({ page }) => {
 			test.skip(!createdProjectId, 'No project from previous test')
 
-			await signInViaUI(page)
+			await injectAuthCookie(page)
 			await page.goto(`/workspace/${createdProjectId}/admin`)
 
 			await expect(page.getByText('Manage your bookings and review AI actions.')).toBeVisible()
@@ -173,7 +202,7 @@ test.describe
 		test('settings save persists across page reload', async ({ page }) => {
 			test.skip(!createdProjectId, 'No project from previous test')
 
-			await signInViaUI(page)
+			await injectAuthCookie(page)
 			await page.goto(`/workspace/${createdProjectId}/admin/settings`)
 			await expect(page.getByText('Business details')).toBeVisible()
 

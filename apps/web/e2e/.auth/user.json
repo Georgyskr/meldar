@@ -2,10 +2,10 @@
   "cookies": [
     {
       "name": "meldar-auth",
-      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3YzVmZDE4MC1jNmY4LTQ0M2ItOGJkMS1kNTNiODhkZWVhNDQiLCJlbWFpbCI6ImUyZS10ZXN0QG1lbGRhci5haSIsImVtYWlsVmVyaWZpZWQiOnRydWUsInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzc1ODA2MzIwLCJleHAiOjE3NzY0MTExMjB9.h9ffjHZY09hbuYEm6cOazeMeRB3CUr-G2jjlErYyBsk",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3YzVmZDE4MC1jNmY4LTQ0M2ItOGJkMS1kNTNiODhkZWVhNDQiLCJlbWFpbCI6ImUyZS10ZXN0QG1lbGRhci5haSIsImVtYWlsVmVyaWZpZWQiOnRydWUsInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzc2MDgxMjM2LCJleHAiOjE3NzY2ODYwMzZ9.QpwHX9Z5bgoj6T8OEASO6US1Hv2PXmwMqWxzt-IIZqU",
       "domain": "localhost",
       "path": "/",
-      "expires": 1776411120,
+      "expires": 1776686036,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
