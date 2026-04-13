@@ -1,5 +1,6 @@
 import { BUILD_SYSTEM_PROMPT, routeModel, WRITE_FILE_TOOL } from '@meldar/orchestrator'
 import { MODELS } from '@meldar/tokens'
+import { describe, expect, it } from 'vitest'
 import { createAnthropicClient, HAS_ANTHROPIC } from './setup'
 
 describe.skipIf(!HAS_ANTHROPIC)('anthropic smoke — real API calls', () => {

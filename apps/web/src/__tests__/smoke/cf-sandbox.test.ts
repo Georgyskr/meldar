@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest'
 import { HAS_SANDBOX } from './setup'
 
 const WORKER_URL = process.env.CF_SANDBOX_WORKER_URL ?? ''

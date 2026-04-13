@@ -22,7 +22,7 @@ const {
 	mockDbSet: vi.fn(),
 	mockDbUpdateWhere: vi.fn(),
 	mockRequireAuth: vi.fn(),
-	mockSignToken: vi.fn(() => 'refreshed-jwt'),
+	mockSignToken: vi.fn((_payload: unknown) => 'refreshed-jwt'),
 	mockSetAuthCookie: vi.fn(),
 }))
 
@@ -38,7 +38,7 @@ vi.mock('@/server/identity/require-auth', () => ({
 }))
 
 vi.mock('@/server/identity/jwt', () => ({
-	signToken: (...args: unknown[]) => mockSignToken(...args),
+	signToken: (payload: unknown) => mockSignToken(payload),
 }))
 
 vi.mock('@/server/identity/auth-cookie', () => ({

@@ -52,8 +52,8 @@ async function navigateToWorkspace(page: Page, projectId: string): Promise<void>
 	await expect(page.getByText('Ch 1')).toBeVisible()
 }
 
-function mockCardPersistence(page: Page, projectId: string): Promise<void> {
-	return page.route(`**/api/workspace/${projectId}/cards/**`, (route: Route) => {
+async function mockCardPersistence(page: Page, projectId: string): Promise<void> {
+	await page.route(`**/api/workspace/${projectId}/cards/**`, (route: Route) => {
 		if (route.request().method() === 'PATCH') {
 			route.fulfill({
 				status: 200,
@@ -87,7 +87,7 @@ async function publishEvent(page: Page, event: OrchestratorEvent): Promise<void>
 		function getFiber(el: Element): Fiber | null {
 			for (const key of Object.keys(el)) {
 				if (key.startsWith('__reactFiber$')) {
-					return (el as Record<string, unknown>)[key] as Fiber
+					return (el as unknown as Record<string, unknown>)[key] as Fiber
 				}
 			}
 			return null
@@ -207,8 +207,9 @@ test.describe('Build full flow', () => {
 
 		expect(buildRequestCaptured).toBe(true)
 		expect(capturedBody).toBeTruthy()
-		expect(capturedBody?.kanbanCardId).toMatch(/^[0-9a-f-]{36}$/)
-		expect(capturedBody?.prompt).toBeTruthy()
+		const body = capturedBody as unknown as { kanbanCardId?: string; prompt?: string }
+		expect(body.kanbanCardId).toMatch(/^[0-9a-f-]{36}$/)
+		expect(body.prompt).toBeTruthy()
 	})
 
 	test('build progress shows building state and transitions to review on committed', async ({

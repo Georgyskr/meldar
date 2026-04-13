@@ -63,8 +63,9 @@ test.describe('Build journey', () => {
 
 		expect(buildRequested).toBe(true)
 		expect(capturedBody).not.toBeNull()
-		expect(capturedBody?.kanbanCardId).toBeTruthy()
-		expect(capturedBody?.prompt).toBeTruthy()
+		const body = capturedBody as unknown as { kanbanCardId?: string; prompt?: string }
+		expect(body.kanbanCardId).toBeTruthy()
+		expect(body.prompt).toBeTruthy()
 	})
 
 	test('template application creates kanban milestones with subtasks', async ({

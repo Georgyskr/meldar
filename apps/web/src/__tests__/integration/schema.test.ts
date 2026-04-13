@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
+import { afterEach, describe, expect, it } from 'vitest'
 import {
 	agentEvents,
 	agentTasks,

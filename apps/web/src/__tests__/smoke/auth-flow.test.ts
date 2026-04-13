@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest'
 import { signToken } from '@/server/identity/jwt'
 import { HAS_AUTH, HAS_DATABASE } from './setup'
 

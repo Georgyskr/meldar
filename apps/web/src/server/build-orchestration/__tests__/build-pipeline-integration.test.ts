@@ -687,7 +687,9 @@ describe('token ledger behavior on build failure', () => {
 
 		expect(events[events.length - 1].type).toBe('failed')
 		if (events[events.length - 1].type === 'failed') {
-			expect(events[events.length - 1].code).toBe('max_tokens_truncated')
+			expect((events[events.length - 1] as Record<string, unknown>).code).toBe(
+				'max_tokens_truncated',
+			)
 		}
 
 		const after = await fixture.ledger.getSnapshot(fixture.userId)
@@ -744,7 +746,7 @@ describe('token ledger behavior on build failure', () => {
 
 		expect(events[events.length - 1].type).toBe('failed')
 		if (events[events.length - 1].type === 'failed') {
-			expect(events[events.length - 1].code).toBe('ceiling_exhausted')
+			expect((events[events.length - 1] as Record<string, unknown>).code).toBe('ceiling_exhausted')
 		}
 		expect(mock).not.toHaveBeenCalled()
 	})
@@ -890,7 +892,7 @@ describe('edge cases', () => {
 		const failed = events[events.length - 1]
 		expect(failed.type).toBe('failed')
 		if (failed.type === 'failed') {
-			expect(failed.code).toBe('aborted')
+			expect((failed as Record<string, unknown>).code).toBe('aborted')
 		}
 	})
 
@@ -923,7 +925,7 @@ describe('edge cases', () => {
 
 		expect(events[events.length - 1].type).toBe('failed')
 		if (events[events.length - 1].type === 'failed') {
-			expect(events[events.length - 1].code).toBe('provider_paused')
+			expect((events[events.length - 1] as Record<string, unknown>).code).toBe('provider_paused')
 		}
 		expect(mock).not.toHaveBeenCalled()
 	})
@@ -957,7 +959,9 @@ describe('edge cases', () => {
 
 		expect(events[events.length - 1].type).toBe('failed')
 		if (events[events.length - 1].type === 'failed') {
-			expect(events[events.length - 1].code).toBe('global_ceiling_exhausted')
+			expect((events[events.length - 1] as Record<string, unknown>).code).toBe(
+				'global_ceiling_exhausted',
+			)
 		}
 		expect(mock).not.toHaveBeenCalled()
 	})

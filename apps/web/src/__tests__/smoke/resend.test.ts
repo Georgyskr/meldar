@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest'
 import { HAS_RESEND } from './setup'
 
 describe.skipIf(!HAS_RESEND)('resend smoke — real Resend API', () => {
