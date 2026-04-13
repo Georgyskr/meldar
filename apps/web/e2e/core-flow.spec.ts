@@ -4,7 +4,7 @@ import { expect, type Page, test } from '@playwright/test'
 import { eq } from 'drizzle-orm'
 
 const TEST_EMAIL = `e2e-core-${Date.now()}@meldar-test.local`
-const TEST_PASSWORD = 'e2e-test-password-9876!'
+const TEST_PASSWORD = 'E2e-test-password-9876!'
 
 // Shared across serial tests — breaks if retries > 0 (retries reset worker state)
 let signUpSucceeded = false
