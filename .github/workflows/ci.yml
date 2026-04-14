@@ -56,8 +56,11 @@ jobs:
         run: docker build -t meldar-sandbox-smoke .
 
       - name: Assert required tools exist in image
+        # --entrypoint bash bypasses the cloudflare/sandbox image's long-lived
+        # server entrypoint; without it, `docker run` never exits even after
+        # our user command succeeds, and the job hits its job-level timeout.
         run: |
-          docker run --rm meldar-sandbox-smoke bash -lc '
+          docker run --rm --entrypoint bash meldar-sandbox-smoke -lc '
             set -e
             command -v bash
             command -v setsid
@@ -65,9 +68,6 @@ jobs:
             command -v curl
             command -v fuser
             command -v pkill
-            # /dev/tcp is a bash builtin — dash lacks it. Verify by
-            # attempting a local-loopback connect that is expected to fail
-            # gracefully (port not listening) rather than syntax-error.
             bash -c "(echo > /dev/tcp/127.0.0.1/1) 2>/dev/null; echo devtcp-supported"
           '
 
