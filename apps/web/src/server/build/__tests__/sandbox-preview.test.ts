@@ -49,7 +49,6 @@ function makeMockSandbox(overrides: Partial<SandboxProvider> = {}): SandboxProvi
 		projectId: 'proj_1',
 		previewUrl: 'https://sandbox-abc.workers.dev',
 		status: 'ready',
-		revision: 1,
 	}
 	return {
 		prewarm: vi.fn().mockResolvedValue(undefined),
@@ -98,7 +97,6 @@ describe('withSandboxPreview', () => {
 		expect(sandboxEvent).toEqual({
 			type: 'sandbox_ready',
 			previewUrl: 'https://sandbox-abc.workers.dev',
-			revision: 1,
 		})
 	})
 
@@ -258,7 +256,6 @@ describe('withSandboxPreview', () => {
 		expect(sandbox.start).toHaveBeenCalledWith({
 			projectId: 'proj_1',
 			userId: 'user_1',
-			template: 'next-landing-v1',
 			initialFiles: [],
 		})
 		const sandboxEvent = events.find((e) => e.type === 'sandbox_ready')
@@ -321,7 +318,6 @@ describe('withSandboxPreview', () => {
 				projectId: 'proj_1',
 				previewUrl: undefined,
 				status: 'ready',
-				revision: 1,
 			}),
 		})
 		const storage = makeMockStorage()
@@ -350,7 +346,6 @@ describe('withSandboxPreview', () => {
 		expect(sandboxEvent).toEqual({
 			type: 'sandbox_ready',
 			previewUrl: undefined,
-			revision: 1,
 		})
 	})
 
@@ -385,7 +380,6 @@ describe('withSandboxPreview', () => {
 		expect(sandbox.start).toHaveBeenCalledWith({
 			projectId: 'proj_1',
 			userId: 'user_1',
-			template: 'next-landing-v1',
 			initialFiles: [
 				{ path: 'src/app/page.tsx', content: '<main>Hello</main>' },
 				{ path: 'src/app/layout.tsx', content: 'export default function Layout(){}' },

@@ -14,7 +14,10 @@ export async function verifyHmac(opts: VerifyHmacOptions): Promise<VerifyHmacRes
 	if (!opts.timestampHeader) return { ok: false, reason: 'missing_timestamp' }
 	if (!opts.signatureHeader) return { ok: false, reason: 'missing_signature' }
 
-	if (!/^\d{10,16}$/.test(opts.timestampHeader)) return { ok: false, reason: 'bad_timestamp' }
+	// {10,13}: 10 digits = second precision, 13 = ms precision (what we emit).
+	// Previous {10,16} accepted values that would never pass the window check
+	// anyway but invited confusion — tighten to what we actually issue.
+	if (!/^\d{10,13}$/.test(opts.timestampHeader)) return { ok: false, reason: 'bad_timestamp' }
 	const ts = Number.parseInt(opts.timestampHeader, 10)
 	if (Math.abs(opts.now - ts) > opts.windowMs) return { ok: false, reason: 'stale_timestamp' }
 

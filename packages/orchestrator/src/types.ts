@@ -21,7 +21,7 @@ export type OrchestratorEvent =
 			sizeBytes: number
 			fileIndex: number
 	  }
-	| { type: 'sandbox_ready'; previewUrl: string; revision: number }
+	| { type: 'sandbox_ready'; previewUrl: string }
 	| {
 			type: 'committed'
 			buildId: string

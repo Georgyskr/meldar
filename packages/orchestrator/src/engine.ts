@@ -417,16 +417,24 @@ export async function* orchestrateBuild(
 		// sandbox_ready MUST be yielded after committed: storage HEAD has to flip
 		// before we advertise the live sandbox URL.
 		if (deps.sandbox && validatedFiles.length > 0) {
-			const writeOpts = { projectId: request.projectId, files: validatedFiles }
+			const requestId = crypto.randomUUID().replace(/-/g, '')
+			const writeOpts = {
+				projectId: request.projectId,
+				files: validatedFiles,
+				requestId,
+				userId: request.userId,
+			}
 			try {
 				let sandboxHandle: Awaited<ReturnType<typeof deps.sandbox.writeFiles>>
 				try {
 					sandboxHandle = await deps.sandbox.writeFiles(writeOpts)
 				} catch (firstErr) {
 					console.warn(
-						`[orchestrator] sandbox writeFiles first attempt failed, retrying after prewarm: ${firstErr instanceof Error ? firstErr.message : String(firstErr)}`,
+						`[orchestrator] sandbox writeFiles first attempt failed, retrying after prewarm: ${firstErr instanceof Error ? firstErr.message : String(firstErr)} (requestId=${requestId})`,
 					)
-					await deps.sandbox.prewarm(request.projectId)
+					// Thread the same requestId through the prewarm retry so
+					// both worker log lines correlate under one user action.
+					await deps.sandbox.prewarm(request.projectId, { requestId })
 					sandboxHandle = await deps.sandbox.writeFiles(writeOpts)
 				}
 				if (sandboxHandle.previewUrl) {
@@ -446,7 +454,6 @@ export async function* orchestrateBuild(
 						yield {
 							type: 'sandbox_ready',
 							previewUrl: parsedUrl.data,
-							revision: sandboxHandle.revision,
 						}
 					}
 				}

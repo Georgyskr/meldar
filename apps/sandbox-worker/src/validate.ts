@@ -43,3 +43,23 @@ export function isSafeRelativePath(path: string): boolean {
 export function sanitizeFilePath(path: string): string {
 	return path.replace(/^\/+/, '')
 }
+
+// F11: defense-in-depth caps for /api/v1/{start,write} file batches. These
+// sit behind HMAC (trusted caller) but limit blast radius if a caller bug or
+// credential compromise ships a pathological batch. 200 files × ~10 MB/file
+// ceiling matches realistic generated projects with ~5× headroom; total 40 MB
+// cap bounds container disk write in one request.
+export const MAX_FILES_PER_BATCH = 200
+export const MAX_TOTAL_FILE_BYTES = 40 * 1024 * 1024
+
+export function exceedsBatchLimits(files: ReadonlyArray<{ content: string }>): {
+	reason: 'too_many_files' | 'too_many_bytes'
+} | null {
+	if (files.length > MAX_FILES_PER_BATCH) return { reason: 'too_many_files' }
+	let total = 0
+	for (const f of files) {
+		total += f.content.length
+		if (total > MAX_TOTAL_FILE_BYTES) return { reason: 'too_many_bytes' }
+	}
+	return null
+}

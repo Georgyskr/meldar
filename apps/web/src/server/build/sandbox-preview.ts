@@ -45,7 +45,6 @@ export async function* withSandboxPreview(
 		const startOpts = {
 			projectId: ctx.projectId,
 			userId: ctx.userId,
-			template: 'next-landing-v1',
 			initialFiles: files,
 		}
 
@@ -63,7 +62,6 @@ export async function* withSandboxPreview(
 		yield {
 			type: 'sandbox_ready',
 			previewUrl: handle.previewUrl,
-			revision: handle.revision,
 		}
 	} catch (err) {
 		console.error(

@@ -22,9 +22,9 @@ describe('handleSseEvent', () => {
 		expect(publish).toHaveBeenCalledWith(event)
 	})
 
-	it('fires toast.error and console.error on "failed" events', () => {
+	it('fires toast.error and console.warn on "failed" events', () => {
 		const publish = vi.fn()
-		const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+		const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		handleSseEvent(
 			{ type: 'failed', reason: 'Build validation failed', code: 'VALIDATION_ERROR' },
@@ -44,7 +44,7 @@ describe('handleSseEvent', () => {
 
 	it('fires toast.error on "failed" events even without a code', () => {
 		const publish = vi.fn()
-		vi.spyOn(console, 'error').mockImplementation(() => {})
+		vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		handleSseEvent({ type: 'failed', reason: 'Unknown error' }, publish)
 
@@ -65,9 +65,9 @@ describe('handleSseEvent', () => {
 		expect(toast.error).not.toHaveBeenCalled()
 	})
 
-	it('fires console.error on "pipeline_failed" events', () => {
+	it('fires console.warn on "pipeline_failed" events', () => {
 		const publish = vi.fn()
-		const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+		const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		handleSseEvent({ type: 'pipeline_failed', reason: 'Card build crashed', cardId: 'c1' }, publish)
 

@@ -198,7 +198,6 @@ describe('orchestrateBuild', () => {
 				projectId: fixture.projectId,
 				previewUrl: 'https://x.example.com',
 				status: 'ready',
-				revision: 1,
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
@@ -230,7 +229,6 @@ describe('orchestrateBuild', () => {
 				projectId: fixture.projectId,
 				previewUrl: 'https://sandbox.example.com/preview-abc',
 				status: 'ready',
-				revision: 7,
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
@@ -251,7 +249,6 @@ describe('orchestrateBuild', () => {
 			const sandboxReady = sandboxReadyEvents[0]
 			if (sandboxReady?.type !== 'sandbox_ready') throw new Error('expected sandbox_ready')
 			expect(sandboxReady.previewUrl).toBe('https://sandbox.example.com/preview-abc')
-			expect(sandboxReady.revision).toBe(7)
 
 			const project = await fixture.storage.getProject(fixture.projectId, fixture.userId)
 			expect(project.previewUrl).toBe('https://sandbox.example.com/preview-abc')
@@ -567,7 +564,6 @@ describe('orchestrateBuild', () => {
 				projectId: fixture.projectId,
 				previewUrl: 'https://sandbox.example.com/preview',
 				status: 'ready',
-				revision: 3,
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
@@ -594,7 +590,6 @@ describe('orchestrateBuild', () => {
 				projectId: fixture.projectId,
 				previewUrl: 'https://sandbox.example.com/preview',
 				status: 'ready',
-				revision: 1,
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 
@@ -636,7 +631,6 @@ describe('orchestrateBuild', () => {
 				projectId: fixture.projectId,
 				previewUrl: 'javascript:alert(1)',
 				status: 'ready',
-				revision: 1,
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const project0 = await fixture.storage.getProject(fixture.projectId, fixture.userId)
@@ -657,12 +651,11 @@ describe('orchestrateBuild', () => {
 			expect(project1.previewUrl).toBe(previewBefore)
 		})
 
-		it('emits sandbox_ready with the LAST sandbox handle revision (single batched call)', async () => {
+		it('emits one sandbox_ready per batched call', async () => {
 			const writeFiles = vi.fn().mockResolvedValue({
 				projectId: fixture.projectId,
 				previewUrl: 'https://sandbox.example.com/preview',
 				status: 'ready',
-				revision: 42,
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const { client: anthropic } = makeToolUseMock([
@@ -681,7 +674,7 @@ describe('orchestrateBuild', () => {
 			expect(writeFiles).toHaveBeenCalledTimes(1)
 			const sandboxReady = events.find((e) => e.type === 'sandbox_ready')
 			if (sandboxReady?.type !== 'sandbox_ready') throw new Error('expected sandbox_ready event')
-			expect(sandboxReady.revision).toBe(42)
+			expect(sandboxReady.previewUrl).toBe('https://sandbox.example.com/preview')
 		})
 
 		it('still emits sandbox_ready when setPreviewUrl cache write fails', async () => {
@@ -689,7 +682,6 @@ describe('orchestrateBuild', () => {
 				projectId: fixture.projectId,
 				previewUrl: 'https://sandbox.example.com/preview',
 				status: 'ready',
-				revision: 5,
 			})
 			const sandbox = makeStubSandbox({ writeFiles })
 			const setPreviewUrlSpy = vi

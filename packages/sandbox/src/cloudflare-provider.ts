@@ -69,7 +69,9 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 		this.workerUrl = config.workerUrl.replace(/\/$/, '')
 		this.hmacSecret = config.hmacSecret
-		this.timeoutMs = config.timeoutMs ?? 60_000
+		// 120s ceiling: worker's ensureDevServer waits up to 90s for cold-start
+		// container readiness; client must outlast that to receive the response.
+		this.timeoutMs = config.timeoutMs ?? 120_000
 		this.fetchImpl = config.fetchImpl ?? globalThis.fetch.bind(globalThis)
 	}
 
@@ -88,11 +90,13 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		})
 	}
 
-	async prewarm(projectId: string): Promise<void> {
+	async prewarm(projectId: string, opts: { requestId?: string } = {}): Promise<void> {
 		// Fire-and-forget semantics: log on failure, never throw. Callers
 		// (Stripe webhook, magic-link click) rely on this.
+		// requestId is optional so call-sites that don't have a correlation
+		// context (webhooks) still work; the worker generates one if missing.
 		try {
-			await this.callWorker('POST', '/api/v1/prewarm', { projectId })
+			await this.callWorker('POST', '/api/v1/prewarm', { projectId }, { requestId: opts.requestId })
 		} catch (err) {
 			console.warn(
 				`[CloudflareSandboxProvider] prewarm(${projectId}) failed silently: ${formatErr(err)}`,
@@ -107,12 +111,16 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 
 		let response: WorkerStartResponse
 		try {
-			response = await this.callWorker<WorkerStartResponse>('POST', '/api/v1/start', {
-				projectId: options.projectId,
-				userId: options.userId,
-				template: options.template,
-				files: options.initialFiles ?? [],
-			})
+			response = await this.callWorker<WorkerStartResponse>(
+				'POST',
+				'/api/v1/start',
+				{
+					projectId: options.projectId,
+					userId: options.userId,
+					files: options.initialFiles ?? [],
+				},
+				{ requestId: options.requestId, userId: options.userId },
+			)
 		} catch (err) {
 			if (err instanceof SandboxError) throw err
 			throw new SandboxStartFailedError(`worker /api/v1/start failed: ${formatErr(err)}`, {
@@ -132,7 +140,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 			projectId: options.projectId,
 			previewUrl: response.previewUrl,
 			status: response.status ?? 'ready',
-			revision: response.revision ?? 0,
 		}
 	}
 
@@ -143,10 +150,15 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 
 		let response: WorkerWriteResponse
 		try {
-			response = await this.callWorker<WorkerWriteResponse>('POST', '/api/v1/write', {
-				projectId: options.projectId,
-				files: options.files,
-			})
+			response = await this.callWorker<WorkerWriteResponse>(
+				'POST',
+				'/api/v1/write',
+				{
+					projectId: options.projectId,
+					files: options.files,
+				},
+				{ requestId: options.requestId, userId: options.userId },
+			)
 		} catch (err) {
 			if (err instanceof SandboxError) throw err
 			throw new SandboxWriteFailedError(`worker /api/v1/write failed: ${formatErr(err)}`, {
@@ -167,7 +179,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 			projectId: options.projectId,
 			previewUrl: response.previewUrl,
 			status: response.status ?? 'ready',
-			revision: response.revision ?? 0,
 		}
 	}
 
@@ -198,24 +209,32 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		method: 'POST' | 'GET',
 		path: string,
 		body: unknown,
+		opts: { requestId?: string; userId?: string } = {},
 	): Promise<T> {
 		const url = `${this.workerUrl}${path}`
 		const bodyJson = JSON.stringify(body)
 		const timestamp = Date.now().toString()
 		const signature = await hmacSign(this.hmacSecret, `${timestamp}.${bodyJson}`)
+		const requestId = opts.requestId ?? generateRequestId()
 
 		const controller = new AbortController()
 		const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs)
+
+		// F4: optional x-meldar-user-id header so the worker's structured log
+		// can carry userId without forcing it into the HMAC-signed body.
+		const headers: Record<string, string> = {
+			'content-type': 'application/json',
+			'x-meldar-timestamp': timestamp,
+			'x-meldar-signature': signature,
+			'x-meldar-request-id': requestId,
+		}
+		if (opts.userId) headers['x-meldar-user-id'] = opts.userId
 
 		let res: Response
 		try {
 			res = await this.fetchImpl(url, {
 				method,
-				headers: {
-					'content-type': 'application/json',
-					'x-meldar-timestamp': timestamp,
-					'x-meldar-signature': signature,
-				},
+				headers,
 				body: bodyJson,
 				signal: controller.signal,
 			})
@@ -232,20 +251,8 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		}
 		clearTimeout(timeoutId)
 
-		if (res.status === 404) {
-			throw new SandboxNotFoundError(`worker returned 404 for ${path}`)
-		}
 		if (!res.ok) {
-			const errBody = await res.text().catch(() => '<no body>')
-			// 409 Conflict → sandbox is in an unstartable state. The orchestrator
-			// can retry-with-stop in this case. Map to NotReady so the caller
-			// gets the right error class.
-			if (res.status === 409) {
-				throw new SandboxNotReadyError(`worker returned 409 Conflict: ${errBody.slice(0, 500)}`)
-			}
-			throw new SandboxStartFailedError(
-				`worker returned ${res.status} ${res.statusText}: ${errBody.slice(0, 500)}`,
-			)
+			throw await classifyWorkerError(res, path)
 		}
 
 		const json = await res.json()
@@ -253,17 +260,86 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 	}
 }
 
+/**
+ * Map a worker error response to the correct SandboxError subclass.
+ *
+ * P2-15: previously this code pattern-matched on HTTP status alone; now the
+ * worker emits a tagged `{ error: CODE }` body that carries the precise
+ * failure mode without any internal context (no `message`, no `stack`). We
+ * dispatch on that code; if the body is unparseable or the code is unknown,
+ * we fall back to status-based classification so older worker deployments
+ * still get sane mapping during rolling upgrades.
+ *
+ * The body is bounded at 500 bytes for the fallback so a malicious or
+ * malformed worker can't blow the orchestrator's error-message budget.
+ */
+async function classifyWorkerError(res: Response, path: string): Promise<SandboxError> {
+	const rawBody = await res.text().catch(() => '')
+	let code: string | undefined
+	try {
+		const parsed = JSON.parse(rawBody) as unknown
+		if (
+			typeof parsed === 'object' &&
+			parsed !== null &&
+			'error' in parsed &&
+			typeof (parsed as { error: unknown }).error === 'string'
+		) {
+			code = (parsed as { error: string }).error
+		}
+	} catch {
+		// fallthrough — handled by status-based fallback below
+	}
+
+	switch (code) {
+		case 'NOT_FOUND':
+			return new SandboxNotFoundError(`worker NOT_FOUND for ${path}`)
+		case 'CONFLICT':
+			return new SandboxNotReadyError(`worker reported CONFLICT for ${path}`)
+		case 'DEV_SERVER_TIMEOUT':
+			return new SandboxNotReadyError(`worker dev server timed out for ${path}`)
+		case 'QUOTA_EXHAUSTED':
+			return new SandboxNotReadyError(`worker reported QUOTA_EXHAUSTED for ${path}`)
+		case 'CONFIG_ERROR':
+			// Worker is misconfigured (e.g. missing HMAC_SECRET). Surface as a
+			// start-failure so the orchestrator's existing retry policy applies
+			// and the on-call rotation sees the structured error log.
+			return new SandboxStartFailedError(`worker reported CONFIG_ERROR for ${path}`)
+		case 'UNAUTHORIZED':
+			return new SandboxStartFailedError(`worker reported UNAUTHORIZED for ${path}`)
+		case 'BAD_REQUEST':
+		case 'INVALID_PROJECT_ID':
+			return new SandboxStartFailedError(`worker reported ${code} for ${path}`)
+		case 'WRITE_FAILED':
+			return new SandboxWriteFailedError(`worker reported WRITE_FAILED`, {
+				path: '<unknown>',
+			})
+	}
+
+	// Fallback: legacy worker without tagged codes, or unknown body shape.
+	// Map by HTTP status. Body is bounded so the orchestrator's logs stay
+	// under control regardless of what the worker returned.
+	const bodySnippet = rawBody.slice(0, 200)
+	if (res.status === 404) {
+		return new SandboxNotFoundError(`worker returned 404 for ${path}`)
+	}
+	if (res.status === 409) {
+		return new SandboxNotReadyError(`worker returned 409 Conflict for ${path}`)
+	}
+	return new SandboxStartFailedError(
+		`worker returned ${res.status} ${res.statusText} for ${path}` +
+			(bodySnippet ? ` (body: ${bodySnippet})` : ''),
+	)
+}
+
 type WorkerStartResponse = {
 	sandboxId?: string
 	previewUrl?: string
 	status?: 'starting' | 'ready' | 'stopping' | 'stopped' | 'error'
-	revision?: number
 }
 
 type WorkerWriteResponse = {
 	previewUrl: string
 	status?: 'starting' | 'ready' | 'stopping' | 'stopped' | 'error'
-	revision?: number
 	failedPath?: string
 	error?: string
 }
@@ -304,4 +380,8 @@ async function hmacSign(secret: string, message: string): Promise<string> {
 function formatErr(err: unknown): string {
 	if (err instanceof Error) return err.message
 	return String(err)
+}
+
+function generateRequestId(): string {
+	return crypto.randomUUID().replace(/-/g, '')
 }

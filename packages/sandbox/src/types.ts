@@ -35,14 +35,19 @@ export type SandboxFile = {
 export type StartSandboxOptions = {
 	readonly projectId: string
 	readonly userId: string
-	/** Which starter image to boot. Maps to a container image tag at the provider layer. */
-	readonly template: string
 	/**
 	 * Optional initial file set to write before the dev server starts. Used on
 	 * first-ever project creation (genesis build) and on Day-2 cold rehydrate
 	 * (restoring files from storage).
 	 */
 	readonly initialFiles?: readonly SandboxFile[]
+	/**
+	 * 32-hex end-to-end correlation ID that travels on `x-meldar-request-id`.
+	 * Orchestrator generates one per build; provider generates one per call if
+	 * omitted. Not part of the HMAC body — the header rides independently so
+	 * callers can stamp a trace without re-signing.
+	 */
+	readonly requestId?: string
 }
 
 /**
@@ -57,8 +62,6 @@ export type SandboxHandle = {
 	readonly projectId: string
 	readonly previewUrl: string
 	readonly status: SandboxStatus
-	/** Monotonic counter — increments on each successful Build write, useful for debugging HMR pickup. */
-	readonly revision: number
 }
 
 export type SandboxStatus = 'starting' | 'ready' | 'stopping' | 'stopped' | 'error'
@@ -75,4 +78,15 @@ export type SandboxStatus = 'starting' | 'ready' | 'stopping' | 'stopped' | 'err
 export type WriteFilesOptions = {
 	readonly projectId: string
 	readonly files: readonly SandboxFile[]
+	/**
+	 * 32-hex end-to-end correlation ID. See {@link StartSandboxOptions.requestId}.
+	 */
+	readonly requestId?: string
+	/**
+	 * Owner of the project. Written to the worker's structured log so an
+	 * incident responder can distinguish "one user broken" from "platform-wide
+	 * regression" without a DB cross-reference. Optional for back-compat with
+	 * any caller that doesn't have userId in scope.
+	 */
+	readonly userId?: string
 }

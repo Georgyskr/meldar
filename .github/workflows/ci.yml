@@ -37,6 +37,81 @@ jobs:
       - name: Test @meldar/web (unit only)
         run: pnpm --filter @meldar/web exec vitest run --exclude='src/__tests__/integration/**' --exclude='src/__tests__/smoke/**'
 
+  sandbox-worker-image-smoke:
+    # P0-4: pin the runtime toolchain the worker depends on. If the base image
+    # ever flips to Alpine/BusyBox, bash `/dev/tcp` silently fails and the
+    # sandbox never reports ready. This smoke fails the build instead.
+    name: Sandbox image smoke (bash / setsid / curl / /dev/tcp)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/sandbox-worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build container image
+        run: docker build -t meldar-sandbox-smoke .
+
+      - name: Assert required tools exist in image
+        run: |
+          docker run --rm meldar-sandbox-smoke bash -lc '
+            set -e
+            command -v bash
+            command -v setsid
+            command -v nohup
+            command -v curl
+            command -v fuser
+            command -v pkill
+            # /dev/tcp is a bash builtin — dash lacks it. Verify by
+            # attempting a local-loopback connect that is expected to fail
+            # gracefully (port not listening) rather than syntax-error.
+            bash -c "(echo > /dev/tcp/127.0.0.1/1) 2>/dev/null; echo devtcp-supported"
+          '
+
+  deploy-worker:
+    # P0-5: reproducible worker deploy via CI. Replaces laptop `wrangler deploy`.
+    # Requires repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+    # Runs only on main so PR branches can't ship to prod.
+    name: Deploy sandbox-worker to Cloudflare
+    runs-on: ubuntu-latest
+    needs: [check, sandbox-worker-image-smoke]
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+    concurrency:
+      group: deploy-sandbox-worker
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: apps/sandbox-worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Deploy via wrangler
+        # Note: `packageManager` is deliberately NOT set here —
+        # `cloudflare/wrangler-action@v3` only recognises npm/yarn and would
+        # run a bogus `pnpm install` inside apps/sandbox-worker (no local
+        # lockfile in this monorepo). The root `pnpm install` step above
+        # places wrangler where the action expects it.
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/sandbox-worker
+
   integration:
     name: Integration Tests (real DB)
     runs-on: ubuntu-latest
@@ -91,9 +166,13 @@ jobs:
   e2e:
     name: Playwright E2E (real app)
     runs-on: ubuntu-latest
-    needs: check
+    # P0-5: gate e2e on deploy-worker so PR changes that modify both the web
+    # client and the worker never test new client against old worker.
+    needs: [check, deploy-worker]
     if: github.ref == 'refs/heads/main'
-    timeout-minutes: 15
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.59.1-noble
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
@@ -119,21 +198,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @meldar/web exec playwright install --with-deps chromium
-
-      - name: Install Playwright deps only (cached browsers)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @meldar/web exec playwright install-deps chromium
-
       - name: Run Playwright E2E
         run: pnpm --filter @meldar/web exec playwright test e2e/core-flow.spec.ts
 
@@ -148,7 +212,7 @@ jobs:
   deploy:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
-    needs: [check, integration, smoke, e2e]
+    needs: [check, integration, smoke, e2e, deploy-worker]
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 10
     concurrency:

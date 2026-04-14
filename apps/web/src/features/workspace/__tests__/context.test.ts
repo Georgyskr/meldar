@@ -55,7 +55,6 @@ describe('workspaceBuildReducer', () => {
 		const event: OrchestratorEvent = {
 			type: 'sandbox_ready',
 			previewUrl: 'https://sandbox.example.com/new',
-			revision: 3,
 		}
 		const next = workspaceBuildReducer(seed(), event)
 		expect(next.previewUrl).toBe('https://sandbox.example.com/new')
@@ -65,7 +64,6 @@ describe('workspaceBuildReducer', () => {
 		const next = workspaceBuildReducer(seed({ previewUrl: 'https://old.example.com' }), {
 			type: 'sandbox_ready',
 			previewUrl: 'https://new.example.com',
-			revision: 2,
 		})
 		expect(next.previewUrl).toBe('https://new.example.com')
 	})

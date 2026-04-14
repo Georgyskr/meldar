@@ -1,4 +1,8 @@
-export { Sandbox } from '@cloudflare/sandbox'
+// Re-export the reaper-augmented subclass under the `Sandbox` binding name
+// so the wrangler `durable_objects.bindings[].class_name = "Sandbox"` keeps
+// resolving — switching the binding requires a migration. Wire-compat with
+// existing DO IDs is preserved because MeldarSandbox extends Sandbox.
+export { MeldarSandbox as Sandbox } from './meldar-sandbox'
 
 export default {
 	async fetch(request: Request, env: Record<string, unknown>): Promise<Response> {
@@ -34,15 +38,16 @@ export default {
 
 			return await handler.fetch(request, env as never)
 		} catch (err) {
+			// P2-15: fatal init errors used to leak err.message + a stack slice
+			// into the response body — that surfaces internal paths, container
+			// IDs, and library-internal context to anyone who can hit the
+			// worker. Operators still get the full error in CF logs (where
+			// access is auth-gated).
 			console.error('[sandbox-worker] fatal:', err)
-			return new Response(
-				JSON.stringify({
-					error: 'WORKER_INIT_FAILED',
-					message: err instanceof Error ? err.message : String(err),
-					stack: err instanceof Error ? err.stack?.split('\n').slice(0, 5) : undefined,
-				}),
-				{ status: 500, headers: { 'content-type': 'application/json' } },
-			)
+			return new Response(JSON.stringify({ error: 'WORKER_INIT_FAILED' }), {
+				status: 500,
+				headers: { 'content-type': 'application/json' },
+			})
 		}
 	},
 }

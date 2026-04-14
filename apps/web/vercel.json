@@ -1,1 +1,8 @@
-{}
+{
+	"crons": [
+		{
+			"path": "/api/cron/reap-streaming-builds",
+			"schedule": "*/5 * * * *"
+		}
+	]
+}

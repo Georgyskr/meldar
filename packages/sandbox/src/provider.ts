@@ -37,8 +37,8 @@ export interface SandboxProvider {
 	 * to absorb cold-start latency before the user lands in the workspace.
 	 *
 	 * Behavior:
-	 * - If the sandbox does not exist yet, boot it from the template image,
-	 *   start `next dev`, wait for the port to listen, then return.
+	 * - If the sandbox does not exist yet, boot the container, start
+	 *   `next dev`, wait for the port to listen, then return.
 	 * - If the sandbox is already running, no-op.
 	 * - If the sandbox is in `starting` state from a prior call, await its
 	 *   readiness rather than starting a second one.
@@ -49,8 +49,13 @@ export interface SandboxProvider {
 	 *
 	 * Latency target: completes within the provider's internal timeout
 	 * (default 30s) or logs a warning and returns.
+	 *
+	 * `opts.requestId` carries a 32-hex correlation ID through to the worker
+	 * log line so a user-facing incident can be traced end-to-end. Optional —
+	 * webhook callers without an ambient requestId omit it and the worker
+	 * generates a fresh one.
 	 */
-	prewarm(projectId: string): Promise<void>
+	prewarm(projectId: string, opts?: { requestId?: string }): Promise<void>
 
 	/**
 	 * Start (or re-attach to) a sandbox for the given project. Writes any
@@ -58,7 +63,7 @@ export interface SandboxProvider {
 	 * listen, and returns a handle with the iframe-embeddable preview URL.
 	 *
 	 * Idempotent: calling start() on an already-running project returns the
-	 * existing handle with incremented `revision` on file writes.
+	 * existing handle without re-booting.
 	 *
 	 * Day-2 cold rehydrate path: the orchestrator calls this with the
 	 * project's current file set fetched from `project_files`. The provider
@@ -79,7 +84,7 @@ export interface SandboxProvider {
 	 *
 	 * Writes are sequenced to preserve error context: if file N fails, files
 	 * 0..N-1 are committed and files N+1.. are not attempted. The returned
-	 * handle reflects the revision after the last successful write.
+	 * handle reflects the sandbox state after the last successful write.
 	 *
 	 * Throws:
 	 * - {@link SandboxNotFoundError} if the project isn't currently running
