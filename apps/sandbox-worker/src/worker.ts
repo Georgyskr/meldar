@@ -38,11 +38,8 @@ export default {
 
 			return await handler.fetch(request, env as never)
 		} catch (err) {
-			// P2-15: fatal init errors used to leak err.message + a stack slice
-			// into the response body — that surfaces internal paths, container
-			// IDs, and library-internal context to anyone who can hit the
-			// worker. Operators still get the full error in CF logs (where
-			// access is auth-gated).
+			// Never surface err.message/stack in the body — operators still get
+			// the full error in CF logs (which are auth-gated).
 			console.error('[sandbox-worker] fatal:', err)
 			return new Response(JSON.stringify({ error: 'WORKER_INIT_FAILED' }), {
 				status: 500,

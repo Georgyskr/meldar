@@ -12,11 +12,7 @@ import {
 export interface SandboxWorkerEnv {
 	Sandbox: DurableObjectNamespace<Sandbox>
 	HMAC_SECRET: string
-	// P2-16: opt-in flag for local development. Lets `wrangler dev` boot
-	// without a configured HMAC_SECRET; in production this var is unset and
-	// any missing/empty secret fails the request with CONFIG_ERROR rather
-	// than silently 401-ing every call (which previously made the worker
-	// look "auth-configured" while serving zero traffic).
+	/** '1' bypasses the fail-closed HMAC_SECRET check for local `wrangler dev`. */
 	MELDAR_DEV_MODE?: string
 }
 
@@ -26,10 +22,6 @@ type SandboxExecResult = {
 	stderr: string
 }
 
-// P2-20: Pick the subset of `Sandbox` methods we actually use from the SDK.
-// If the SDK renames a method, tsc flags the Pick key; currently-hidden
-// runtime failures become compile-time errors. The `touch` extension lives
-// in our MeldarSandbox subclass, not the base SDK, so it's additive.
 type SandboxLike = Pick<
 	Sandbox,
 	| 'getExposedPorts'
@@ -42,9 +34,6 @@ type SandboxLike = Pick<
 	| 'setKeepAlive'
 	| 'exec'
 > & {
-	// MeldarSandbox extension: records activity timestamp and (re)schedules
-	// the idle-TTL reaper. Optional so unit tests using bare fakes don't
-	// have to stub it; absence is silently ignored by `markActive`.
 	touch?(): Promise<void>
 }
 
@@ -68,9 +57,6 @@ const DEV_SERVER_READY_TIMEOUT_MS = 90_000
 
 const REQUEST_ID_HEADER = 'x-meldar-request-id'
 const REQUEST_ID_PATTERN = /^[0-9a-f]{32}$/
-// F4: userId rides on its own header so it can be logged without forcing
-// the caller to put it in the HMAC-signed body (which would require
-// orchestrator and worker to agree on body shape for signature).
 const USER_ID_HEADER = 'x-meldar-user-id'
 const USER_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/
 // When readiness='http', TCP bind must happen within this window; the remaining
@@ -121,14 +107,9 @@ export function createSandboxWorker(deps: SandboxWorkerDeps) {
 				return jsonResponse({ error: 'NOT_FOUND' }, 404, requestId)
 			}
 
-			// P2-16: fail closed on missing HMAC_SECRET. Without this the
-			// worker silently 401s every request because the empty secret
-			// will never match a valid signature — looks like an "auth
-			// problem" in client logs while the real fault is misconfigured
-			// infrastructure. Return 503 CONFIG_ERROR so the caller (and on-
-			// call) can immediately distinguish credential-rotation from
-			// signature-mismatch. Dev mode bypasses this so wrangler dev
-			// keeps booting; the dev flag is never set in production.
+			// Fail-closed on unset HMAC_SECRET so ops can distinguish
+			// misconfiguration from signature-mismatch. Dev-mode bypass keeps
+			// `wrangler dev` booting; never set MELDAR_DEV_MODE=1 in prod.
 			if (!env.HMAC_SECRET && env.MELDAR_DEV_MODE !== '1') {
 				console.error(
 					'[sandbox-worker] HMAC_SECRET is not configured. ' +
@@ -161,10 +142,6 @@ export function createSandboxWorker(deps: SandboxWorkerDeps) {
 				return jsonResponse({ error: 'BAD_REQUEST' }, 400, requestId)
 			}
 
-			// F4: userId rides on its own header so it can be logged without
-			// forcing it into the HMAC-signed body. Validated against the
-			// same charset as projectId — caller is HMAC-authenticated, so
-			// the value is trusted, but we still bound-check for sanity.
 			const rawUserId = request.headers.get(USER_ID_HEADER) ?? ''
 			const userId = USER_ID_PATTERN.test(rawUserId) ? rawUserId : undefined
 			const ctx: RouteContext = {
@@ -211,12 +188,6 @@ async function handlePrewarm(body: unknown, ctx: RouteContext): Promise<Response
 
 	return withSandboxActivity(sandbox, async () => {
 		try {
-			// Readiness=tcp: TCP-bound is the right signal for "iframe can render."
-			// The iframe's first HTTP request waits for first-page compile naturally
-			// (~22s on cold start) — that's handled by the browser's loading state.
-			// HTTP-probe readiness was too strict: on cold compile, Next.js takes
-			// 60+s to respond 200, exceeding our probe budget and failing /start
-			// even though the sandbox is fine.
 			const port = await ensureDevServer(sandbox, ctx.hostname, 'tcp', {
 				requestId: ctx.requestId,
 				projectId,
@@ -255,7 +226,6 @@ async function handleStart(body: unknown, ctx: RouteContext): Promise<Response> 
 				await sandbox.writeFile(`/app/${sanitizeFilePath(file.path)}`, file.content)
 			}
 
-			// Readiness=tcp (see handlePrewarm comment): iframe-readiness is TCP-bound.
 			const port = await ensureDevServer(sandbox, ctx.hostname, 'tcp', {
 				requestId: ctx.requestId,
 				projectId,
@@ -387,9 +357,8 @@ async function ensureDevServer(
 		const probeMs = Date.now() - tProbe
 		const code = err instanceof WorkerError ? err.code : ('DEV_SERVER_PROBE_FAILED' as const)
 		const message = err instanceof Error ? err.message : String(err)
-		// F1: map DEV_SERVER_TIMEOUT to classifier-friendly exit 124 (empty
-		// stderr + 124 → READINESS_TIMEOUT). -1 stays as the "unexpected
-		// rejection" sentinel for other throws.
+		// DEV_SERVER_TIMEOUT → exit 124 so classifyDevServerFailure maps it
+		// to READINESS_TIMEOUT; -1 is the sentinel for any other rejection.
 		const exitCode = code === 'DEV_SERVER_TIMEOUT' ? 124 : -1
 		const stderrTail = code === 'DEV_SERVER_TIMEOUT' ? '' : message.slice(0, 400)
 		logDevServerReady(meta, {
@@ -401,8 +370,6 @@ async function ensureDevServer(
 			errorCode: code,
 			stderrTail,
 		})
-		// F3: mark loggedAtSource so mapSandboxError skips its redundant
-		// console.error — structured JSON above is the source of truth.
 		throw new WorkerError(code, message, { cause: err, loggedAtSource: true })
 	}
 	const probeMs = Date.now() - tProbe
@@ -433,23 +400,15 @@ async function ensureDevServer(
 	return port
 }
 
-// F5: scrub common secret shapes out of stderrTail before it hits the log
-// stream. Covers the typical sources: dumped process.env, `Authorization`
-// headers, postgres connection URLs, OpenAI/Anthropic-style API keys, and
-// Stripe-style live/test keys.
 const SECRET_PATTERNS: ReadonlyArray<{ re: RegExp; replacement: string }> = [
-	// Bearer / Basic tokens in headers
 	{ re: /\b(Bearer|Basic)\s+[A-Za-z0-9+/=_-]{8,}/gi, replacement: '$1 [REDACTED]' },
-	// Explicit KEY=value patterns
 	{
 		re: /\b([A-Z][A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PWD|API))\s*[:=]\s*["']?[^\s"'&]+/g,
 		replacement: '$1=[REDACTED]',
 	},
-	// Provider-specific key shapes (OpenAI/Anthropic/Stripe/Resend/GitHub)
 	{ re: /\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{16,}/g, replacement: '[REDACTED_KEY]' },
 	{ re: /\b(re|gh[ops])_[A-Za-z0-9]{16,}/g, replacement: '[REDACTED_KEY]' },
 	{ re: /\bsk-ant-[A-Za-z0-9_-]{16,}/g, replacement: '[REDACTED_KEY]' },
-	// Database connection strings (expose password in userinfo)
 	{
 		re: /\b(postgres|mysql|mongodb)(?:\+srv)?:\/\/[^\s/]+:[^\s@/]+@/gi,
 		replacement: '$1://[REDACTED]@',
@@ -464,10 +423,9 @@ function scrubSecrets(s: string): string {
 	return out
 }
 
-// P1-9: one structured JSON log per ensureDevServer call. Emitted via
-// console.log so Workers Logs ingests from stdout. Caller supplies meta
-// (requestId, projectId, sandboxName) — absence skips logging so bare test
-// fakes (no meta passed) don't spam.
+/** One structured JSON log per ensureDevServer call, emitted to stdout
+ *  (ingested by Workers Logs). No-op when `meta` is undefined so bare test
+ *  fakes don't spam. */
 function logDevServerReady(
 	meta: EnsureMeta | undefined,
 	fields: {
@@ -481,17 +439,9 @@ function logDevServerReady(
 	},
 ): void {
 	if (!meta) return
-	// P1-11: classify stderr into a log-only subtype so the reactive-build-
-	// repair retry logic can decide retry vs. user-surface. HTTP response still
-	// uses the closed WorkerErrorCode enum; this lives only in logs.
-	// F1: classify even when stderrTail is empty (DEV_SERVER_TIMEOUT path has
-	// no stderr but exitCode pattern is enough to classify as READINESS_TIMEOUT).
 	const errorSubtype = fields.errorCode
 		? classifyDevServerFailure(fields.stderrTail ?? '', fields.exitCode)
 		: undefined
-	// F5: scrub common secret shapes before the stderrTail hits Workers Logs.
-	// A user dev-server crash can dump `process.env`; without this, sk_*/re_*/
-	// Bearer tokens ride the log stream.
 	const scrubbedStderr = fields.stderrTail ? scrubSecrets(fields.stderrTail) : undefined
 
 	const entry = {
@@ -537,9 +487,8 @@ async function handleWrite(body: unknown, ctx: RouteContext): Promise<Response> 
 
 	return withSandboxActivity(sandbox, async () => {
 		try {
-			// P0-3: write files BEFORE (re)starting the dev server so Next's HMR
-			// watcher can't pick up a half-applied batch. Snapshot the existing
-			// port first (cheap, no boot) so partial-failure responses have a URL.
+			// Write before ensureDevServer so HMR doesn't see a half-applied batch.
+			// previewUrlPre gives partial-failure responses a URL without booting.
 			const existingPorts = await sandbox.getExposedPorts(ctx.hostname)
 			const existingPort = existingPorts.find((p) => p.port === NEXT_PORT)
 			const previewUrlPre = existingPort?.url ?? ''
@@ -548,8 +497,6 @@ async function handleWrite(body: unknown, ctx: RouteContext): Promise<Response> 
 				try {
 					await sandbox.writeFile(`/app/${sanitizeFilePath(file.path)}`, file.content)
 				} catch (err) {
-					// P2-15: scrub raw err.message (can contain internal paths,
-					// container IDs, stack hints). Log verbosely, return opaque code.
 					console.error(
 						`[sandbox-worker] WRITE_FAILED for project=${projectId} path=${file.path}: ${
 							err instanceof Error ? err.message : String(err)
@@ -726,11 +673,6 @@ const STATUS_BY_CODE: Record<WorkerErrorCode, number> = {
 	INTERNAL: 500,
 }
 
-// P2-14: setKeepAlive is best-effort but its failures used to disappear into
-// `.catch(() => {})`. A persistent rejection means the container will be
-// killed by inactivity on the SDK side, costing a 15-25s cold-restart on the
-// next request — silently shrugging at that masks a real outage. Logging at
-// warn keeps the happy path quiet but lets us spot regressions in CF logs.
 function logKeepAliveFailure(action: 'enable' | 'disable'): (err: unknown) => void {
 	return (err) => {
 		console.warn(
@@ -741,11 +683,9 @@ function logKeepAliveFailure(action: 'enable' | 'disable'): (err: unknown) => vo
 	}
 }
 
-// F8: guard rail for new handlers — wraps the route body so markActive() is
-// called automatically on 2xx responses. Prefer this over calling markActive
-// inline: if a future handler forgets the call, the reaper silently loses
-// lastActivityAt updates for that project. Using the helper keeps the
-// invariant at the type-system boundary.
+/** Marks the sandbox active on any 2xx response. Handlers use this instead
+ *  of calling markActive inline so a forgotten call can't silently stop the
+ *  reaper from seeing activity. */
 async function withSandboxActivity(
 	sandbox: SandboxLike,
 	fn: () => Promise<Response>,
@@ -757,18 +697,12 @@ async function withSandboxActivity(
 	return res
 }
 
-// F6: emit at most one warn across the worker lifetime when touch is absent.
-// Silently skipping was the security concern — a future SDK change that
-// strips `touch` over RPC would defeat the cost-DoS reaper without any signal.
 let touchMissingWarned = false
 
-// Tell the DO reaper that this sandbox is still in use. Best-effort: if the
-// MeldarSandbox method is missing (legacy/test fakes) or the RPC throws (DO
-// transient), swallow — the worst case is the container reaps slightly
-// earlier than 24h on the next eligible alarm fire, never later. Logging at
-// warn lets us catch a pattern without paging.
 async function markActive(sandbox: SandboxLike): Promise<void> {
 	if (!sandbox.touch) {
+		// If touch goes missing in prod, reap scheduling is silently disabled —
+		// warn once so the regression is visible in Workers Logs.
 		if (!touchMissingWarned) {
 			touchMissingWarned = true
 			console.warn(
@@ -794,11 +728,8 @@ function mapSandboxError(err: unknown, projectId: string): Response {
 	const stack = err instanceof Error ? err.stack : undefined
 	const code: WorkerErrorCode = err instanceof WorkerError ? err.code : 'INTERNAL'
 
-	// F3: skip the free-text console.error when the throw site already emitted
-	// a structured JSON log for this failure. Otherwise every ensureDevServer
-	// failure produces two log lines (one structured, one plain-text) and the
-	// structured stream — which is the one dashboards consume — gets ignored
-	// in favor of the noisier tail.
+	// Skip the free-text log when the throw site already emitted structured
+	// JSON — otherwise every ensureDevServer failure produces two lines.
 	const alreadyLogged = err instanceof WorkerError && err.loggedAtSource
 	if (!alreadyLogged) {
 		console.error(

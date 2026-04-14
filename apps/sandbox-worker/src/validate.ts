@@ -44,11 +44,8 @@ export function sanitizeFilePath(path: string): string {
 	return path.replace(/^\/+/, '')
 }
 
-// F11: defense-in-depth caps for /api/v1/{start,write} file batches. These
-// sit behind HMAC (trusted caller) but limit blast radius if a caller bug or
-// credential compromise ships a pathological batch. 200 files × ~10 MB/file
-// ceiling matches realistic generated projects with ~5× headroom; total 40 MB
-// cap bounds container disk write in one request.
+// Defense-in-depth caps on /api/v1/{start,write} file batches. Behind HMAC,
+// but bounds blast radius if an authenticated caller ships a pathological batch.
 export const MAX_FILES_PER_BATCH = 200
 export const MAX_TOTAL_FILE_BYTES = 40 * 1024 * 1024
 

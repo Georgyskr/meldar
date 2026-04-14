@@ -14,13 +14,8 @@ export type WorkerErrorCode =
 
 export class WorkerError extends Error {
 	readonly code: WorkerErrorCode
-	/**
-	 * F3: set to true by throw sites that have ALREADY emitted a structured
-	 * log (e.g. `sandbox.dev_server_ready` from ensureDevServer). The
-	 * route-level `mapSandboxError` reads this to avoid a second console.error
-	 * for the same failure. Structured log is the source of truth for
-	 * dashboards; redundant free-text logs just create noise.
-	 */
+	/** True when the throw site already emitted a structured log for this
+	 *  failure; `mapSandboxError` skips its free-text log in that case. */
 	readonly loggedAtSource: boolean
 
 	constructor(

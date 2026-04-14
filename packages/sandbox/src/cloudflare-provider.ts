@@ -220,8 +220,6 @@ export class CloudflareSandboxProvider implements SandboxProvider {
 		const controller = new AbortController()
 		const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs)
 
-		// F4: optional x-meldar-user-id header so the worker's structured log
-		// can carry userId without forcing it into the HMAC-signed body.
 		const headers: Record<string, string> = {
 			'content-type': 'application/json',
 			'x-meldar-timestamp': timestamp,

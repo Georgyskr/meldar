@@ -133,7 +133,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Integration tests (real Neon DB)
-        run: pnpm --filter @meldar/web exec vitest run src/__tests__/integration/
+        # --testTimeout=30000 absorbs Neon serverless cold-start on the first
+        # DB roundtrip (`createTestUser` in each suite). The default 5s bites
+        # when the DB has been idle for ~5 minutes between CI runs.
+        run: pnpm --filter @meldar/web exec vitest run src/__tests__/integration/ --testTimeout=30000
 
   smoke:
     name: Smoke Tests (real APIs)
