@@ -119,16 +119,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Get Playwright version
-        id: playwright-version
-        run: echo "version=$(pnpm --filter @meldar/web list playwright --depth=0 --json | grep -o '\"version\": \"[^\"]*\"' | head -1 | cut -d'\"' -f4)" >> $GITHUB_OUTPUT
-
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
