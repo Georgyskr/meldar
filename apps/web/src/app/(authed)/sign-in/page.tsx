@@ -3,9 +3,9 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { verifyToken } from '@/server/identity/jwt'
-import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
+import { authenticateSession } from '@/server/identity/authenticate-session'
 import { Heading, Text } from '@/shared/ui'
+import { decideSignInRedirect } from './decide-redirect'
 import { SignInForm } from './SignInForm'
 
 export const metadata: Metadata = {
@@ -17,11 +17,12 @@ export const metadata: Metadata = {
 export default async function SignInPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ next?: string }>
+	searchParams: Promise<{ next?: string; error?: string }>
 }) {
-	const session = verifyToken((await cookies()).get('meldar-auth')?.value ?? '')
-	const params = await searchParams
-	if (session) redirect(sanitizeNextParam(params.next, { mustStartWith: '/workspace' }))
+	const auth = await authenticateSession((await cookies()).get('meldar-auth')?.value ?? '')
+	const decision = decideSignInRedirect(auth, await searchParams)
+	if (decision.kind === 'redirect') redirect(decision.to)
+
 	return (
 		<styled.main
 			minHeight="100vh"
@@ -42,6 +43,23 @@ export default async function SignInPage({
 					</Text>
 				</Flex>
 
+				{decision.errorMessage ? (
+					<Box
+						role="alert"
+						aria-live="polite"
+						bg="surfaceVariant"
+						color="onSurface"
+						borderRadius="md"
+						paddingInline={4}
+						paddingBlock={3}
+						marginBlockEnd={4}
+					>
+						<Text as="p" textStyle="secondary.sm">
+							{decision.errorMessage}
+						</Text>
+					</Box>
+				) : null}
+
 				<Suspense fallback={null}>
 					<SignInForm />
 				</Suspense>
@@ -56,9 +74,8 @@ export default async function SignInPage({
 					New here?{' '}
 					<styled.a
 						href="/sign-up"
+						textStyle="link.inline"
 						color="primary"
-						fontWeight="600"
-						textDecoration="none"
 						_hover={{ textDecoration: 'underline' }}
 						_focusVisible={{
 							outline: '2px solid',

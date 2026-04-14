@@ -1,8 +1,12 @@
 import { getDb } from '@meldar/db/client'
 import { type AiCallKind, type AiCallStatus, aiCallLog } from '@meldar/db/schema'
 
-let setupWarnedOnce = false
-let writeWarnedOnce = false
+let setupFailureCount = 0
+let writeFailureCount = 0
+
+function shouldLog(count: number): boolean {
+	return count <= 3 || count % 100 === 0
+}
 
 export type RecordAiCallArgs = {
 	readonly userId: string | null
@@ -48,18 +52,31 @@ export function recordAiCall(args: RecordAiCallArgs): void {
 				cacheHitRatePct,
 			})
 			.catch((err) => {
-				if (!writeWarnedOnce) {
-					writeWarnedOnce = true
+				writeFailureCount += 1
+				if (shouldLog(writeFailureCount)) {
 					console.error(
-						'[ai-call-log] write failed (non-fatal, subsequent failures suppressed):',
+						`[ai-call-log] write failed (count=${writeFailureCount}, sampled 1st-3rd then every 100th):`,
 						err,
 					)
 				}
 			})
 	} catch (err) {
-		if (!setupWarnedOnce) {
-			setupWarnedOnce = true
-			console.error('[ai-call-log] setup failed (non-fatal, subsequent failures suppressed):', err)
+		setupFailureCount += 1
+		if (shouldLog(setupFailureCount)) {
+			console.error(
+				`[ai-call-log] setup failed (count=${setupFailureCount}, sampled 1st-3rd then every 100th):`,
+				err,
+			)
 		}
 	}
+}
+
+// Test-only accessors for failure counters (useful in vitest + prod diagnostics).
+export function __getAiCallLogFailureCounts(): { setup: number; write: number } {
+	return { setup: setupFailureCount, write: writeFailureCount }
+}
+
+export function __resetAiCallLogFailureCounts(): void {
+	setupFailureCount = 0
+	writeFailureCount = 0
 }

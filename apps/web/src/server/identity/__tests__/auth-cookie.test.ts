@@ -15,7 +15,7 @@ describe('setAuthCookie', () => {
 		const setCookie = response.headers.get('set-cookie')
 		expect(setCookie).toContain('meldar-auth=test-token')
 		expect(setCookie).toContain('HttpOnly')
-		expect(setCookie?.toLowerCase()).toContain('samesite=lax')
+		expect(setCookie?.toLowerCase()).toContain('samesite=strict')
 		expect(setCookie).toContain('Max-Age=604800')
 		expect(setCookie).toContain('Path=/')
 	})

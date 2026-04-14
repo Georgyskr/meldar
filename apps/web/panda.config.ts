@@ -393,6 +393,13 @@ export default defineConfig({
 						textTransform: 'uppercase',
 					},
 				},
+				'link.inline': {
+					value: {
+						fontFamily: 'body',
+						fontWeight: '600',
+						textDecoration: 'none',
+					},
+				},
 			},
 			recipes: {
 				button: {

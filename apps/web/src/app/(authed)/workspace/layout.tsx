@@ -1,40 +1,34 @@
-import { getDb } from '@meldar/db/client'
-import { users } from '@meldar/db/schema'
-import { eq } from 'drizzle-orm'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { verifyToken } from '@/server/identity/jwt'
+import { authenticateSession } from '@/server/identity/authenticate-session'
 import { sanitizeNextParam } from '@/shared/lib/sanitize-next-param'
 import { EmailVerificationBanner } from '@/widgets/workspace'
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
-	const cookieStore = await cookies()
-	const session = verifyToken(cookieStore.get('meldar-auth')?.value ?? '')
-	if (!session) {
-		const requestHeaders = await headers()
-		const candidate =
-			requestHeaders.get('next-url') ?? extractPathnameFromReferer(requestHeaders.get('referer'))
-		const next = sanitizeNextParam(candidate, { mustStartWith: '/workspace' })
-		redirect(`/sign-in?next=${encodeURIComponent(next)}`)
+	const cookieValue = (await cookies()).get('meldar-auth')?.value ?? ''
+	const result = await authenticateSession(cookieValue)
+
+	if (result.state === 'valid') {
+		return (
+			<>
+				<EmailVerificationBanner
+					email={result.session.email}
+					verified={result.session.emailVerified}
+				/>
+				{children}
+			</>
+		)
 	}
 
-	const db = getDb()
-	const [user] = await db
-		.select({ tokenVersion: users.tokenVersion })
-		.from(users)
-		.where(eq(users.id, session.userId))
-		.limit(1)
-
-	if (!user || user.tokenVersion !== session.tokenVersion) {
+	if (result.state === 'stale') {
 		redirect('/sign-in?error=session-expired')
 	}
 
-	return (
-		<>
-			<EmailVerificationBanner email={session.email} verified={session.emailVerified} />
-			{children}
-		</>
-	)
+	const requestHeaders = await headers()
+	const candidate =
+		requestHeaders.get('next-url') ?? extractPathnameFromReferer(requestHeaders.get('referer'))
+	const next = sanitizeNextParam(candidate, { mustStartWith: '/workspace' })
+	redirect(`/sign-in?next=${encodeURIComponent(next)}`)
 }
 
 function extractPathnameFromReferer(referer: string | null): string | null {

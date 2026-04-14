@@ -16,7 +16,7 @@ describe('JWT utilities', () => {
 	describe('signToken', () => {
 		it('returns a valid JWT string', () => {
 			const token = signToken({
-				userId: 'user-123',
+				userId: '550e8400-e29b-41d4-a716-446655440000',
 				email: 'test@example.com',
 				emailVerified: false,
 				tokenVersion: 0,
@@ -29,14 +29,14 @@ describe('JWT utilities', () => {
 	describe('verifyToken', () => {
 		it('verifies and returns payload for a valid token', () => {
 			const token = signToken({
-				userId: 'user-123',
+				userId: '550e8400-e29b-41d4-a716-446655440000',
 				email: 'test@example.com',
 				emailVerified: false,
 				tokenVersion: 0,
 			})
 			const payload = verifyToken(token)
 			expect(payload).not.toBeNull()
-			expect(payload?.userId).toBe('user-123')
+			expect(payload?.userId).toBe('550e8400-e29b-41d4-a716-446655440000')
 			expect(payload?.email).toBe('test@example.com')
 		})
 
@@ -47,7 +47,7 @@ describe('JWT utilities', () => {
 
 		it('returns null for a tampered token', () => {
 			const token = signToken({
-				userId: 'user-123',
+				userId: '550e8400-e29b-41d4-a716-446655440000',
 				email: 'test@example.com',
 				emailVerified: false,
 				tokenVersion: 0,
@@ -62,16 +62,20 @@ describe('JWT utilities', () => {
 
 		it('returns null for an expired token', () => {
 			// Create a token that is already expired
-			const token = jwt.sign({ userId: 'user-123', email: 'test@example.com' }, TEST_SECRET, {
-				expiresIn: '-1s',
-			})
+			const token = jwt.sign(
+				{ userId: '550e8400-e29b-41d4-a716-446655440000', email: 'test@example.com' },
+				TEST_SECRET,
+				{
+					expiresIn: '-1s',
+				},
+			)
 			const result = verifyToken(token)
 			expect(result).toBeNull()
 		})
 
 		it('returns null for a token signed with a different secret', () => {
 			const token = jwt.sign(
-				{ userId: 'user-123', email: 'test@example.com' },
+				{ userId: '550e8400-e29b-41d4-a716-446655440000', email: 'test@example.com' },
 				'different-secret',
 				{ expiresIn: '7d' },
 			)
@@ -79,19 +83,62 @@ describe('JWT utilities', () => {
 			expect(result).toBeNull()
 		})
 
-		it('defaults emailVerified to false for legacy tokens without the claim', () => {
-			const token = jwt.sign({ userId: 'user-123', email: 'test@example.com' }, TEST_SECRET, {
-				expiresIn: '7d',
-				algorithm: 'HS256',
-			})
-			const payload = verifyToken(token)
-			expect(payload).not.toBeNull()
-			expect(payload?.emailVerified).toBe(false)
+		it('rejects tokens missing required claims (strict payload validation)', () => {
+			// Post-Zod: every claim is required. A token without emailVerified or
+			// tokenVersion can't be trusted to describe a valid session.
+			const token = jwt.sign(
+				{ userId: '550e8400-e29b-41d4-a716-446655440000', email: 'test@example.com' },
+				TEST_SECRET,
+				{ expiresIn: '7d', algorithm: 'HS256' },
+			)
+			expect(verifyToken(token)).toBeNull()
+		})
+
+		it('rejects tokens with a non-UUID userId', () => {
+			const token = jwt.sign(
+				{
+					userId: 'user-123',
+					email: 'test@example.com',
+					emailVerified: true,
+					tokenVersion: 0,
+				},
+				TEST_SECRET,
+				{ expiresIn: '7d', algorithm: 'HS256' },
+			)
+			expect(verifyToken(token)).toBeNull()
+		})
+
+		it('rejects tokens with a non-email email field', () => {
+			const token = jwt.sign(
+				{
+					userId: '550e8400-e29b-41d4-a716-446655440000',
+					email: 'not-an-email',
+					emailVerified: true,
+					tokenVersion: 0,
+				},
+				TEST_SECRET,
+				{ expiresIn: '7d', algorithm: 'HS256' },
+			)
+			expect(verifyToken(token)).toBeNull()
+		})
+
+		it('rejects tokens with negative tokenVersion', () => {
+			const token = jwt.sign(
+				{
+					userId: '550e8400-e29b-41d4-a716-446655440000',
+					email: 'test@example.com',
+					emailVerified: true,
+					tokenVersion: -1,
+				},
+				TEST_SECRET,
+				{ expiresIn: '7d', algorithm: 'HS256' },
+			)
+			expect(verifyToken(token)).toBeNull()
 		})
 
 		it('preserves emailVerified: true through sign/verify roundtrip', () => {
 			const token = signToken({
-				userId: 'user-123',
+				userId: '550e8400-e29b-41d4-a716-446655440000',
 				email: 'test@example.com',
 				emailVerified: true,
 				tokenVersion: 0,
@@ -105,10 +152,14 @@ describe('JWT utilities', () => {
 			// algorithm list will happily accept HS512 (or worse, RS256 with
 			// the public key reused as an HMAC secret). Reject anything that
 			// is not HS256.
-			const token = jwt.sign({ userId: 'user-123', email: 'test@example.com' }, TEST_SECRET, {
-				expiresIn: '7d',
-				algorithm: 'HS512',
-			})
+			const token = jwt.sign(
+				{ userId: '550e8400-e29b-41d4-a716-446655440000', email: 'test@example.com' },
+				TEST_SECRET,
+				{
+					expiresIn: '7d',
+					algorithm: 'HS512',
+				},
+			)
 			const result = verifyToken(token)
 			expect(result).toBeNull()
 		})
@@ -125,7 +176,7 @@ describe('JWT utilities', () => {
 
 		it('returns payload for valid meldar-auth cookie', () => {
 			const token = signToken({
-				userId: 'user-456',
+				userId: '550e8400-e29b-41d4-a716-446655440001',
 				email: 'user@test.com',
 				emailVerified: true,
 				tokenVersion: 0,
@@ -133,7 +184,7 @@ describe('JWT utilities', () => {
 			const request = makeRequest(`meldar-auth=${token}`)
 			const result = getUserFromRequest(request)
 			expect(result).not.toBeNull()
-			expect(result?.userId).toBe('user-456')
+			expect(result?.userId).toBe('550e8400-e29b-41d4-a716-446655440001')
 			expect(result?.email).toBe('user@test.com')
 		})
 
@@ -157,7 +208,7 @@ describe('JWT utilities', () => {
 
 		it('extracts token from cookie with multiple cookies', () => {
 			const token = signToken({
-				userId: 'user-789',
+				userId: '550e8400-e29b-41d4-a716-446655440002',
 				email: 'multi@test.com',
 				emailVerified: false,
 				tokenVersion: 0,
@@ -165,7 +216,7 @@ describe('JWT utilities', () => {
 			const request = makeRequest(`other=abc; meldar-auth=${token}; session=xyz`)
 			const result = getUserFromRequest(request)
 			expect(result).not.toBeNull()
-			expect(result?.userId).toBe('user-789')
+			expect(result?.userId).toBe('550e8400-e29b-41d4-a716-446655440002')
 		})
 	})
 

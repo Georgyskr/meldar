@@ -55,6 +55,21 @@ const IGNORED_CONSOLE_PATTERNS = [
 	/migrated since no migrate function/,
 ]
 
+const PIPELINE_BUG_PATTERNS = [
+	/invalid_request_error/i,
+	/tool_use ids? (were|was) found without tool_result/i,
+	/\brequest_id:?\s*req_/i,
+	/\b(4\d\d|5\d\d)\s+\{.*error/i,
+	/Something went wrong\b/i,
+]
+
+function assertNoPipelineBugs(text: string | null | undefined, context: string): void {
+	if (!text) return
+	for (const pattern of PIPELINE_BUG_PATTERNS) {
+		expect(text, `${context} leaked a backend-contract failure: ${text}`).not.toMatch(pattern)
+	}
+}
+
 function collectConsoleErrors(page: Page): string[] {
 	const errors: string[] = []
 	page.on('console', (msg) => {
@@ -184,32 +199,46 @@ test.describe
 
 				const succeeded = await donePill.isVisible()
 				if (succeeded) {
-					// A successful build MUST produce a live preview URL.
-					// If the sandbox silently failed, the iframe never appears — catch that here.
+					// A successful build MUST produce a live preview URL that
+					// actually renders non-empty content. If the Anthropic pipeline
+					// silently returned 400 and the UI ate the error, a stale
+					// "Done" pill would pass an iframe-src-only check. Frame
+					// content verification is what catches that class of bug.
 					const iframe = page.locator('iframe[title="Live preview"]')
 					await expect(iframe).toBeVisible({ timeout: 30_000 })
 					const src = await iframe.getAttribute('src')
 					expect(src, 'iframe must have a real preview URL').toBeTruthy()
 					expect(src).toMatch(/^https?:\/\//)
+
+					const frame = page.frameLocator('iframe[title="Live preview"]')
+					await expect(
+						frame.locator('body'),
+						'iframe body must render visible text (non-whitespace)',
+					).toContainText(/\S+/, { timeout: 60_000 })
 				} else {
 					const toastEl = page.getByRole('alert').first()
 					await expect(toastEl).toBeVisible()
 					const text = await toastEl.textContent()
 					expect(text?.length).toBeGreaterThan(10)
-					expect(text).not.toContain('Something went wrong')
+					assertNoPipelineBugs(text, 'build failure toast')
 				}
 			} else {
-				// Build failed immediately — verify error is meaningful, not silently swallowed
+				// Build failed before the pill appeared — verify it's a
+				// real user-facing failure (rate limited, budget, etc.),
+				// not a raw API-contract leak.
 				const toastEl = page.getByRole('alert').first()
 				await expect(toastEl).toBeVisible()
 				const text = await toastEl.textContent()
 				expect(text?.length).toBeGreaterThan(10)
-				expect(text).not.toContain('Something went wrong')
+				assertNoPipelineBugs(text, 'immediate failure toast')
 			}
 
 			expect(consoleErrors, `Unexpected console errors:\n${consoleErrors.join('\n')}`).toHaveLength(
 				0,
 			)
+			for (const line of consoleErrors) {
+				assertNoPipelineBugs(line, 'browser console')
+			}
 		})
 
 		test('admin dashboard renders tabs and settings page loads', async ({ page }) => {

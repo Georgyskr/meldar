@@ -1,11 +1,19 @@
 import jwt from 'jsonwebtoken'
+import { z } from 'zod'
 
-type TokenPayload = {
+export type TokenPayload = {
 	userId: string
 	email: string
 	emailVerified: boolean
 	tokenVersion: number
 }
+
+const tokenPayloadSchema = z.object({
+	userId: z.string().uuid(),
+	email: z.string().email(),
+	emailVerified: z.boolean(),
+	tokenVersion: z.number().int().nonnegative(),
+})
 
 /**
  * Single source of truth for the JWT signing/verification algorithm.
@@ -34,15 +42,9 @@ export function signToken(payload: TokenPayload): string {
 
 export function verifyToken(token: string): TokenPayload | null {
 	try {
-		const decoded = jwt.verify(token, getSecret(), {
-			algorithms: [JWT_ALGORITHM],
-		}) as Record<string, unknown>
-		return {
-			userId: decoded.userId as string,
-			email: decoded.email as string,
-			emailVerified: (decoded.emailVerified as boolean) ?? false,
-			tokenVersion: (decoded.tokenVersion as number) ?? 0,
-		}
+		const decoded = jwt.verify(token, getSecret(), { algorithms: [JWT_ALGORITHM] })
+		const parsed = tokenPayloadSchema.safeParse(decoded)
+		return parsed.success ? parsed.data : null
 	} catch {
 		return null
 	}

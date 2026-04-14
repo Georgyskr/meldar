@@ -11,7 +11,7 @@
 		"format": "biome format --write .",
 		"format-and-lint": "biome check .",
 		"format-and-lint:fix": "biome check --fix .",
-		"prepare": "test ! -d .git || husky"
+		"prepare": "[ -n \"$CI\" ] || husky"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.13",

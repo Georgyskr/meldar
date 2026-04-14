@@ -723,4 +723,358 @@ describe('orchestrateBuild', () => {
 			setPreviewUrlSpy.mockRestore()
 		})
 	})
+
+	describe('self-repair after validation failure', () => {
+		it('sends tool_result blocks matching every prior tool_use in the repair call', async () => {
+			let callIndex = 0
+			const firstToolUseIds = ['toolu_01aaaa', 'toolu_02bbbb']
+
+			const { client: anthropic, mock } = makeAnthropicMock(async () => {
+				callIndex++
+				if (callIndex === 1) {
+					// First call: return two tool_uses, one of which imports a
+					// denied package (`next/dynamic`). validateBuildFiles will fail.
+					return {
+						id: 'msg_initial',
+						type: 'message',
+						role: 'assistant',
+						model: 'claude-sonnet-4-6',
+						stop_reason: 'end_turn',
+						stop_sequence: null,
+						container: null,
+						content: [
+							{
+								type: 'tool_use',
+								id: firstToolUseIds[0],
+								name: 'write_file',
+								input: {
+									path: 'src/app/page.tsx',
+									content:
+										"import dynamic from 'next/dynamic'\nexport default function Page() { return <div /> }",
+								},
+								caller: { type: 'direct' },
+							},
+							{
+								type: 'tool_use',
+								id: firstToolUseIds[1],
+								name: 'write_file',
+								input: {
+									path: 'src/components/Clean.tsx',
+									content: 'export function Clean() { return <span /> }',
+								},
+								caller: { type: 'direct' },
+							},
+						],
+						usage: { ...EMPTY_USAGE, input_tokens: 1000, output_tokens: 500 },
+					}
+				}
+				// Repair call: return a fixed file and "end" the build.
+				return {
+					id: 'msg_repair',
+					type: 'message',
+					role: 'assistant',
+					model: 'claude-sonnet-4-6',
+					stop_reason: 'end_turn',
+					stop_sequence: null,
+					container: null,
+					content: [
+						{
+							type: 'tool_use',
+							id: 'toolu_repair',
+							name: 'write_file',
+							input: {
+								path: 'src/app/page.tsx',
+								content: 'export default function Page() { return <div /> }',
+							},
+							caller: { type: 'direct' },
+						},
+					],
+					usage: { ...EMPTY_USAGE, input_tokens: 500, output_tokens: 200 },
+				}
+			})
+
+			await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			// Confirm we actually hit the repair path.
+			expect(mock.mock.calls.length).toBeGreaterThanOrEqual(2)
+			const repairBody = mock.mock.calls[1][0] as {
+				messages: Array<{ role: string; content: unknown }>
+			}
+
+			// The second-to-last message must be the prior assistant message
+			// (the one with the problematic tool_uses).
+			const assistantMsg = repairBody.messages[1]
+			expect(assistantMsg.role).toBe('assistant')
+			const assistantBlocks = assistantMsg.content as Array<{ type: string; id?: string }>
+			const toolUseIdsInAssistant = assistantBlocks
+				.filter((b) => b.type === 'tool_use')
+				.map((b) => b.id)
+			expect(toolUseIdsInAssistant).toEqual(firstToolUseIds)
+
+			// The follow-up user message must START with tool_result blocks
+			// whose tool_use_ids match every tool_use in the assistant message.
+			const followUp = repairBody.messages[2]
+			expect(followUp.role).toBe('user')
+			const followUpContent = followUp.content as Array<{
+				type: string
+				tool_use_id?: string
+			}>
+			const leadingToolResultIds: string[] = []
+			for (const block of followUpContent) {
+				if (block.type !== 'tool_result') break
+				if (block.tool_use_id) leadingToolResultIds.push(block.tool_use_id)
+			}
+			expect(leadingToolResultIds).toEqual(firstToolUseIds)
+
+			// And after the tool_results, the validation-error text must still be present.
+			const textBlock = followUpContent.find(
+				(b): b is { type: string; tool_use_id?: string; text?: string } & { text: string } =>
+					b.type === 'text' && typeof (b as { text?: string }).text === 'string',
+			)
+			expect(textBlock).toBeDefined()
+		})
+
+		it('marks only the failing tool_use with is_error; clean files get content: "ok"', async () => {
+			let callIndex = 0
+			const badId = 'toolu_bad'
+			const goodId = 'toolu_good'
+
+			const { client: anthropic, mock } = makeAnthropicMock(async () => {
+				callIndex++
+				if (callIndex === 1) {
+					return {
+						id: 'msg_initial',
+						type: 'message',
+						role: 'assistant',
+						model: 'claude-sonnet-4-6',
+						stop_reason: 'end_turn',
+						stop_sequence: null,
+						container: null,
+						content: [
+							{
+								type: 'tool_use',
+								id: badId,
+								name: 'write_file',
+								input: {
+									path: 'src/app/page.tsx',
+									content: "import dynamic from 'next/dynamic'\nexport default function P() {}",
+								},
+								caller: { type: 'direct' },
+							},
+							{
+								type: 'tool_use',
+								id: goodId,
+								name: 'write_file',
+								input: {
+									path: 'src/components/Clean.tsx',
+									content: 'export function Clean() { return <span /> }',
+								},
+								caller: { type: 'direct' },
+							},
+						],
+						usage: { ...EMPTY_USAGE, input_tokens: 1000, output_tokens: 500 },
+					}
+				}
+				return {
+					id: 'msg_repair',
+					type: 'message',
+					role: 'assistant',
+					model: 'claude-sonnet-4-6',
+					stop_reason: 'end_turn',
+					stop_sequence: null,
+					container: null,
+					content: [
+						{
+							type: 'tool_use',
+							id: 'toolu_fix',
+							name: 'write_file',
+							input: {
+								path: 'src/app/page.tsx',
+								content: 'export default function P() { return <div /> }',
+							},
+							caller: { type: 'direct' },
+						},
+					],
+					usage: { ...EMPTY_USAGE, input_tokens: 300, output_tokens: 200 },
+				}
+			})
+
+			await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+
+			const repairBody = mock.mock.calls[1][0] as {
+				messages: Array<{ role: string; content: unknown }>
+			}
+			const followUpContent = repairBody.messages[2].content as Array<{
+				type: string
+				tool_use_id?: string
+				content?: string
+				is_error?: boolean
+			}>
+			const badResult = followUpContent.find((b) => b.tool_use_id === badId)
+			const goodResult = followUpContent.find((b) => b.tool_use_id === goodId)
+			expect(badResult?.is_error).toBe(true)
+			expect(badResult?.content).toMatch(/dynamic|disallowed|denied|import/i)
+			expect(goodResult?.is_error).toBeFalsy()
+			expect(goodResult?.content).toBe('ok')
+		})
+
+		it('fails explicitly with repair_truncated when repair hits max_tokens', async () => {
+			let callIndex = 0
+			const { client: anthropic } = makeAnthropicMock(async () => {
+				callIndex++
+				if (callIndex === 1) {
+					return {
+						id: 'msg_initial',
+						type: 'message',
+						role: 'assistant',
+						model: 'claude-sonnet-4-6',
+						stop_reason: 'end_turn',
+						stop_sequence: null,
+						container: null,
+						content: [
+							{
+								type: 'tool_use',
+								id: 'toolu_bad',
+								name: 'write_file',
+								input: {
+									path: 'src/app/page.tsx',
+									content: "import dynamic from 'next/dynamic'\nexport default function P() {}",
+								},
+								caller: { type: 'direct' },
+							},
+						],
+						usage: { ...EMPTY_USAGE, input_tokens: 800, output_tokens: 200 },
+					}
+				}
+				// Repair truncated mid-output.
+				return {
+					id: 'msg_repair_truncated',
+					type: 'message',
+					role: 'assistant',
+					model: 'claude-sonnet-4-6',
+					stop_reason: 'max_tokens',
+					stop_sequence: null,
+					container: null,
+					content: [],
+					usage: { ...EMPTY_USAGE, input_tokens: 500, output_tokens: 2048 },
+				}
+			})
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{ storage: fixture.storage, sandbox: null, ledger: fixture.ledger, anthropic },
+				),
+			)
+			const failed = events.find((e) => e.type === 'failed')
+			expect(failed).toBeDefined()
+			if (failed?.type === 'failed') {
+				expect(failed.code).toBe('repair_truncated')
+			}
+		})
+
+		it('emits separate ai_call_log rows for build and build_repair', async () => {
+			let callIndex = 0
+			const { client: anthropic } = makeAnthropicMock(async () => {
+				callIndex++
+				if (callIndex === 1) {
+					return {
+						id: 'msg_initial',
+						type: 'message',
+						role: 'assistant',
+						model: 'claude-sonnet-4-6',
+						stop_reason: 'end_turn',
+						stop_sequence: null,
+						container: null,
+						content: [
+							{
+								type: 'tool_use',
+								id: 'toolu_bad',
+								name: 'write_file',
+								input: {
+									path: 'src/app/page.tsx',
+									content: "import dynamic from 'next/dynamic'\nexport default function P() {}",
+								},
+								caller: { type: 'direct' },
+							},
+						],
+						usage: { ...EMPTY_USAGE, input_tokens: 1000, output_tokens: 500 },
+					}
+				}
+				return {
+					id: 'msg_repair',
+					type: 'message',
+					role: 'assistant',
+					model: 'claude-sonnet-4-6',
+					stop_reason: 'end_turn',
+					stop_sequence: null,
+					container: null,
+					content: [
+						{
+							type: 'tool_use',
+							id: 'toolu_fix',
+							name: 'write_file',
+							input: {
+								path: 'src/app/page.tsx',
+								content: 'export default function P() { return <div /> }',
+							},
+							caller: { type: 'direct' },
+						},
+					],
+					usage: { ...EMPTY_USAGE, input_tokens: 300, output_tokens: 200 },
+				}
+			})
+
+			const loggerSpy = vi.fn()
+
+			await collectEvents(
+				orchestrateBuild(
+					{
+						projectId: fixture.projectId,
+						userId: fixture.userId,
+						prompt: 'p',
+					},
+					{
+						storage: fixture.storage,
+						sandbox: null,
+						ledger: fixture.ledger,
+						anthropic,
+						aiCallLogger: loggerSpy,
+					},
+				),
+			)
+
+			const kinds = loggerSpy.mock.calls.map((c: unknown[]) => (c[0] as { kind: string }).kind)
+			expect(kinds).toContain('build')
+			expect(kinds).toContain('build_repair')
+			// The repair row must NOT carry the initial call's output_tokens (500).
+			// The initial row carries 500; the repair row carries 200.
+			const repairRow = loggerSpy.mock.calls
+				.map((c: unknown[]) => c[0] as { kind: string; outputTokens: number })
+				.find((r) => r.kind === 'build_repair')
+			expect(repairRow?.outputTokens).toBe(200)
+		})
+	})
 })

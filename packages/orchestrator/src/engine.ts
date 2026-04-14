@@ -66,7 +66,7 @@ export type GlobalSpendGuard = {
 export type AiCallLogger = (args: {
 	userId: string
 	projectId: string
-	kind: 'build'
+	kind: 'build' | 'build_repair'
 	model: string
 	inputTokens: number
 	cachedReadTokens: number
@@ -259,12 +259,45 @@ export async function* orchestrateBuild(
 		const existingPaths = new Set(currentFiles.map((f) => f.path))
 		const validation = validateBuildFiles(validatedFiles, existingPaths)
 		let repairResponse: Anthropic.Messages.Message | undefined
+		let repairLatencyMs = 0
 		if (!validation.ok) {
 			const errorSummary = validation.errors.map((e) => `${e.path}: ${e.message}`).join('\n')
 			console.error(
 				`[orchestrator] [project=${request.projectId} build=${buildId}] validation failed, attempting self-repair:\n${errorSummary}`,
 			)
 
+			const errorsByPath = new Map(validation.errors.map((e) => [e.path, e.message]))
+			const allPriorToolUses = response.content.filter(
+				(block): block is Anthropic.Messages.ToolUseBlock => block.type === 'tool_use',
+			)
+			const toolResultBlocks: Anthropic.Messages.ToolResultBlockParam[] = allPriorToolUses.map(
+				(tu) => {
+					if (tu.name !== WRITE_FILE_TOOL.name) {
+						return { type: 'tool_result', tool_use_id: tu.id, content: 'ok' }
+					}
+					const parsed = writeFileInputSchema.safeParse(tu.input)
+					if (!parsed.success) {
+						return {
+							type: 'tool_result',
+							tool_use_id: tu.id,
+							content: 'Error: invalid tool input',
+							is_error: true,
+						}
+					}
+					const err = errorsByPath.get(parsed.data.path)
+					if (err) {
+						return {
+							type: 'tool_result',
+							tool_use_id: tu.id,
+							content: `Error: ${err}`,
+							is_error: true,
+						}
+					}
+					return { type: 'tool_result', tool_use_id: tu.id, content: 'ok' }
+				},
+			)
+
+			const repairStartedAt = Date.now()
 			repairResponse = await deps.anthropic.messages
 				.stream(
 					{
@@ -285,40 +318,52 @@ export async function* orchestrateBuild(
 							{ role: 'assistant', content: response.content },
 							{
 								role: 'user',
-								content: `The code you wrote has validation errors. Fix ONLY the errors below — do not rewrite files that are fine.\n\n${errorSummary}`,
+								content: [
+									...toolResultBlocks,
+									{
+										type: 'text',
+										text: `Fix ONLY the errors flagged in the tool_results above. Do not rewrite files that returned "ok".`,
+									},
+								],
 							},
 						],
 					},
 					request.signal ? { signal: request.signal } : undefined,
 				)
 				.finalMessage()
+			repairLatencyMs = Date.now() - repairStartedAt
 
-			if (repairResponse.stop_reason === 'end_turn' || repairResponse.stop_reason === 'tool_use') {
-				const repairToolUses = repairResponse.content.filter(
-					(block): block is Anthropic.Messages.ToolUseBlock =>
-						block.type === 'tool_use' && block.name === WRITE_FILE_TOOL.name,
+			if (repairResponse.stop_reason !== 'end_turn' && repairResponse.stop_reason !== 'tool_use') {
+				throw new OrchestratorBuildError(
+					`Sonnet repair stopped with stop_reason='${repairResponse.stop_reason}'; refusing to commit a possibly-truncated build`,
+					repairResponse.stop_reason === 'max_tokens' ? 'repair_truncated' : 'repair_failed',
 				)
-
-				const fileMap = new Map(validatedFiles.map((f) => [f.path, f]))
-				for (const toolUse of repairToolUses) {
-					const parsed = writeFileInputSchema.safeParse(toolUse.input)
-					if (!parsed.success) continue
-					if (LOCKED_STARTER_PATHS.has(parsed.data.path)) continue
-
-					await buildContext.writeFile(parsed.data)
-					fileMap.set(parsed.data.path, parsed.data)
-
-					yield {
-						type: 'file_written',
-						path: parsed.data.path,
-						contentHash: await sha256Hex(parsed.data.content),
-						sizeBytes: byteLength(parsed.data.content),
-						fileIndex: fileIndex++,
-					}
-				}
-				validatedFiles.length = 0
-				validatedFiles.push(...fileMap.values())
 			}
+
+			const repairToolUses = repairResponse.content.filter(
+				(block): block is Anthropic.Messages.ToolUseBlock =>
+					block.type === 'tool_use' && block.name === WRITE_FILE_TOOL.name,
+			)
+
+			const fileMap = new Map(validatedFiles.map((f) => [f.path, f]))
+			for (const toolUse of repairToolUses) {
+				const parsed = writeFileInputSchema.safeParse(toolUse.input)
+				if (!parsed.success) continue
+				if (LOCKED_STARTER_PATHS.has(parsed.data.path)) continue
+
+				await buildContext.writeFile(parsed.data)
+				fileMap.set(parsed.data.path, parsed.data)
+
+				yield {
+					type: 'file_written',
+					path: parsed.data.path,
+					contentHash: await sha256Hex(parsed.data.content),
+					sizeBytes: byteLength(parsed.data.content),
+					fileIndex: fileIndex++,
+				}
+			}
+			validatedFiles.length = 0
+			validatedFiles.push(...fileMap.values())
 
 			const revalidation = validateBuildFiles(validatedFiles, existingPaths)
 			if (!revalidation.ok) {
@@ -337,17 +382,28 @@ export async function* orchestrateBuild(
 		}
 
 		const repairUsage = repairResponse?.usage
-		const cacheReadTokens =
-			(response.usage.cache_read_input_tokens ?? 0) + (repairUsage?.cache_read_input_tokens ?? 0)
-		const cacheWriteTokens =
-			(response.usage.cache_creation_input_tokens ?? 0) +
-			(repairUsage?.cache_creation_input_tokens ?? 0)
-		const actualCents = usageToCents(model, {
-			inputTokens: response.usage.input_tokens + (repairUsage?.input_tokens ?? 0),
-			outputTokens: response.usage.output_tokens + (repairUsage?.output_tokens ?? 0),
-			cacheReadTokens,
-			cacheWriteTokens,
+		const initialCacheReadTokens = response.usage.cache_read_input_tokens ?? 0
+		const initialCacheWriteTokens = response.usage.cache_creation_input_tokens ?? 0
+		const repairCacheReadTokens = repairUsage?.cache_read_input_tokens ?? 0
+		const repairCacheWriteTokens = repairUsage?.cache_creation_input_tokens ?? 0
+		const cacheReadTokens = initialCacheReadTokens + repairCacheReadTokens
+		const cacheWriteTokens = initialCacheWriteTokens + repairCacheWriteTokens
+
+		const initialCents = usageToCents(model, {
+			inputTokens: response.usage.input_tokens,
+			outputTokens: response.usage.output_tokens,
+			cacheReadTokens: initialCacheReadTokens,
+			cacheWriteTokens: initialCacheWriteTokens,
 		})
+		const repairCents = repairUsage
+			? usageToCents(model, {
+					inputTokens: repairUsage.input_tokens,
+					outputTokens: repairUsage.output_tokens,
+					cacheReadTokens: repairCacheReadTokens,
+					cacheWriteTokens: repairCacheWriteTokens,
+				})
+			: 0
+		const actualCents = initialCents + repairCents
 		const totalTokens =
 			response.usage.input_tokens +
 			response.usage.output_tokens +
@@ -388,14 +444,30 @@ export async function* orchestrateBuild(
 					kind: 'build',
 					model,
 					inputTokens: response.usage.input_tokens,
-					cachedReadTokens: cacheReadTokens,
-					cachedWriteTokens: cacheWriteTokens,
+					cachedReadTokens: initialCacheReadTokens,
+					cachedWriteTokens: initialCacheWriteTokens,
 					outputTokens: response.usage.output_tokens,
-					centsCharged: actualCents,
+					centsCharged: initialCents,
 					latencyMs: anthropicLatencyMs,
 					stopReason: response.stop_reason ?? null,
 					status: 'ok',
 				})
+				if (repairResponse) {
+					deps.aiCallLogger({
+						userId: request.userId,
+						projectId: request.projectId,
+						kind: 'build_repair',
+						model,
+						inputTokens: repairResponse.usage.input_tokens,
+						cachedReadTokens: repairCacheReadTokens,
+						cachedWriteTokens: repairCacheWriteTokens,
+						outputTokens: repairResponse.usage.output_tokens,
+						centsCharged: repairCents,
+						latencyMs: repairLatencyMs,
+						stopReason: repairResponse.stop_reason ?? null,
+						status: 'ok',
+					})
+				}
 			} catch (err) {
 				console.error('[orchestrator] aiCallLogger failed (non-fatal)', err)
 			}

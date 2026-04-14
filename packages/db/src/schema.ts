@@ -349,6 +349,7 @@ export const tokenTransactions = pgTable(
 
 export type AiCallKind =
 	| 'build'
+	| 'build_repair'
 	| 'chat'
 	| 'improve_prompt'
 	| 'ask_question'

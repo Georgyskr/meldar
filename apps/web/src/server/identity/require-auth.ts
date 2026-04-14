@@ -1,8 +1,5 @@
-import { getDb } from '@meldar/db/client'
-import { users } from '@meldar/db/schema'
-import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { verifyToken } from './jwt'
+import { authenticateSession } from './authenticate-session'
 
 type AuthSuccess = { ok: true; userId: string; email: string; emailVerified: boolean }
 type AuthFailure = { ok: false; response: NextResponse }
@@ -18,35 +15,21 @@ function unauthenticated(): AuthFailure {
 	}
 }
 
-export async function requireAuth(request: Request): Promise<AuthResult> {
+function extractCookie(request: Request): string | null {
 	const cookieHeader = request.headers.get('cookie')
-	if (!cookieHeader) return unauthenticated()
-
+	if (!cookieHeader) return null
 	const match = cookieHeader.match(/meldar-auth=([^;]+)/)
-	if (!match) return unauthenticated()
+	return match ? match[1] : null
+}
 
-	const payload = verifyToken(match[1])
-	if (!payload) return unauthenticated()
-
-	const db = getDb()
-	const [user] = await db
-		.select({
-			id: users.id,
-			email: users.email,
-			emailVerified: users.emailVerified,
-			tokenVersion: users.tokenVersion,
-		})
-		.from(users)
-		.where(eq(users.id, payload.userId))
-		.limit(1)
-
-	if (!user) return unauthenticated()
-	if (user.tokenVersion !== payload.tokenVersion) return unauthenticated()
-
+export async function requireAuth(request: Request): Promise<AuthResult> {
+	const cookieValue = extractCookie(request)
+	const result = await authenticateSession(cookieValue)
+	if (result.state !== 'valid') return unauthenticated()
 	return {
 		ok: true,
-		userId: user.id,
-		email: user.email,
-		emailVerified: user.emailVerified,
+		userId: result.session.userId,
+		email: result.session.email,
+		emailVerified: result.session.emailVerified,
 	}
 }
