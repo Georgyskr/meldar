@@ -75,7 +75,7 @@ describe('PreviewPane', () => {
 		container.remove()
 	})
 
-	it('renders idle state when previewUrl is null and not building', () => {
+	it('idle state shows a calm "setting up" message, not a developer prompt', () => {
 		act(() => {
 			root.render(
 				createElement(PreviewPane, {
@@ -86,28 +86,16 @@ describe('PreviewPane', () => {
 			)
 		})
 
-		expect(container.textContent).toContain('Describe what you want to build')
-		expect(container.textContent).toContain('live preview will appear here')
+		const text = container.textContent ?? ''
+		expect(text).not.toContain('Describe what you want to build')
+		expect(text).not.toMatch(/\bbuild\b/i)
+		expect(text).not.toMatch(/\bcode\b/i)
+		expect(text).not.toContain('landing page with email capture')
 		expect(container.querySelector('iframe')).toBeNull()
+		expect(text).toMatch(/setting up|getting ready|preparing/i)
 	})
 
-	it('shows thinking phase when building with no files yet', () => {
-		act(() => {
-			root.render(
-				createElement(PreviewPane, {
-					previewUrl: null,
-					activeBuildCardId: 'some-card-id',
-					failureMessage: null,
-					writtenFiles: [],
-				}),
-			)
-		})
-
-		expect(container.textContent).toContain('Thinking')
-		expect(container.querySelector('iframe')).toBeNull()
-	})
-
-	it('shows writing phase with latest file name', () => {
+	it('building state shows progress without exposing file names or dev words', () => {
 		act(() => {
 			root.render(
 				createElement(PreviewPane, {
@@ -122,11 +110,31 @@ describe('PreviewPane', () => {
 			)
 		})
 
-		expect(container.textContent).toContain('Writing')
-		expect(container.textContent).toContain('page.tsx')
+		const text = container.textContent ?? ''
+		expect(text).not.toContain('Writing code')
+		expect(text).not.toContain('page.tsx')
+		expect(text).not.toContain('layout.tsx')
+		expect(text).not.toMatch(/\.tsx\b/)
 	})
 
-	it('shows deploying phase after build commits but preview not ready', () => {
+	it('building state shows a warm message when no files yet', () => {
+		act(() => {
+			root.render(
+				createElement(PreviewPane, {
+					previewUrl: null,
+					activeBuildCardId: 'some-card-id',
+					failureMessage: null,
+					writtenFiles: [],
+				}),
+			)
+		})
+
+		const text = container.textContent ?? ''
+		expect(text).toMatch(/setting up|getting ready|preparing/i)
+		expect(container.querySelector('iframe')).toBeNull()
+	})
+
+	it('post-commit state shows "opening your page" or similar', () => {
 		act(() => {
 			root.render(
 				createElement(PreviewPane, {
@@ -139,7 +147,9 @@ describe('PreviewPane', () => {
 			)
 		})
 
-		expect(container.textContent).toContain('Starting preview')
+		const text = container.textContent ?? ''
+		expect(text).toMatch(/opening|almost there|one moment/i)
+		expect(text).not.toContain('page.tsx')
 	})
 
 	it('renders an iframe when previewUrl is set', () => {

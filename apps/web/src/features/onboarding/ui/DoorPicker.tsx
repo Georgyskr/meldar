@@ -1,6 +1,6 @@
 'use client'
 
-import { VStack } from '@styled-system/jsx'
+import { styled, VStack } from '@styled-system/jsx'
 import { Heading, Text } from '@/shared/ui'
 
 type Door = 'a' | 'b' | 'c'
@@ -35,49 +35,58 @@ const DOORS: ReadonlyArray<{
 	},
 ]
 
+const DoorButton = styled('button', {
+	base: {
+		display: 'flex',
+		gap: '3.5',
+		alignItems: 'flex-start',
+		paddingInline: '5',
+		paddingBlock: '4',
+		border: '1px solid',
+		borderColor: 'outlineVariant',
+		borderRadius: 'xl',
+		background: 'surfaceContainerLowest',
+		cursor: 'pointer',
+		textAlign: 'start',
+		width: '100%',
+		minHeight: '44px',
+		transition: 'all 0.15s',
+		_hover: { borderColor: 'primary/50' },
+		_focusVisible: {
+			outline: '2px solid',
+			outlineColor: 'primary',
+			outlineOffset: '2px',
+		},
+	},
+})
+
 export function DoorPicker({ onSelectDoor }: Props) {
 	return (
 		<VStack gap="8" alignItems="center" paddingBlock="12" paddingInline="6">
 			<VStack gap="2" alignItems="center">
-				<Heading as="h1" textStyle="heading.1">
+				<Heading as="h1" textStyle="primary.xl">
 					What do you need today?
 				</Heading>
-				<Text as="p" textStyle="body.md" color="onSurfaceVariant">
+				<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
 					Your AI. Your app. Nobody else's.
 				</Text>
 			</VStack>
 
 			<VStack gap="3" width="100%" maxWidth="420px">
 				{DOORS.map((door) => (
-					<button
-						key={door.id}
-						type="button"
-						onClick={() => onSelectDoor(door.id)}
-						style={{
-							display: 'flex',
-							gap: 14,
-							alignItems: 'flex-start',
-							padding: '16px 20px',
-							border: '1px solid var(--colors-outline-variant)',
-							borderRadius: 12,
-							background: 'var(--colors-surface-container-lowest)',
-							cursor: 'pointer',
-							textAlign: 'left',
-							width: '100%',
-						}}
-					>
-						<span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>
+					<DoorButton key={door.id} type="button" onClick={() => onSelectDoor(door.id)}>
+						<Text as="span" textStyle="primary.md" aria-hidden>
 							{door.icon}
-						</span>
-						<span>
+						</Text>
+						<VStack gap="1" alignItems="stretch">
 							<Text textStyle="label.md" color="onSurface">
 								{door.label}
 							</Text>
-							<Text as="p" textStyle="body.sm" color="onSurfaceVariant">
+							<Text as="p" textStyle="secondary.sm" color="onSurfaceVariant">
 								{door.description}
 							</Text>
-						</span>
-					</button>
+						</VStack>
+					</DoorButton>
 				))}
 			</VStack>
 		</VStack>

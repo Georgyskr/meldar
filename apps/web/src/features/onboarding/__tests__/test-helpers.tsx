@@ -73,6 +73,8 @@ export function setupMocks() {
 			createElement(as || 'h2', null, children),
 		Button: ({ children, ...props }: Record<string, unknown>) =>
 			createElement('button', { type: 'button', ...props }, children as ReactNode),
+		Input: (props: Record<string, unknown>) => createElement('input', props),
+		Textarea: (props: Record<string, unknown>) => createElement('textarea', props),
 		toast: { error: vi.fn(), success: vi.fn() },
 	}))
 

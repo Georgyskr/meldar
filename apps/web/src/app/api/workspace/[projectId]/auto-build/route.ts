@@ -28,12 +28,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
 	const auth = await requireAuth(request)
 	if (!auth.ok) return auth.response
 
-	const { success: rateLimitSuccess } = await checkRateLimit(rateLimit, auth.userId, true)
-	if (!rateLimitSuccess) {
-		return NextResponse.json(
-			{ error: { code: 'RATE_LIMITED', message: 'Too many builds. Wait a few minutes.' } },
-			{ status: 429 },
-		)
+	const rateResult = await checkRateLimit(rateLimit, auth.userId, true)
+	if (!rateResult.success) {
+		const status = rateResult.serviceError ? 503 : 429
+		const code = rateResult.serviceError ? 'SERVICE_UNAVAILABLE' : 'RATE_LIMITED'
+		const message = rateResult.serviceError
+			? 'Setup service is temporarily unavailable. Try again shortly.'
+			: 'Too many setups. Wait a few minutes.'
+		return NextResponse.json({ error: { code, message } }, { status })
 	}
 
 	const project = await verifyProjectOwnership(projectId, auth.userId)

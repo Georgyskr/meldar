@@ -9,11 +9,11 @@ export function handleSseEvent(
 
 	if (event.type === 'failed') {
 		console.error(`[runBuild] SSE failed: ${event.code ?? 'UNKNOWN'}: ${event.reason}`)
-		toast.error('Build failed', event.reason)
+		toast.error('Something went sideways', event.reason)
 	}
 
 	if (event.type === 'pipeline_failed') {
 		console.error(`[runBuild] pipeline failed: ${event.reason}`)
-		toast.error('Build failed', event.reason)
+		toast.error('Something went sideways', event.reason)
 	}
 }

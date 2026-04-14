@@ -20,24 +20,21 @@ export function PreviewPane({
 	previewUrl,
 	activeBuildCardId,
 	failureMessage,
-	writtenFiles = [],
 	buildJustFinished = false,
 }: Props) {
-	const isBuilding = activeBuildCardId !== null
-	const wasBuildingRef = useRef(isBuilding)
+	const isActive = activeBuildCardId !== null
+	const wasActiveRef = useRef(isActive)
 	const [cacheBuster, setCacheBuster] = useState(() => Date.now())
 
 	useEffect(() => {
-		const wasBuilding = wasBuildingRef.current
-		wasBuildingRef.current = isBuilding
-		if (wasBuilding && !isBuilding) {
+		const wasActive = wasActiveRef.current
+		wasActiveRef.current = isActive
+		if (wasActive && !isActive) {
 			setCacheBuster(Date.now())
 		}
-	}, [isBuilding])
+	}, [isActive])
 
 	const safeUrl = isSafePreviewUrl(previewUrl) ? previewUrl : null
-	const latestFile = writtenFiles.length > 0 ? writtenFiles[writtenFiles.length - 1] : null
-	const isDeploying = !isBuilding && buildJustFinished && !safeUrl
 
 	return (
 		<Flex direction="column" flex="1" height="100%" position="relative" minWidth={0}>
@@ -54,12 +51,7 @@ export function PreviewPane({
 						src={buildPreviewSrc(safeUrl, cacheBuster)}
 						title="Live preview"
 						sandbox="allow-scripts allow-same-origin allow-forms"
-						style={{
-							width: '100%',
-							height: '100%',
-							border: 'none',
-							display: 'block',
-						}}
+						style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
 					/>
 				</Box>
 			) : (
@@ -74,67 +66,24 @@ export function PreviewPane({
 					borderRadius="md"
 					paddingInline={6}
 					textAlign="center"
+					aria-live="polite"
 				>
-					{isBuilding ? (
-						<>
-							<Box
-								width="40px"
-								height="40px"
-								borderRadius="50%"
-								bg="primary"
-								animation="softPulse 1.6s ease-in-out infinite"
-							/>
-							{latestFile ? (
-								<>
-									<Text textStyle="primary.sm" color="onSurface">
-										Writing code&hellip;
-									</Text>
-									<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="400px">
-										Writing {latestFile.path.split('/').pop()}&hellip;
-									</Text>
-								</>
-							) : (
-								<>
-									<Text textStyle="primary.sm" color="onSurface">
-										Thinking&hellip;
-									</Text>
-									<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="400px">
-										Meldar is planning your page.
-									</Text>
-								</>
-							)}
-						</>
-					) : isDeploying ? (
-						<>
-							<Box
-								width="40px"
-								height="40px"
-								borderRadius="50%"
-								bg="primary"
-								animation="softPulse 1.6s ease-in-out infinite"
-							/>
-							<Text textStyle="primary.sm" color="onSurface">
-								Starting preview&hellip;
-							</Text>
-							<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="400px">
-								Your page is ready. Loading the live preview.
-							</Text>
-						</>
-					) : (
-						<>
-							<Text textStyle="primary.sm" color="onSurface">
-								Describe what you want to build
-							</Text>
-							<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="440px">
-								Use the input below to get started. Try &ldquo;create a booking page for a hair
-								salon with 3 services&rdquo; or &ldquo;build a landing page with email
-								capture.&rdquo;
-							</Text>
-							<Text textStyle="secondary.xs" color="onSurfaceVariant/60" maxWidth="400px">
-								Your live preview will appear here once the first build completes.
-							</Text>
-						</>
-					)}
+					<Box
+						width="40px"
+						height="40px"
+						borderRadius="50%"
+						bg="primary"
+						animation="softPulse 1.6s ease-in-out infinite"
+						aria-hidden
+					/>
+					<Text textStyle="primary.sm" color="onSurface">
+						{buildJustFinished ? 'Opening your page\u2026' : 'Setting up your page\u2026'}
+					</Text>
+					<Text textStyle="secondary.sm" color="onSurfaceVariant" maxWidth="400px">
+						{buildJustFinished
+							? 'One moment while we bring it to life.'
+							: "This takes about 30 seconds. You'll see your page here when it's ready."}
+					</Text>
 				</Flex>
 			)}
 

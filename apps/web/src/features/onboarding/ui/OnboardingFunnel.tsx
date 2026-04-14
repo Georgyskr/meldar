@@ -54,14 +54,16 @@ export function OnboardingFunnel() {
 		dispatch({ type: 'confirm' })
 
 		try {
+			const body: Record<string, unknown> = {
+				verticalId: state.proposal.verticalId,
+				businessName: state.proposal.businessName,
+				services: state.proposal.services,
+			}
+			if (state.websiteUrl) body.websiteUrl = state.websiteUrl
 			const res = await fetch('/api/onboarding', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					verticalId: state.proposal.verticalId,
-					businessName: state.proposal.businessName,
-					services: state.proposal.services,
-				}),
+				body: JSON.stringify(body),
 			})
 
 			if (!res.ok) {

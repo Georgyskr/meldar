@@ -1,7 +1,7 @@
 'use client'
 
-import { VStack } from '@styled-system/jsx'
-import { Heading, Text } from '@/shared/ui'
+import { styled, VStack } from '@styled-system/jsx'
+import { Button, Heading, Text } from '@/shared/ui'
 import { EXAMPLE_PAGES } from '../model/example-pages'
 
 type Props = {
@@ -9,30 +9,37 @@ type Props = {
 	readonly onBack: () => void
 }
 
+const BackButton = styled('button', {
+	base: {
+		alignSelf: 'flex-start',
+		background: 'transparent',
+		border: 'none',
+		cursor: 'pointer',
+		padding: '2',
+		minHeight: '44px',
+		_focusVisible: {
+			outline: '2px solid',
+			outlineColor: 'primary',
+			outlineOffset: '2px',
+			borderRadius: 'sm',
+		},
+	},
+})
+
 export function DoorB({ onSelectExample, onBack }: Props) {
 	return (
 		<VStack gap="6" alignItems="stretch" paddingBlock="8" paddingInline="6">
-			<button
-				type="button"
-				onClick={onBack}
-				style={{
-					alignSelf: 'flex-start',
-					background: 'none',
-					border: 'none',
-					cursor: 'pointer',
-					padding: '8px 0',
-				}}
-			>
+			<BackButton type="button" onClick={onBack}>
 				<Text textStyle="label.sm" color="primary">
 					← Back
 				</Text>
-			</button>
+			</BackButton>
 
 			<VStack gap="2">
-				<Heading as="h1" textStyle="heading.2">
+				<Heading as="h1" textStyle="primary.lg">
 					Real pages made with Meldar
 				</Heading>
-				<Text as="p" textStyle="body.md" color="onSurfaceVariant">
+				<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
 					Tap one to make it yours. We'll swap in your details.
 				</Text>
 			</VStack>
@@ -47,37 +54,28 @@ export function DoorB({ onSelectExample, onBack }: Props) {
 						borderColor="outlineVariant/30"
 						borderRadius="md"
 						background="surfaceContainerLowest"
+						alignItems="stretch"
 					>
 						<VStack gap="1" alignItems="stretch">
 							<Text textStyle="label.md" color="onSurface">
 								{ex.title}
 							</Text>
-							<Text textStyle="body.sm" color="onSurfaceVariant">
+							<Text textStyle="secondary.sm" color="onSurfaceVariant">
 								{ex.description}
 							</Text>
 						</VStack>
-						<Text textStyle="body.xs" color="onSurfaceVariant">
+						<Text textStyle="secondary.xs" color="onSurfaceVariant">
 							{ex.services.map((s) => s.name).join(' · ')}
 						</Text>
-						<button
+						<Button
 							type="button"
+							variant="outline"
+							size="md"
 							onClick={() => onSelectExample(ex.id)}
-							style={{
-								alignSelf: 'flex-start',
-								padding: '10px 20px',
-								border: '1px solid var(--colors-primary)',
-								borderRadius: 8,
-								background: 'transparent',
-								color: 'var(--colors-primary)',
-								fontFamily: 'var(--fonts-heading)',
-								fontWeight: 600,
-								fontSize: 13,
-								cursor: 'pointer',
-								minHeight: 44,
-							}}
+							alignSelf="flex-start"
 						>
 							Use this →
-						</button>
+						</Button>
 					</VStack>
 				))}
 			</VStack>

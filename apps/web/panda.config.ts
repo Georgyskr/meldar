@@ -397,10 +397,25 @@ export default defineConfig({
 			recipes: {
 				button: {
 					base: {
-						fontFamily: 'body',
-						fontWeight: '500',
+						fontFamily: 'heading',
+						fontWeight: '600',
 						cursor: 'pointer',
 						transition: 'all 0.2s ease',
+						borderRadius: 'md',
+						minHeight: '44px',
+						display: 'inline-flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						border: 'none',
+						_focusVisible: {
+							outline: '2px solid',
+							outlineColor: 'primary',
+							outlineOffset: '2px',
+						},
+						_disabled: {
+							opacity: 0.5,
+							cursor: 'not-allowed',
+						},
 					},
 					variants: {
 						variant: {
@@ -409,16 +424,32 @@ export default defineConfig({
 								color: 'white',
 								_hover: { opacity: 0.9 },
 							},
+							primary: {
+								background: 'primary',
+								color: 'onPrimary',
+								_hover: { bg: 'primary/90' },
+							},
 							outline: {
+								background: 'transparent',
+								border: '1px solid',
 								borderColor: 'outlineVariant',
 								color: 'onSurface',
 								_hover: { bg: 'surfaceContainer' },
 							},
 							ghost: {
-								color: 'outline',
+								background: 'transparent',
+								color: 'primary',
 								_hover: { color: 'onSurface' },
 							},
 						},
+						size: {
+							md: { paddingInline: '6', paddingBlock: '3', fontSize: 'sm' },
+							lg: { paddingInline: '6', paddingBlock: '3.5', fontSize: 'sm' },
+						},
+					},
+					defaultVariants: {
+						variant: 'primary',
+						size: 'md',
 					},
 				},
 			},

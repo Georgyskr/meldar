@@ -24,6 +24,15 @@ export async function* withSandboxPreview(
 
 	if (!sawCommitted || !ctx.sandbox) return
 
+	// Skip if orchestrator already provisioned a preview URL via writeFiles.
+	// Avoids double sandbox provisioning on subsequent builds.
+	try {
+		const project = await ctx.storage.getProject(ctx.projectId, ctx.userId).catch(() => null)
+		if (project?.previewUrl) return
+	} catch {
+		// fall through — attempt provision
+	}
+
 	try {
 		const rows = await ctx.storage.getCurrentFiles(ctx.projectId)
 		const files = await Promise.all(

@@ -40,6 +40,7 @@ export function funnelReducer(state: FunnelState, action: FunnelAction): FunnelS
 			return {
 				screen: 'proposalPreview',
 				sourceDoor: 'a',
+				websiteUrl: action.websiteUrl.trim() || null,
 				error: null,
 				proposal: {
 					verticalId: vertical.id,
@@ -56,15 +57,32 @@ export function funnelReducer(state: FunnelState, action: FunnelAction): FunnelS
 
 		case 'selectExample':
 			if (state.screen !== 'doorB') return state
-			return { screen: 'proposalPreview', sourceDoor: 'b', error: null, proposal: action.proposal }
+			return {
+				screen: 'proposalPreview',
+				sourceDoor: 'b',
+				websiteUrl: null,
+				error: null,
+				proposal: action.proposal,
+			}
 
 		case 'submitFreeform':
 			if (state.screen !== 'doorC') return state
-			return { screen: 'proposalPreview', sourceDoor: 'c', error: null, proposal: action.proposal }
+			return {
+				screen: 'proposalPreview',
+				sourceDoor: 'c',
+				websiteUrl: null,
+				error: null,
+				proposal: action.proposal,
+			}
 
 		case 'confirm':
 			if (state.screen !== 'proposalPreview') return state
-			return { screen: 'submitting', proposal: state.proposal }
+			return {
+				screen: 'submitting',
+				proposal: state.proposal,
+				sourceDoor: state.sourceDoor,
+				websiteUrl: state.websiteUrl,
+			}
 
 		case 'success':
 			return { screen: 'complete', projectId: action.projectId, subdomain: action.subdomain }
@@ -73,7 +91,8 @@ export function funnelReducer(state: FunnelState, action: FunnelAction): FunnelS
 			if (state.screen !== 'submitting') return state
 			return {
 				screen: 'proposalPreview',
-				sourceDoor: 'a',
+				sourceDoor: state.sourceDoor,
+				websiteUrl: state.websiteUrl,
 				error: action.error,
 				proposal: state.proposal,
 			}

@@ -1,7 +1,7 @@
 'use client'
 
 import { Box, Flex, VStack } from '@styled-system/jsx'
-import { Heading, Text } from '@/shared/ui'
+import { Button, Heading, Text } from '@/shared/ui'
 import type { ProposalData } from '../model/types'
 
 type Props = {
@@ -26,10 +26,10 @@ export function ProposalPreview({ proposal, submitting, error, onConfirm, onGoBa
 				<Text textStyle="label.sm" color="primary">
 					{proposal.verticalLabel}
 				</Text>
-				<Heading as="h1" textStyle="heading.2">
+				<Heading as="h1" textStyle="primary.lg">
 					Here's what we've put together for you
 				</Heading>
-				<Text as="p" textStyle="body.md" color="onSurfaceVariant">
+				<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
 					Ready in about 30 seconds. Change anything first, or go.
 				</Text>
 			</VStack>
@@ -43,7 +43,7 @@ export function ProposalPreview({ proposal, submitting, error, onConfirm, onGoBa
 					borderColor="outlineVariant/30"
 					textAlign="center"
 				>
-					<Heading as="h2" textStyle="heading.3" color="primary">
+					<Heading as="h2" textStyle="primary.md" color="primary">
 						{proposal.businessName}
 					</Heading>
 				</Box>
@@ -62,7 +62,7 @@ export function ProposalPreview({ proposal, submitting, error, onConfirm, onGoBa
 								<Text textStyle="label.md" color="onSurface">
 									{svc.name}
 								</Text>
-								<Text textStyle="body.xs" color="onSurfaceVariant">
+								<Text textStyle="secondary.xs" color="onSurfaceVariant">
 									{svc.durationMinutes} min
 								</Text>
 							</VStack>
@@ -71,61 +71,41 @@ export function ProposalPreview({ proposal, submitting, error, onConfirm, onGoBa
 				</VStack>
 
 				<Flex gap="2" alignItems="center" paddingInline="5" paddingBlock="3">
-					<Text textStyle="body.xs" color="onSurfaceVariant">
+					<Text textStyle="secondary.xs" color="onSurfaceVariant">
 						{dayLabel}, {proposal.hours.start}–{proposal.hours.end}
 					</Text>
 				</Flex>
 			</Box>
 
 			{error && (
-				<Box paddingBlock="3" paddingInline="4" background="error/10" borderRadius="md">
-					<Text textStyle="body.sm" color="error">
+				<Box
+					role="alert"
+					paddingBlock="3"
+					paddingInline="4"
+					background="error/10"
+					borderRadius="md"
+				>
+					<Text textStyle="secondary.sm" color="error">
 						{error}
 					</Text>
 				</Box>
 			)}
 
 			<Flex gap="3">
-				<button
+				<Button
 					type="button"
+					variant="solid"
+					size="lg"
 					onClick={onConfirm}
 					disabled={submitting}
-					style={{
-						flex: 1,
-						padding: '14px 24px',
-						border: 'none',
-						borderRadius: 8,
-						background: 'linear-gradient(135deg, var(--colors-primary), #FFB876)',
-						color: '#fff',
-						fontFamily: 'var(--fonts-heading)',
-						fontWeight: 600,
-						fontSize: 14,
-						cursor: submitting ? 'wait' : 'pointer',
-						opacity: submitting ? 0.6 : 1,
-						minHeight: 44,
-					}}
+					aria-busy={submitting}
+					flex={1}
 				>
 					{submitting ? 'Setting up\u2026' : 'Let\u2019s go \u2192'}
-				</button>
-				<button
-					type="button"
-					onClick={onGoBack}
-					disabled={submitting}
-					style={{
-						padding: '14px 20px',
-						border: '1px solid var(--colors-outline-variant)',
-						borderRadius: 8,
-						background: 'transparent',
-						color: 'var(--colors-primary)',
-						fontFamily: 'var(--fonts-heading)',
-						fontWeight: 600,
-						fontSize: 14,
-						cursor: 'pointer',
-						minHeight: 44,
-					}}
-				>
+				</Button>
+				<Button type="button" variant="outline" size="lg" onClick={onGoBack} disabled={submitting}>
 					Change things
-				</button>
+				</Button>
 			</Flex>
 		</VStack>
 	)

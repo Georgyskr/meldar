@@ -29,9 +29,15 @@ export type FunnelState =
 			readonly screen: 'proposalPreview'
 			readonly proposal: ProposalData
 			readonly sourceDoor: 'a' | 'b' | 'c'
+			readonly websiteUrl: string | null
 			readonly error: string | null
 	  }
-	| { readonly screen: 'submitting'; readonly proposal: ProposalData }
+	| {
+			readonly screen: 'submitting'
+			readonly proposal: ProposalData
+			readonly sourceDoor: 'a' | 'b' | 'c'
+			readonly websiteUrl: string | null
+	  }
 	| { readonly screen: 'complete'; readonly projectId: string; readonly subdomain?: string }
 
 export type FunnelAction =

@@ -122,7 +122,7 @@ function FailedPill() {
 			background="error"
 		>
 			<Text textStyle="label.sm" color="surface">
-				Build failed — check the notification below
+				Something went sideways &mdash; see the note below
 			</Text>
 		</Flex>
 	)

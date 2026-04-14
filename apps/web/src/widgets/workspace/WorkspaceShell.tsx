@@ -2,7 +2,7 @@
 
 import { consumeSseStream } from '@meldar/orchestrator'
 import { Box, Flex } from '@styled-system/jsx'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { ProjectStep } from '@/entities/project-step'
 import type { KanbanCard } from '@/features/kanban'
 import { FirstBuildCelebration } from '@/features/kanban'
@@ -58,9 +58,28 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 }
 
 function WorkspaceBody({ projectId }: { readonly projectId: string }) {
-	const { activeBuildCardId, failureMessage, publish, previewUrl, writtenFiles, lastBuildAt } =
-		useWorkspaceBuild()
+	const {
+		activeBuildCardId,
+		failureMessage,
+		publish,
+		previewUrl,
+		writtenFiles,
+		lastBuildAt,
+		cards,
+	} = useWorkspaceBuild()
 	const buildJustFinished = lastBuildAt !== null && writtenFiles.length > 0 && !activeBuildCardId
+	const autoBuildStartedRef = useRef(false)
+
+	useEffect(() => {
+		if (autoBuildStartedRef.current) return
+		if (previewUrl) return
+		if (activeBuildCardId) return
+		if (cards.length === 0) return
+		const hasReadyWork = cards.some((c) => c.state === 'ready' || c.state === 'draft')
+		if (!hasReadyWork) return
+		autoBuildStartedRef.current = true
+		runAutoBuild(projectId, publish)
+	}, [projectId, cards, previewUrl, activeBuildCardId, publish])
 
 	const handleFeedbackSubmit = useCallback(
 		async (feedback: FeedbackRequest) => {
@@ -83,6 +102,46 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 			<FeedbackBar onSubmit={handleFeedbackSubmit} />
 		</>
 	)
+}
+
+async function runAutoBuild(
+	projectId: string,
+	publish: ReturnType<typeof useWorkspaceBuild>['publish'],
+): Promise<void> {
+	try {
+		const response = await fetch(`/api/workspace/${projectId}/auto-build`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+		})
+
+		if (!response.ok) {
+			const errorBody = (await response.json().catch(() => ({}))) as {
+				error?: { code?: string; message?: string }
+			}
+			const message = errorBody.error?.message ?? `Auto-build failed (${response.status})`
+			console.error(`[runAutoBuild] ${errorBody.error?.code ?? 'UNKNOWN'}: ${message}`)
+			toast.error('Setup stalled', message)
+			publish({ type: 'failed', reason: message })
+			return
+		}
+
+		if (!response.body) {
+			const reason = 'Server returned no stream.'
+			console.error(`[runAutoBuild] ${reason}`)
+			toast.error('Setup stalled', reason)
+			publish({ type: 'failed', reason })
+			return
+		}
+
+		for await (const event of consumeSseStream(response.body)) {
+			handleSseEvent(event, publish)
+		}
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Network error'
+		console.error('[runAutoBuild] exception:', err)
+		toast.error('Setup failed', message)
+		publish({ type: 'failed', reason: message })
+	}
 }
 
 async function runBuild(
@@ -108,7 +167,7 @@ async function runBuild(
 			const code = errorBody.error?.code ?? 'UNKNOWN'
 			const message = errorBody.error?.message ?? `Build failed (${response.status})`
 			console.error(`[runBuild] ${code}: ${message} (HTTP ${response.status})`)
-			toast.error('Build failed', message)
+			toast.error('Something went sideways', message)
 			publish({ type: 'failed', reason: message, kanbanCardId: cardId })
 			return
 		}
@@ -116,7 +175,7 @@ async function runBuild(
 		if (!response.body) {
 			const reason = 'Server returned no stream.'
 			console.error(`[runBuild] ${reason}`)
-			toast.error('Build failed', reason)
+			toast.error('Something went sideways', reason)
 			publish({ type: 'failed', reason, kanbanCardId: cardId })
 			return
 		}

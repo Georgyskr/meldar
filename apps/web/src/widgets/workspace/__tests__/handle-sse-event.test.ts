@@ -34,7 +34,7 @@ describe('handleSseEvent', () => {
 		expect(publish).toHaveBeenCalledWith(
 			expect.objectContaining({ type: 'failed', reason: 'Build validation failed' }),
 		)
-		expect(toast.error).toHaveBeenCalledWith('Build failed', 'Build validation failed')
+		expect(toast.error).toHaveBeenCalledWith('Something went sideways', 'Build validation failed')
 		expect(spy).toHaveBeenCalledWith(
 			expect.stringContaining('VALIDATION_ERROR: Build validation failed'),
 		)
@@ -48,7 +48,7 @@ describe('handleSseEvent', () => {
 
 		handleSseEvent({ type: 'failed', reason: 'Unknown error' }, publish)
 
-		expect(toast.error).toHaveBeenCalledWith('Build failed', 'Unknown error')
+		expect(toast.error).toHaveBeenCalledWith('Something went sideways', 'Unknown error')
 
 		vi.restoreAllMocks()
 	})
@@ -72,7 +72,7 @@ describe('handleSseEvent', () => {
 		handleSseEvent({ type: 'pipeline_failed', reason: 'Card build crashed', cardId: 'c1' }, publish)
 
 		expect(publish).toHaveBeenCalled()
-		expect(toast.error).toHaveBeenCalledWith('Build failed', 'Card build crashed')
+		expect(toast.error).toHaveBeenCalledWith('Something went sideways', 'Card build crashed')
 		expect(spy).toHaveBeenCalled()
 
 		spy.mockRestore()

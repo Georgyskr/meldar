@@ -83,6 +83,7 @@ describe('funnelReducer', () => {
 			screen: 'proposalPreview',
 			proposal: MOCK_PROPOSAL,
 			sourceDoor: 'a',
+			websiteUrl: null,
 			error: null,
 		}
 		expect(funnelReducer(previewFromA, { type: 'back' }).screen).toBe('doorA')
@@ -91,6 +92,7 @@ describe('funnelReducer', () => {
 			screen: 'proposalPreview',
 			proposal: MOCK_PROPOSAL,
 			sourceDoor: 'b',
+			websiteUrl: null,
 			error: null,
 		}
 		expect(funnelReducer(previewFromB, { type: 'back' }).screen).toBe('doorB')
@@ -99,6 +101,7 @@ describe('funnelReducer', () => {
 			screen: 'proposalPreview',
 			proposal: MOCK_PROPOSAL,
 			sourceDoor: 'c',
+			websiteUrl: null,
 			error: null,
 		}
 		expect(funnelReducer(previewFromC, { type: 'back' }).screen).toBe('doorC')
@@ -109,6 +112,7 @@ describe('funnelReducer', () => {
 			screen: 'proposalPreview',
 			proposal: MOCK_PROPOSAL,
 			sourceDoor: 'a',
+			websiteUrl: null,
 			error: null,
 		}
 		const next = funnelReducer(preview, { type: 'confirm' })
@@ -119,7 +123,12 @@ describe('funnelReducer', () => {
 	})
 
 	it('success transitions to complete with projectId', () => {
-		const submitting: FunnelState = { screen: 'submitting', proposal: MOCK_PROPOSAL }
+		const submitting: FunnelState = {
+			screen: 'submitting',
+			proposal: MOCK_PROPOSAL,
+			sourceDoor: 'a',
+			websiteUrl: null,
+		}
 		const next = funnelReducer(submitting, {
 			type: 'success',
 			projectId: 'proj-123',
@@ -133,12 +142,45 @@ describe('funnelReducer', () => {
 	})
 
 	it('failure transitions back to proposalPreview with error', () => {
-		const submitting: FunnelState = { screen: 'submitting', proposal: MOCK_PROPOSAL }
+		const submitting: FunnelState = {
+			screen: 'submitting',
+			proposal: MOCK_PROPOSAL,
+			sourceDoor: 'a',
+			websiteUrl: null,
+		}
 		const next = funnelReducer(submitting, { type: 'failure', error: 'Network error' })
 		expect(next.screen).toBe('proposalPreview')
 		if (next.screen === 'proposalPreview') {
 			expect(next.error).toBe('Network error')
 			expect(next.proposal).toBe(MOCK_PROPOSAL)
+		}
+	})
+
+	it('failure preserves Door B sourceDoor (not hardcoded to Door A)', () => {
+		const submitting: FunnelState = {
+			screen: 'submitting',
+			proposal: MOCK_PROPOSAL,
+			sourceDoor: 'b',
+			websiteUrl: null,
+		}
+		const next = funnelReducer(submitting, { type: 'failure', error: 'boom' })
+		expect(next.screen).toBe('proposalPreview')
+		if (next.screen === 'proposalPreview') {
+			expect(next.sourceDoor).toBe('b')
+		}
+	})
+
+	it('failure preserves Door C sourceDoor', () => {
+		const submitting: FunnelState = {
+			screen: 'submitting',
+			proposal: MOCK_PROPOSAL,
+			sourceDoor: 'c',
+			websiteUrl: null,
+		}
+		const next = funnelReducer(submitting, { type: 'failure', error: 'boom' })
+		expect(next.screen).toBe('proposalPreview')
+		if (next.screen === 'proposalPreview') {
+			expect(next.sourceDoor).toBe('c')
 		}
 	})
 })
