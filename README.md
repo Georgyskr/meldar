@@ -1,6 +1,6 @@
 # MeldarAI
 
-Your AI. Your app. Learn or fall behind
+Your AI. Your app. Learn or fall behind.
 
 Meldar helps non-technical people discover what wastes their time, then builds personal apps to fix it.
 
