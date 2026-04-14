@@ -145,10 +145,17 @@ test.describe
 			const textarea = page.locator('textarea')
 			await expect(textarea).toBeVisible()
 
-			// Wait for any auto-build started by the workspace mount to finish
-			// before manually triggering another build (avoids "build in progress" race)
+			// The workspace auto-starts a build on mount. Wait for it to finish
+			// (pill appears then disappears) before firing a manual build.
 			const initialPill = page.getByText('Updating\u2026')
+			await initialPill.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {})
 			await initialPill.waitFor({ state: 'hidden', timeout: 120_000 }).catch(() => {})
+
+			// Dismiss first-build celebration dialog if it appeared
+			const keepBuildingBtn = page.getByRole('button', { name: /keep building/i })
+			if (await keepBuildingBtn.isVisible().catch(() => false)) {
+				await keepBuildingBtn.click()
+			}
 
 			await textarea.fill(
 				'Create a simple landing page with a headline that says Welcome and a paragraph describing the business',
@@ -171,8 +178,8 @@ test.describe
 				await expect(buildingPill).toBeHidden({ timeout: 120_000 })
 
 				const donePill = page.getByText('\u2713 Updated')
-				const failedPill = page.getByText(/something went sideways/i)
-				const outcomeLocator = donePill.or(failedPill).or(errorToast)
+				const failedPill = page.getByText(/something went sideways/i).first()
+				const outcomeLocator = donePill.or(failedPill).or(errorToast).first()
 				await expect(outcomeLocator).toBeVisible({ timeout: 10_000 })
 
 				const succeeded = await donePill.isVisible()

@@ -2,6 +2,7 @@ import { assertSafeSandboxPath } from '@meldar/sandbox'
 import { type BlobStorage, sha256Hex } from './blob'
 import {
 	BuildFileLimitError,
+	BuildInProgressError,
 	BuildNotFoundError,
 	BuildNotStreamingError,
 	FileTooLargeError,
@@ -175,6 +176,16 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			throw new ProjectNotFoundError(`project not found: ${options.projectId}`, {
 				projectId: options.projectId,
 			})
+		}
+
+		const existingStreaming = Array.from(this.builds.values()).find(
+			(b) => b.projectId === options.projectId && b.status === 'streaming',
+		)
+		if (existingStreaming) {
+			throw new BuildInProgressError(
+				`another streaming build is already active for project ${options.projectId}`,
+				{ projectId: options.projectId },
+			)
 		}
 
 		const buildId = crypto.randomUUID()

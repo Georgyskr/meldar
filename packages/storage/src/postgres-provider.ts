@@ -6,12 +6,38 @@ import type { drizzle as drizzleNeonHttp } from 'drizzle-orm/neon-http'
 import { type BlobStorage, sha256Hex } from './blob'
 import {
 	BuildFileLimitError,
+	BuildInProgressError,
 	BuildNotFoundError,
 	BuildNotStreamingError,
 	FileTooLargeError,
 	InvalidRollbackTargetError,
 	ProjectNotFoundError,
 } from './errors'
+
+function isUniqueViolationOn(err: unknown, constraintName: string): boolean {
+	const visited = new Set<object>()
+	const check = (candidate: unknown): boolean => {
+		if (!candidate || typeof candidate !== 'object') return false
+		if (visited.has(candidate as object)) return false
+		visited.add(candidate as object)
+		const e = candidate as {
+			code?: string
+			constraint?: string
+			constraint_name?: string
+			cause?: unknown
+			sourceError?: unknown
+			message?: string
+		}
+		if (e.code === '23505') {
+			const c = e.constraint ?? e.constraint_name
+			if (c === constraintName) return true
+			if (typeof e.message === 'string' && e.message.includes(constraintName)) return true
+		}
+		return check(e.cause) || check(e.sourceError)
+	}
+	return check(err)
+}
+
 import type { BuildContext, CreatedProject, ProjectStorage } from './provider'
 import {
 	type BeginBuildOptions,
@@ -254,17 +280,27 @@ export class PostgresProjectStorage implements ProjectStorage {
 		const buildId = crypto.randomUUID()
 		const now = new Date()
 
-		await this.db.insert(schema.builds).values({
-			id: buildId,
-			projectId: options.projectId,
-			parentBuildId: project.currentBuildId,
-			status: 'streaming',
-			triggeredBy: options.triggeredBy,
-			kanbanCardId: options.kanbanCardId ?? null,
-			modelVersion: options.modelVersion ?? null,
-			promptHash: options.promptHash ?? null,
-			createdAt: now,
-		})
+		try {
+			await this.db.insert(schema.builds).values({
+				id: buildId,
+				projectId: options.projectId,
+				parentBuildId: project.currentBuildId,
+				status: 'streaming',
+				triggeredBy: options.triggeredBy,
+				kanbanCardId: options.kanbanCardId ?? null,
+				modelVersion: options.modelVersion ?? null,
+				promptHash: options.promptHash ?? null,
+				createdAt: now,
+			})
+		} catch (err) {
+			if (isUniqueViolationOn(err, 'ux_builds_project_streaming')) {
+				throw new BuildInProgressError(
+					`another streaming build is already active for project ${options.projectId}`,
+					{ projectId: options.projectId, cause: err },
+				)
+			}
+			throw err
+		}
 
 		return new PostgresBuildContext(this.db, this.blob, buildId, options.projectId)
 	}

@@ -14,6 +14,7 @@ export {
 	BlobIntegrityError,
 	BlobStorageError,
 	BuildFileLimitError,
+	BuildInProgressError,
 	BuildNotFoundError,
 	BuildNotStreamingError,
 	FileTooLargeError,

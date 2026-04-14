@@ -26,6 +26,15 @@ export class ProjectNotFoundError extends StorageError {
 }
 
 /**
+ * A streaming build is already active for this project — enforced at the DB
+ * level by a partial unique index. Surfaces the race between the server-side
+ * check and another concurrent beginBuild call.
+ */
+export class BuildInProgressError extends StorageError {
+	readonly code = 'build_in_progress'
+}
+
+/**
  * The caller tried to operate on a Build that doesn't exist or belongs to a
  * different project than claimed.
  */
