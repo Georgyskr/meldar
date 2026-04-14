@@ -1,3 +1,4 @@
+import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@meldar/storage'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { runAutoBuild, sseStreamFromGenerator } from '@/server/build/run-auto-build'
@@ -43,6 +44,26 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		return NextResponse.json(
 			{ error: { code: 'NOT_FOUND', message: 'Project not found' } },
 			{ status: 404 },
+		)
+	}
+
+	let storage: ReturnType<typeof buildProjectStorageFromEnv>
+	try {
+		storage = buildProjectStorageFromEnv()
+	} catch {
+		storage = buildProjectStorageWithoutR2()
+	}
+	const activeBuildId = await storage.getActiveStreamingBuild(projectId)
+	if (activeBuildId) {
+		return NextResponse.json(
+			{
+				error: {
+					code: 'BUILD_IN_PROGRESS',
+					message: 'Setup is already running for this project.',
+					activeBuildId,
+				},
+			},
+			{ status: 409 },
 		)
 	}
 

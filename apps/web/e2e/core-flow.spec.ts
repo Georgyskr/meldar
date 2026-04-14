@@ -145,25 +145,33 @@ test.describe
 			const textarea = page.locator('textarea')
 			await expect(textarea).toBeVisible()
 
+			// Wait for any auto-build started by the workspace mount to finish
+			// before manually triggering another build (avoids "build in progress" race)
+			const initialPill = page.getByText('Updating\u2026')
+			await initialPill.waitFor({ state: 'hidden', timeout: 120_000 }).catch(() => {})
+
 			await textarea.fill(
 				'Create a simple landing page with a headline that says Welcome and a paragraph describing the business',
 			)
 
 			await page.getByLabel('Send feedback').click()
 
-			// Build can start (showing "Updating…") or fail immediately (e.g. R2 not configured)
+			// Setup can start (showing "Updating…") or fail immediately (e.g. R2 not configured)
 			const buildingPill = page.getByText('Updating\u2026')
-			const errorToast = page.getByRole('alert').filter({ hasText: /build failed/i })
+			const errorToast = page
+				.getByRole('alert')
+				.filter({ hasText: /something went sideways|setup stalled/i })
+				.first()
 			await expect(buildingPill.or(errorToast)).toBeVisible({ timeout: 60_000 })
 
 			const buildStarted = await buildingPill.isVisible()
 
 			if (buildStarted) {
-				// Build started — wait for it to finish
+				// Setup started — wait for it to finish
 				await expect(buildingPill).toBeHidden({ timeout: 120_000 })
 
 				const donePill = page.getByText('\u2713 Updated')
-				const failedPill = page.getByText('Build failed')
+				const failedPill = page.getByText(/something went sideways/i)
 				const outcomeLocator = donePill.or(failedPill).or(errorToast)
 				await expect(outcomeLocator).toBeVisible({ timeout: 10_000 })
 

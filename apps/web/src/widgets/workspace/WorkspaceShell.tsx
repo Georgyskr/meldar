@@ -114,6 +114,11 @@ async function runAutoBuild(
 			headers: { 'Content-Type': 'application/json' },
 		})
 
+		if (response.status === 409) {
+			// Build already in progress — nothing to do, the UI will pick up the stream naturally
+			return
+		}
+
 		if (!response.ok) {
 			const errorBody = (await response.json().catch(() => ({}))) as {
 				error?: { code?: string; message?: string }
