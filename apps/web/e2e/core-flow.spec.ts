@@ -123,13 +123,13 @@ test.describe
 			createdProjectId = match?.[1]
 		})
 
-		test('workspace loads with empty-state prompt and feedback bar', async ({ page }) => {
+		test('workspace loads with setup state and feedback bar', async ({ page }) => {
 			test.skip(!createdProjectId, 'No project from previous test')
 
 			await injectAuthCookie(page)
 			await page.goto(`/workspace/${createdProjectId}`)
 
-			await expect(page.getByText('Describe what you want to build')).toBeVisible()
+			await expect(page.getByText(/Setting up your page|Opening your page/i)).toBeVisible()
 			await expect(page.locator('textarea')).toBeVisible()
 			await expect(page.getByLabel('Send feedback')).toBeVisible()
 		})
