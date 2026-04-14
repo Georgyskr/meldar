@@ -356,17 +356,22 @@ function jsonResponse(body: unknown, status: number): Response {
 
 function mapSandboxError(err: unknown, projectId: string): Response {
 	const message = err instanceof Error ? err.message : String(err)
+	const errName = err instanceof Error ? err.name : 'Error'
+	const stack = err instanceof Error ? err.stack : undefined
 	const lower = message.toLowerCase()
-	console.error(`[sandbox-worker] sandbox error for project=${projectId}: ${message}`)
+	console.error(
+		`[sandbox-worker] sandbox error for project=${projectId}: ${errName}: ${message}`,
+		stack ? `\n${stack.split('\n').slice(0, 5).join('\n')}` : '',
+	)
 
 	if (lower.includes('quota') || lower.includes('exhausted') || lower.includes('rate limit')) {
-		return jsonResponse({ error: 'QUOTA_EXHAUSTED' }, 503)
+		return jsonResponse({ error: 'QUOTA_EXHAUSTED', message }, 503)
 	}
 	if (lower.includes('conflict') || lower.includes('already')) {
-		return jsonResponse({ error: 'CONFLICT' }, 409)
+		return jsonResponse({ error: 'CONFLICT', message }, 409)
 	}
 	if (lower.includes('not found')) {
-		return jsonResponse({ error: 'NOT_FOUND' }, 404)
+		return jsonResponse({ error: 'NOT_FOUND', message }, 404)
 	}
-	return jsonResponse({ error: 'INTERNAL' }, 500)
+	return jsonResponse({ error: 'INTERNAL', name: errName, message }, 500)
 }

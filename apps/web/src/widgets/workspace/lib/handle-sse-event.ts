@@ -8,9 +8,13 @@ export function handleSseEvent(
 	publish(event)
 
 	if (event.type === 'failed') {
-		// Race condition: another build was already streaming. Silent no-op —
-		// the UI is picking up the other build's stream.
-		if (event.code === 'BuildInProgressError' || event.code === 'build_in_progress') return
+		// Race condition: another build was already streaming. No toast — the UI
+		// will pick up the other build's stream. But still log at warn level so
+		// the signal isn't lost for diagnostics.
+		if (event.code === 'BuildInProgressError' || event.code === 'build_in_progress') {
+			console.warn(`[runBuild] SSE skipped (build in progress): ${event.reason}`)
+			return
+		}
 		console.error(`[runBuild] SSE failed: ${event.code ?? 'UNKNOWN'}: ${event.reason}`)
 		toast.error('Something went sideways', event.reason)
 	}

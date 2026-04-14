@@ -183,7 +183,15 @@ test.describe
 				await expect(outcomeLocator).toBeVisible({ timeout: 10_000 })
 
 				const succeeded = await donePill.isVisible()
-				if (!succeeded) {
+				if (succeeded) {
+					// A successful build MUST produce a live preview URL.
+					// If the sandbox silently failed, the iframe never appears — catch that here.
+					const iframe = page.locator('iframe[title="Live preview"]')
+					await expect(iframe).toBeVisible({ timeout: 30_000 })
+					const src = await iframe.getAttribute('src')
+					expect(src, 'iframe must have a real preview URL').toBeTruthy()
+					expect(src).toMatch(/^https?:\/\//)
+				} else {
 					const toastEl = page.getByRole('alert').first()
 					await expect(toastEl).toBeVisible()
 					const text = await toastEl.textContent()
