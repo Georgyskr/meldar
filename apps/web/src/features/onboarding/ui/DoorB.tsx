@@ -72,7 +72,7 @@ export function DoorB({ onSelectExample, onBack }: Props) {
 							variant="outline"
 							size="md"
 							onClick={() => onSelectExample(ex.id)}
-							alignSelf="flex-start"
+							css={{ alignSelf: 'flex-start' }}
 						>
 							Use this →
 						</Button>

@@ -1,51 +1,52 @@
-import { createElement, type ReactNode } from 'react'
 import { vi } from 'vitest'
 
-function makePassthrough(defaultTag: string) {
-	return ({ as, children, ...rest }: Record<string, unknown>) => {
-		const tag = (as as string) || defaultTag
-		const htmlProps: Record<string, unknown> = {}
-		for (const [key, val] of Object.entries(rest)) {
-			if (
-				key.startsWith('aria-') ||
-				key.startsWith('data-') ||
-				[
-					'href',
-					'target',
-					'rel',
-					'role',
-					'type',
-					'onClick',
-					'onChange',
-					'onSubmit',
-					'className',
-					'id',
-					'disabled',
-					'placeholder',
-					'value',
-					'htmlFor',
-					'readOnly',
-				].includes(key)
-			) {
-				htmlProps[key] = val
+vi.mock('@styled-system/jsx', async () => {
+	const { createElement } = await import('react')
+
+	function makePassthrough(defaultTag: string) {
+		return ({ as, children, ...rest }: Record<string, unknown>) => {
+			const tag = (as as string) || defaultTag
+			const htmlProps: Record<string, unknown> = {}
+			for (const [key, val] of Object.entries(rest)) {
+				if (
+					key.startsWith('aria-') ||
+					key.startsWith('data-') ||
+					[
+						'href',
+						'target',
+						'rel',
+						'role',
+						'type',
+						'onClick',
+						'onChange',
+						'onSubmit',
+						'className',
+						'id',
+						'disabled',
+						'placeholder',
+						'value',
+						'htmlFor',
+						'readOnly',
+					].includes(key)
+				) {
+					htmlProps[key] = val
+				}
 			}
+			return createElement(tag, htmlProps, children as React.ReactNode)
 		}
-		return createElement(tag, htmlProps, children as ReactNode)
 	}
-}
 
-const styled = new Proxy(() => {}, {
-	apply(_target: unknown, _this: unknown, args: unknown[]) {
-		return makePassthrough(args[0] as string)
-	},
-	get(_target: unknown, prop: string) {
-		if (prop === '__esModule') return false
-		return makePassthrough(prop)
-	},
-})
+	const styled = new Proxy(() => {}, {
+		apply(_target: unknown, _this: unknown, args: unknown[]) {
+			return makePassthrough(args[0] as string)
+		},
+		get(_target: unknown, prop: string) {
+			if (prop === '__esModule') return false
+			return makePassthrough(prop)
+		},
+	})
 
-export function setupMocks() {
-	vi.mock('@styled-system/jsx', () => ({
+	return {
 		styled,
 		Box: makePassthrough('div'),
 		Flex: makePassthrough('div'),
@@ -53,41 +54,48 @@ export function setupMocks() {
 		VStack: makePassthrough('div'),
 		Grid: makePassthrough('div'),
 		Stack: makePassthrough('div'),
-	}))
+	}
+})
 
-	vi.mock('@styled-system/css', () => ({
-		css: () => '',
-	}))
+vi.mock('@styled-system/css', () => ({
+	css: () => '',
+}))
 
-	vi.mock('@/shared/ui/typography', () => ({
-		Text: ({ as, children }: { as?: string; children?: ReactNode }) =>
+vi.mock('@/shared/ui/typography', async () => {
+	const { createElement } = await import('react')
+	return {
+		Text: ({ as, children }: { as?: string; children?: React.ReactNode }) =>
 			createElement(as || 'span', null, children),
-		Heading: ({ as, children }: { as?: string; children?: ReactNode }) =>
+		Heading: ({ as, children }: { as?: string; children?: React.ReactNode }) =>
 			createElement(as || 'h2', null, children),
-	}))
+	}
+})
 
-	vi.mock('@/shared/ui', () => ({
-		Text: ({ as, children }: { as?: string; children?: ReactNode }) =>
+vi.mock('@/shared/ui', async () => {
+	const { createElement } = await import('react')
+	return {
+		Text: ({ as, children }: { as?: string; children?: React.ReactNode }) =>
 			createElement(as || 'span', null, children),
-		Heading: ({ as, children }: { as?: string; children?: ReactNode }) =>
+		Heading: ({ as, children }: { as?: string; children?: React.ReactNode }) =>
 			createElement(as || 'h2', null, children),
 		Button: ({ children, ...props }: Record<string, unknown>) =>
-			createElement('button', { type: 'button', ...props }, children as ReactNode),
+			createElement('button', { type: 'button', ...props }, children as React.ReactNode),
 		Input: (props: Record<string, unknown>) => createElement('input', props),
 		Textarea: (props: Record<string, unknown>) => createElement('textarea', props),
 		toast: { error: vi.fn(), success: vi.fn() },
-	}))
+	}
+})
 
-	vi.mock(
-		'lucide-react',
-		() =>
-			new Proxy(
-				{},
-				{
-					get(_target: unknown, prop: string) {
-						return () => createElement('svg', { 'data-testid': `icon-${prop}` })
-					},
-				},
-			),
+vi.mock('lucide-react', async () => {
+	const { createElement } = await import('react')
+	return new Proxy(
+		{},
+		{
+			get(_target: unknown, prop: string) {
+				return () => createElement('svg', { 'data-testid': `icon-${prop}` })
+			},
+		},
 	)
-}
+})
+
+export function setupMocks() {}

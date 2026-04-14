@@ -1,6 +1,9 @@
 import { getDb } from '@meldar/db/client'
 import { type AiCallKind, type AiCallStatus, aiCallLog } from '@meldar/db/schema'
 
+let setupWarnedOnce = false
+let writeWarnedOnce = false
+
 export type RecordAiCallArgs = {
 	readonly userId: string | null
 	readonly projectId?: string | null
@@ -45,9 +48,18 @@ export function recordAiCall(args: RecordAiCallArgs): void {
 				cacheHitRatePct,
 			})
 			.catch((err) => {
-				console.error('[ai-call-log] write failed (non-fatal):', err)
+				if (!writeWarnedOnce) {
+					writeWarnedOnce = true
+					console.error(
+						'[ai-call-log] write failed (non-fatal, subsequent failures suppressed):',
+						err,
+					)
+				}
 			})
 	} catch (err) {
-		console.error('[ai-call-log] setup failed (non-fatal):', err)
+		if (!setupWarnedOnce) {
+			setupWarnedOnce = true
+			console.error('[ai-call-log] setup failed (non-fatal, subsequent failures suppressed):', err)
+		}
 	}
 }

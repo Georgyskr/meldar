@@ -2,7 +2,7 @@
 	"crons": [
 		{
 			"path": "/api/cron/reap-streaming-builds",
-			"schedule": "*/5 * * * *"
+			"schedule": "7 3 * * *"
 		}
 	]
 }

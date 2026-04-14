@@ -12,8 +12,8 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY sandbox-app/package.json ./
-RUN npm install
+COPY sandbox-app/package.json sandbox-app/package-lock.json ./
+RUN npm ci
 
 COPY sandbox-app/ ./
 
