@@ -84,7 +84,7 @@ test.describe
 
 			// Door A: vertical picker
 			await expect(page.getByText('What kind of business')).toBeVisible()
-			await page.getByRole('button', { name: /Consulting/i }).click()
+			await page.getByRole('radio', { name: /Consulting/i }).click()
 
 			// Continue to proposal
 			await page.getByRole('button', { name: /Continue/i }).click()
@@ -165,7 +165,7 @@ test.describe
 
 			// Door A → vertical picker → proposal
 			await page.getByRole('button', { name: /I need something for my business/i }).click()
-			await page.getByRole('button', { name: /Consulting/i }).click()
+			await page.getByRole('radio', { name: /Consulting/i }).click()
 			await page.getByRole('button', { name: /Continue/i }).click()
 			await expect(page.getByText(/put together for you/i)).toBeVisible()
 

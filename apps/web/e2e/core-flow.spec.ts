@@ -110,7 +110,7 @@ test.describe
 			await expect(page.getByText('What kind of business')).toBeVisible()
 
 			// Pick Consulting
-			await page.getByRole('button', { name: /Consulting/i }).click()
+			await page.getByRole('radio', { name: /Consulting/i }).click()
 			await page.getByRole('button', { name: /Continue/i }).click()
 
 			// Proposal Preview
