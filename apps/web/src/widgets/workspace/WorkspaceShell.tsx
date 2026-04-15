@@ -10,8 +10,8 @@ import type { FeedbackRequest } from '@/features/visual-feedback'
 import { FeedbackBar } from '@/features/visual-feedback'
 import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace'
 import { toast } from '@/shared/ui'
-import { hasKickedAutoBuild, markAutoBuildKicked } from './lib/auto-build-flag'
 import { handleSseEvent } from './lib/handle-sse-event'
+import { pollUntilBuildConcludes } from './lib/poll-until-build-concludes'
 import { PreviewPane } from './PreviewPane'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
 
@@ -73,14 +73,14 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 
 	useEffect(() => {
 		if (autoBuildStartedRef.current) return
-		if (hasKickedAutoBuild(projectId)) return
 		if (previewUrl) return
 		if (activeBuildCardId) return
 		if (cards.length === 0) return
-		const hasReadyWork = cards.some((c) => c.state === 'ready' || c.state === 'draft')
-		if (!hasReadyWork) return
+		const hasUnbuiltWork = cards.some(
+			(c) => c.state === 'ready' || c.state === 'draft' || c.state === 'building',
+		)
+		if (!hasUnbuiltWork) return
 		autoBuildStartedRef.current = true
-		markAutoBuildKicked(projectId)
 		const controller = new AbortController()
 		runAutoBuild(projectId, publish, controller.signal)
 		return () => {
@@ -124,6 +124,7 @@ async function runAutoBuild(
 		})
 
 		if (response.status === 409) {
+			await pollUntilBuildConcludes(projectId, signal)
 			return
 		}
 
