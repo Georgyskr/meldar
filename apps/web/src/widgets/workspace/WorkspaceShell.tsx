@@ -70,6 +70,7 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 	} = useWorkspaceBuild()
 	const buildJustFinished = lastBuildAt !== null && writtenFiles.length > 0 && !activeBuildCardId
 	const autoBuildStartedRef = useRef(false)
+	const autoBuildControllerRef = useRef<AbortController | null>(null)
 
 	useEffect(() => {
 		if (autoBuildStartedRef.current) return
@@ -82,11 +83,15 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 		if (!hasUnbuiltWork) return
 		autoBuildStartedRef.current = true
 		const controller = new AbortController()
+		autoBuildControllerRef.current = controller
 		runAutoBuild(projectId, publish, controller.signal)
-		return () => {
-			controller.abort()
-		}
 	}, [projectId, cards, previewUrl, activeBuildCardId, publish])
+
+	useEffect(() => {
+		return () => {
+			autoBuildControllerRef.current?.abort()
+		}
+	}, [])
 
 	const handleFeedbackSubmit = useCallback(
 		async (feedback: FeedbackRequest) => {
