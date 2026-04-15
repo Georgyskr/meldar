@@ -99,9 +99,11 @@ export function createSandboxWorker(deps: SandboxWorkerDeps) {
 
 			const url = new URL(request.url)
 
-			if (PREVIEW_HOST_PATTERN.test(url.host)) {
+			// Test against hostname (no port) so `host:port` variants still match
+			// and we don't accidentally passthrough a preview-shaped URL.
+			if (PREVIEW_HOST_PATTERN.test(url.hostname)) {
 				console.warn(
-					`[sandbox-worker] preview host ${url.host} not routable by proxyToSandbox ` +
+					`[sandbox-worker] preview host ${url.hostname} not routable by proxyToSandbox ` +
 						`(path=${url.pathname}, upgrade=${request.headers.get('Upgrade') ?? 'none'}); ` +
 						'refusing passthrough to avoid edge loop.',
 				)

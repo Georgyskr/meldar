@@ -12,6 +12,7 @@ import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace'
 import { toast } from '@/shared/ui'
 import { handleSseEvent } from './lib/handle-sse-event'
 import { pollUntilBuildConcludes } from './lib/poll-until-build-concludes'
+import { runBuild } from './lib/run-build'
 import { PreviewPane } from './PreviewPane'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
 
@@ -27,11 +28,8 @@ export type WorkspaceShellProps = {
 }
 
 export function WorkspaceShell(props: WorkspaceShellProps) {
-	const providerKey = props.initialKanbanCards.length === 0 ? 'empty' : 'loaded'
-
 	return (
 		<WorkspaceBuildProvider
-			key={providerKey}
 			projectId={props.projectId}
 			initialPreviewUrl={props.initialPreviewUrl}
 			initialKanbanCards={props.initialKanbanCards}
@@ -67,6 +65,8 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 		writtenFiles,
 		lastBuildAt,
 		cards,
+		pipelineActive,
+		kickPipeline,
 	} = useWorkspaceBuild()
 	const buildJustFinished = lastBuildAt !== null && writtenFiles.length > 0 && !activeBuildCardId
 	const autoBuildStartedRef = useRef(false)
@@ -84,8 +84,10 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 		autoBuildStartedRef.current = true
 		const controller = new AbortController()
 		autoBuildControllerRef.current = controller
-		runAutoBuild(projectId, publish, controller.signal)
-	}, [projectId, cards, previewUrl, activeBuildCardId, publish])
+		const baseline = cards.map((c) => ({ id: c.id, state: c.state }))
+		kickPipeline()
+		runAutoBuild(projectId, publish, baseline, controller.signal)
+	}, [projectId, cards, previewUrl, activeBuildCardId, publish, kickPipeline])
 
 	useEffect(() => {
 		return () => {
@@ -111,7 +113,15 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 					buildJustFinished={buildJustFinished}
 				/>
 			</Box>
-			<FeedbackBar onSubmit={handleFeedbackSubmit} />
+			<FeedbackBar
+				onSubmit={handleFeedbackSubmit}
+				disabled={pipelineActive || activeBuildCardId !== null}
+				disabledReason={
+					pipelineActive || activeBuildCardId !== null
+						? 'Setting things up — you can tweak it as soon as it settles.'
+						: undefined
+				}
+			/>
 		</>
 	)
 }
@@ -119,6 +129,7 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 async function runAutoBuild(
 	projectId: string,
 	publish: ReturnType<typeof useWorkspaceBuild>['publish'],
+	baselineCards: readonly { id: string; state: string }[],
 	signal?: AbortSignal,
 ): Promise<void> {
 	try {
@@ -129,7 +140,7 @@ async function runAutoBuild(
 		})
 
 		if (response.status === 409) {
-			await pollUntilBuildConcludes(projectId, signal)
+			await pollUntilBuildConcludes(projectId, baselineCards, signal)
 			return
 		}
 
@@ -162,53 +173,6 @@ async function runAutoBuild(
 		console.error('[runAutoBuild] exception:', err)
 		toast.error('Setup failed', message)
 		publish({ type: 'failed', reason: message })
-	}
-}
-
-async function runBuild(
-	projectId: string,
-	cardId: string | undefined,
-	prompt: string,
-	publish: ReturnType<typeof useWorkspaceBuild>['publish'],
-): Promise<void> {
-	try {
-		const body: Record<string, string> = { prompt }
-		if (cardId) body.kanbanCardId = cardId
-
-		const response = await fetch(`/api/workspace/${projectId}/build`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(body),
-		})
-
-		if (!response.ok) {
-			const errorBody = (await response.json().catch(() => ({}))) as {
-				error?: { code?: string; message?: string }
-			}
-			const code = errorBody.error?.code ?? 'UNKNOWN'
-			const message = errorBody.error?.message ?? `Build failed (${response.status})`
-			console.error(`[runBuild] ${code}: ${message} (HTTP ${response.status})`)
-			toast.error('Something went sideways', message)
-			publish({ type: 'failed', reason: message, kanbanCardId: cardId })
-			return
-		}
-
-		if (!response.body) {
-			const reason = 'Server returned no stream.'
-			console.error(`[runBuild] ${reason}`)
-			toast.error('Something went sideways', reason)
-			publish({ type: 'failed', reason, kanbanCardId: cardId })
-			return
-		}
-
-		for await (const event of consumeSseStream(response.body)) {
-			handleSseEvent(event, publish)
-		}
-	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Network error'
-		console.error('[runBuild] exception:', err)
-		toast.error('Build failed', message)
-		publish({ type: 'failed', reason: message, kanbanCardId: cardId })
 	}
 }
 

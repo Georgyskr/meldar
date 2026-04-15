@@ -253,7 +253,7 @@ describe('workspaceBuildReducer', () => {
 		expect(next.pipelineActive).toBe(true)
 	})
 
-	it('pipeline_complete clears pipeline state', () => {
+	it('pipeline_complete clears per-card index but KEEPS pipelineActive so deploy phase is covered', () => {
 		const before = seed({
 			currentCardIndex: 2,
 			totalCards: 3,
@@ -264,9 +264,47 @@ describe('workspaceBuildReducer', () => {
 			totalBuilt: 3,
 			totalCards: 3,
 		})
-		expect(next.pipelineActive).toBe(false)
+		expect(next.pipelineActive).toBe(true)
 		expect(next.currentCardIndex).toBeNull()
 		expect(next.totalCards).toBeNull()
+	})
+
+	it('deployed clears pipelineActive (real pipeline terminal)', () => {
+		const before = seed({ pipelineActive: true } as Partial<WorkspaceBuildState>)
+		const next = workspaceBuildReducer(before, {
+			type: 'deployed',
+			url: 'https://app.meldar.ai',
+			vercelDeploymentId: 'dpl_123',
+			buildDurationMs: 12345,
+		})
+		expect(next.pipelineActive).toBe(false)
+	})
+
+	it('deploy_failed clears pipelineActive', () => {
+		const before = seed({ pipelineActive: true } as Partial<WorkspaceBuildState>)
+		const next = workspaceBuildReducer(before, {
+			type: 'deploy_failed',
+			reason: 'vercel rate limit',
+			code: 'rate_limited',
+			rejected: false,
+		})
+		expect(next.pipelineActive).toBe(false)
+	})
+
+	it('pipeline_failed clears pipelineActive', () => {
+		const before = seed({ pipelineActive: true } as Partial<WorkspaceBuildState>)
+		const next = workspaceBuildReducer(before, {
+			type: 'pipeline_failed',
+			cardId: 'c1',
+			reason: 'nope',
+		})
+		expect(next.pipelineActive).toBe(false)
+	})
+
+	it('ui/pipelineKick sets pipelineActive optimistically (pre-card_started window)', () => {
+		const before = seed({ pipelineActive: false } as Partial<WorkspaceBuildState>)
+		const next = workspaceBuildReducer(before, { type: 'ui/pipelineKick' })
+		expect(next.pipelineActive).toBe(true)
 	})
 
 	it('card_started marks the referenced card as building', () => {

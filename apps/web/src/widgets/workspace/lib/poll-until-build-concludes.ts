@@ -4,7 +4,7 @@ type Options = {
 	readonly reload?: () => void
 }
 
-type Card = { readonly state: string }
+type Card = { readonly id: string; readonly state: string }
 
 const DEFAULT_INTERVAL_MS = 3000
 const DEFAULT_MAX_ATTEMPTS = 40
@@ -12,12 +12,14 @@ const TERMINAL_STATES = new Set(['built', 'failed'])
 
 export async function pollUntilBuildConcludes(
 	projectId: string,
+	baselineCards: readonly Card[],
 	signal?: AbortSignal,
 	opts: Options = {},
 ): Promise<void> {
 	const intervalMs = opts.intervalMs ?? DEFAULT_INTERVAL_MS
 	const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
 	const reload = opts.reload ?? (() => window.location.reload())
+	const baseline = new Map(baselineCards.map((c) => [c.id, c.state]))
 
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
 		if (signal?.aborted) return
@@ -32,12 +34,16 @@ export async function pollUntilBuildConcludes(
 				cards = body.cards ?? []
 			}
 		} catch {
-			// transient — try again next tick
 			continue
 		}
 
 		if (!cards) continue
-		if (cards.some((c) => TERMINAL_STATES.has(c.state))) {
+		const transitioned = cards.some((c) => {
+			if (!TERMINAL_STATES.has(c.state)) return false
+			const prev = baseline.get(c.id)
+			return prev !== undefined && !TERMINAL_STATES.has(prev)
+		})
+		if (transitioned) {
 			reload()
 			return
 		}

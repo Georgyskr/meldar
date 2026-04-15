@@ -97,6 +97,7 @@ export async function* orchestrateBuild(
 	const model = request.model ?? MODELS.SONNET
 	let buildId: string | undefined
 	let buildContext: BuildContext | undefined
+	let terminated = false
 
 	try {
 		if (deps.globalSpendGuard) {
@@ -420,6 +421,7 @@ export async function* orchestrateBuild(
 		} catch (err) {
 			if (err instanceof CeilingExceededError) {
 				await buildContext.fail('ceiling_exceeded_post_build', { tokenCost: totalTokens })
+				terminated = true
 				yield {
 					type: 'failed',
 					reason: `daily token ceiling exceeded after build (cost: ${actualCents}c)`,
@@ -475,7 +477,11 @@ export async function* orchestrateBuild(
 			}
 		}
 
+		if (request.signal?.aborted) {
+			throw new DOMException('orchestrateBuild aborted before commit', 'AbortError')
+		}
 		const committed = await buildContext.commit({ tokenCost: totalTokens })
+		terminated = true
 
 		yield {
 			type: 'committed',
@@ -560,8 +566,9 @@ export async function* orchestrateBuild(
 						? err.constructor.name
 						: 'unknown'
 
-		if (buildContext) {
+		if (buildContext && !terminated) {
 			await buildContext.fail(reason).catch(() => undefined)
+			terminated = true
 		}
 
 		yield {
@@ -570,6 +577,15 @@ export async function* orchestrateBuild(
 			buildId,
 			code,
 			kanbanCardId: request.kanbanCardId,
+		}
+	} finally {
+		// Covers the stream-cancel path: `ReadableStream.cancel()` calls
+		// `generator.return()`, which resumes the try block at the current yield
+		// and skips the catch above. Without this finally the `builds` row stays
+		// `status='streaming'` until the 30-min reaper cron fires — blocking every
+		// new build via the `ux_builds_project_streaming` partial unique index.
+		if (buildContext && !terminated) {
+			await buildContext.fail('stream_cancelled').catch(() => undefined)
 		}
 	}
 }

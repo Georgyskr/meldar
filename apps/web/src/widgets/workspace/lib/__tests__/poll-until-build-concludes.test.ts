@@ -28,7 +28,7 @@ describe('pollUntilBuildConcludes', () => {
 			.mockResolvedValueOnce(makeCardsResponse([{ id: 'a', state: 'built' }]))
 		vi.stubGlobal('fetch', fetchMock)
 
-		const promise = pollUntilBuildConcludes('proj-1', undefined, {
+		const promise = pollUntilBuildConcludes('proj-1', [{ id: 'a', state: 'building' }], undefined, {
 			intervalMs: 100,
 			maxAttempts: 10,
 			reload,
@@ -40,14 +40,14 @@ describe('pollUntilBuildConcludes', () => {
 		expect(reload).toHaveBeenCalledOnce()
 	})
 
-	it('reloads when any card is failed', async () => {
+	it('reloads when any card transitions to failed', async () => {
 		const reload = vi.fn()
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValueOnce(makeCardsResponse([{ id: 'a', state: 'failed' }]))
 		vi.stubGlobal('fetch', fetchMock)
 
-		const promise = pollUntilBuildConcludes('proj-1', undefined, {
+		const promise = pollUntilBuildConcludes('proj-1', [{ id: 'a', state: 'ready' }], undefined, {
 			intervalMs: 100,
 			maxAttempts: 10,
 			reload,
@@ -55,6 +55,30 @@ describe('pollUntilBuildConcludes', () => {
 		await vi.advanceTimersByTimeAsync(100)
 		await promise
 		expect(reload).toHaveBeenCalledOnce()
+	})
+
+	it('does NOT reload on a pre-existing terminal card (no transition)', async () => {
+		const reload = vi.fn()
+		const fetchMock = vi.fn().mockResolvedValue(
+			makeCardsResponse([
+				{ id: 'old', state: 'built' },
+				{ id: 'a', state: 'building' },
+			]),
+		)
+		vi.stubGlobal('fetch', fetchMock)
+
+		const promise = pollUntilBuildConcludes(
+			'proj-1',
+			[
+				{ id: 'old', state: 'built' },
+				{ id: 'a', state: 'building' },
+			],
+			undefined,
+			{ intervalMs: 10, maxAttempts: 3, reload },
+		)
+		await vi.advanceTimersByTimeAsync(100)
+		await promise
+		expect(reload).not.toHaveBeenCalled()
 	})
 
 	it('stops polling when abort signal fires — no reload', async () => {
@@ -63,11 +87,16 @@ describe('pollUntilBuildConcludes', () => {
 		vi.stubGlobal('fetch', fetchMock)
 
 		const controller = new AbortController()
-		const promise = pollUntilBuildConcludes('proj-1', controller.signal, {
-			intervalMs: 100,
-			maxAttempts: 10,
-			reload,
-		})
+		const promise = pollUntilBuildConcludes(
+			'proj-1',
+			[{ id: 'a', state: 'building' }],
+			controller.signal,
+			{
+				intervalMs: 100,
+				maxAttempts: 10,
+				reload,
+			},
+		)
 		await vi.advanceTimersByTimeAsync(100)
 		controller.abort()
 		await vi.advanceTimersByTimeAsync(500)
@@ -80,7 +109,7 @@ describe('pollUntilBuildConcludes', () => {
 		const fetchMock = vi.fn().mockResolvedValue(makeCardsResponse([{ id: 'a', state: 'building' }]))
 		vi.stubGlobal('fetch', fetchMock)
 
-		const promise = pollUntilBuildConcludes('proj-1', undefined, {
+		const promise = pollUntilBuildConcludes('proj-1', [{ id: 'a', state: 'building' }], undefined, {
 			intervalMs: 10,
 			maxAttempts: 3,
 			reload,
@@ -99,7 +128,7 @@ describe('pollUntilBuildConcludes', () => {
 			.mockResolvedValueOnce(makeCardsResponse([{ id: 'a', state: 'built' }]))
 		vi.stubGlobal('fetch', fetchMock)
 
-		const promise = pollUntilBuildConcludes('proj-1', undefined, {
+		const promise = pollUntilBuildConcludes('proj-1', [{ id: 'a', state: 'building' }], undefined, {
 			intervalMs: 10,
 			maxAttempts: 10,
 			reload,

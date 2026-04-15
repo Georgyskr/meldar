@@ -9,12 +9,9 @@ import {
 	type ResolvedWishes,
 	resolveWishes,
 	routeModel,
-	slugForProjectId,
 } from '@meldar/orchestrator'
-import type { ProjectStorage } from '@meldar/storage'
 import { creditTokens, debitTokens, InsufficientBalanceError } from '@meldar/tokens'
 import { and, eq, isNull } from 'drizzle-orm'
-import { guardedDeployCall } from '@/server/deploy/guarded-deploy-call'
 import { sendFirstBuildEmail } from '@/server/email'
 import { recordAiCall } from '@/server/lib/ai-call-log'
 import { createSpendGuardForUser } from '@/server/lib/spend-ceiling'
@@ -167,125 +164,6 @@ export async function runBuildForUser(input: RunBuildInput): Promise<RunBuildRes
 	const stream = sseStreamFromGenerator(generator, input.signal)
 
 	return { ok: true, stream }
-}
-
-type VercelDeployContext = {
-	readonly userId: string
-	readonly projectId: string
-	readonly storage: ProjectStorage
-	readonly signal?: AbortSignal
-}
-
-async function* _withVercelDeploy(
-	generator: AsyncGenerator<OrchestratorEvent, void, unknown>,
-	ctx: VercelDeployContext,
-): AsyncGenerator<OrchestratorEvent, void, unknown> {
-	let committedBuildId: string | undefined
-	for await (const event of generator) {
-		yield event
-		if (event.type === 'committed') {
-			committedBuildId = event.buildId
-		}
-	}
-
-	if (!committedBuildId) return
-
-	const slug = slugForProjectId(ctx.projectId)
-	const appsDomain = process.env.VERCEL_APPS_DOMAIN ?? 'apps.meldar.ai'
-	const hostname = `${slug}.${appsDomain}`
-
-	yield { type: 'deploying', slug, hostname }
-
-	let files: Array<{ path: string; content: string }>
-	try {
-		const rows = await ctx.storage.getCurrentFiles(ctx.projectId)
-		files = await Promise.all(
-			rows.map(async (row) => ({
-				path: row.path,
-				content: await ctx.storage.readFile(ctx.projectId, row.path),
-			})),
-		)
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err)
-		console.error('[run-build] failed to load project files for deploy', message)
-		yield {
-			type: 'deploy_failed',
-			reason: 'Could not read the project files to deploy.',
-			code: 'storage_read_failed',
-			rejected: false,
-		}
-		return
-	}
-
-	const result = await guardedDeployCall({
-		userId: ctx.userId,
-		projectId: ctx.projectId,
-		buildId: committedBuildId,
-		slug,
-		files,
-		signal: ctx.signal,
-	})
-
-	if (result.ok) {
-		yield {
-			type: 'deployed',
-			url: result.deploy.url,
-			vercelDeploymentId: result.deploy.vercelDeploymentId,
-			buildDurationMs: result.deploy.buildDurationMs,
-		}
-		try {
-			const db = getDb()
-			await db
-				.update(projects)
-				.set({
-					previewUrl: result.deploy.url,
-					previewUrlUpdatedAt: new Date(),
-					updatedAt: new Date(),
-				})
-				.where(eq(projects.id, ctx.projectId))
-		} catch (err) {
-			console.error(
-				'[run-build] failed to persist preview URL',
-				err instanceof Error ? err.message : 'Unknown',
-			)
-		}
-		return
-	}
-
-	if (result.rejected) {
-		yield {
-			type: 'deploy_failed',
-			reason: result.message,
-			code: result.reason,
-			rejected: true,
-		}
-		return
-	}
-
-	const errDetail =
-		'body' in result.deploy.error
-			? String((result.deploy.error as { body?: string }).body).slice(0, 200)
-			: ''
-	console.error(`[deploy] Vercel API error: ${result.deploy.error.kind} ${errDetail}`)
-	yield {
-		type: 'deploy_failed',
-		reason: `${formatDeployErrorMessage(result.deploy.error)}${errDetail ? ` (${errDetail.slice(0, 100)})` : ''}`,
-		code: result.deploy.error.kind,
-		rejected: false,
-	}
-}
-
-function formatDeployErrorMessage(err: { kind: string; [k: string]: unknown }): string {
-	if (err.kind === 'deployment_timeout') {
-		return 'The deploy is taking longer than expected. It may still finish — refresh in a minute.'
-	}
-	if (err.kind === 'deployment_build_failed') {
-		return "Vercel couldn't build your app. Usually the code has an error — try the step again."
-	}
-	if (err.kind === 'network_error') {
-		return 'Network hiccup talking to Vercel. Try again in a moment.'
-	}
-	return 'Something went wrong deploying your app.'
 }
 
 async function* withFirstBuildEmail(

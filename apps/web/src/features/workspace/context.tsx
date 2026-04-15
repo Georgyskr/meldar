@@ -65,6 +65,7 @@ export type WorkspaceUiAction =
 	| { type: 'ui/clearSelection' }
 	| { type: 'ui/openChat' }
 	| { type: 'ui/closeChat' }
+	| { type: 'ui/pipelineKick' }
 
 export type WorkspaceBuildInit = {
 	readonly initialPreviewUrl: string | null
@@ -135,7 +136,8 @@ function isUiAction(action: WorkspaceAction): action is WorkspaceUiAction {
 		action.type === 'ui/selectTask' ||
 		action.type === 'ui/clearSelection' ||
 		action.type === 'ui/openChat' ||
-		action.type === 'ui/closeChat'
+		action.type === 'ui/closeChat' ||
+		action.type === 'ui/pipelineKick'
 	)
 }
 
@@ -153,6 +155,8 @@ export function workspaceBuildReducer(
 				return { ...state, chatOpen: true }
 			case 'ui/closeChat':
 				return { ...state, chatOpen: false }
+			case 'ui/pipelineKick':
+				return { ...state, pipelineActive: true }
 		}
 	}
 
@@ -224,6 +228,7 @@ export function workspaceBuildReducer(
 					url: action.url,
 					deployedAt: Date.now(),
 				},
+				pipelineActive: false,
 			}
 		case 'deploy_failed':
 			console.error(`[deploy] failed: code=${action.code} reason=${action.reason}`)
@@ -234,6 +239,7 @@ export function workspaceBuildReducer(
 					reason: action.reason,
 					code: action.code,
 				},
+				pipelineActive: false,
 			}
 		case 'card_started':
 			return {
@@ -244,11 +250,14 @@ export function workspaceBuildReducer(
 				cards: updateCardState(state.cards, action.cardId, 'building'),
 			}
 		case 'pipeline_complete':
+			// Keep pipelineActive=true through the deploy phase. Only `deployed`
+			// or `deploy_failed` flips it off. If the server emits no deploy
+			// events (legacy flow), the component will still see the generator
+			// close and can surface a stale-pipeline state via other signals.
 			return {
 				...state,
 				currentCardIndex: null,
 				totalCards: null,
-				pipelineActive: false,
 			}
 		case 'pipeline_failed':
 			return {
@@ -296,6 +305,7 @@ type WorkspaceBuildContextValue = WorkspaceBuildState & {
 	readonly clearSelection: () => void
 	readonly openChat: () => void
 	readonly closeChat: () => void
+	readonly kickPipeline: () => void
 }
 
 const Ctx = createContext<WorkspaceBuildContextValue | null>(null)
@@ -352,12 +362,22 @@ export function WorkspaceBuildProvider({
 	const clearSelection = useCallback(() => dispatch({ type: 'ui/clearSelection' }), [])
 	const openChat = useCallback(() => dispatch({ type: 'ui/openChat' }), [])
 	const closeChat = useCallback(() => dispatch({ type: 'ui/closeChat' }), [])
+	const kickPipeline = useCallback(() => dispatch({ type: 'ui/pipelineKick' }), [])
 
 	const mode = useMemo(() => deriveWorkspaceMode(state), [state])
 
 	const value = useMemo<WorkspaceBuildContextValue>(
-		() => ({ ...state, mode, publish, selectTask, clearSelection, openChat, closeChat }),
-		[state, mode, publish, selectTask, clearSelection, openChat, closeChat],
+		() => ({
+			...state,
+			mode,
+			publish,
+			selectTask,
+			clearSelection,
+			openChat,
+			closeChat,
+			kickPipeline,
+		}),
+		[state, mode, publish, selectTask, clearSelection, openChat, closeChat, kickPipeline],
 	)
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

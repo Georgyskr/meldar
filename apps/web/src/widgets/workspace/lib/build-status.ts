@@ -3,8 +3,9 @@ export type BuildStatusPhase = 'idle' | 'building' | 'done' | 'failed'
 export function deriveBuildStatus(
 	activeBuildCardId: string | null,
 	failureMessage: string | null,
+	pipelineActive = false,
 ): BuildStatusPhase {
-	if (activeBuildCardId !== null) return 'building'
+	if (activeBuildCardId !== null || pipelineActive) return 'building'
 	if (failureMessage !== null) return 'failed'
 	return 'idle'
 }

@@ -15,8 +15,8 @@ type Props = {
 }
 
 export function BuildStatusOverlay({ activeBuildCardId, failureMessage }: Props) {
-	const phase = deriveBuildStatus(activeBuildCardId, failureMessage)
-	const { lastBuildAt } = useWorkspaceBuild()
+	const { lastBuildAt, pipelineActive } = useWorkspaceBuild()
+	const phase = deriveBuildStatus(activeBuildCardId, failureMessage, pipelineActive)
 	const [visible, setVisible] = useState<BuildStatusPhase | null>(null)
 	const shownBuildAtRef = useRef<number | null>(null)
 	const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)

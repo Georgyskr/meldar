@@ -1250,4 +1250,97 @@ describe('orchestrateBuild', () => {
 			expect(events.some((e) => e.type === 'failed')).toBe(false)
 		})
 	})
+
+	describe('cancellation cleanup (build lock release on stream cancel)', () => {
+		it('marks build as failed when the consumer calls gen.return() mid-stream', async () => {
+			const { client: anthropic } = makeToolUseMock([
+				{
+					path: 'src/app/page.tsx',
+					content: 'export default function Page() { return <div>Hi</div> }',
+				},
+			])
+			const deps: OrchestratorDeps = {
+				storage: fixture.storage,
+				sandbox: null,
+				ledger: fixture.ledger,
+				anthropic,
+			}
+
+			const gen = orchestrateBuild(
+				{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'hi' },
+				deps,
+			)
+
+			const started = await gen.next()
+			if (started.value?.type !== 'started') {
+				throw new Error(`expected started event, got ${started.value?.type}`)
+			}
+			const buildId = started.value.buildId
+			expect(buildId).toBeTruthy()
+
+			await gen.return()
+
+			const row = await fixture.storage.getBuild(fixture.projectId, buildId)
+			expect(row.status).toBe('failed')
+			expect(row.errorMessage).toMatch(/cancel|abort|stream/i)
+		})
+
+		it('marks build as failed when the generator throws mid-stream (simulating network drop)', async () => {
+			const { client: anthropic } = makeToolUseMock([
+				{
+					path: 'src/app/page.tsx',
+					content: 'export default function Page() { return <div>Hi</div> }',
+				},
+			])
+			const deps: OrchestratorDeps = {
+				storage: fixture.storage,
+				sandbox: null,
+				ledger: fixture.ledger,
+				anthropic,
+			}
+
+			const gen = orchestrateBuild(
+				{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'hi' },
+				deps,
+			)
+
+			const started = await gen.next()
+			if (started.value?.type !== 'started') {
+				throw new Error(`expected started event, got ${started.value?.type}`)
+			}
+			const buildId = started.value.buildId
+
+			await gen.throw(new Error('simulated client disconnect'))
+
+			const row = await fixture.storage.getBuild(fixture.projectId, buildId)
+			expect(row.status).toBe('failed')
+		})
+
+		it('does NOT call fail() again if build already committed (idempotent finally)', async () => {
+			const { client: anthropic } = makeToolUseMock([
+				{
+					path: 'src/app/page.tsx',
+					content: 'export default function Page() { return <div>Hi</div> }',
+				},
+			])
+			const deps: OrchestratorDeps = {
+				storage: fixture.storage,
+				sandbox: null,
+				ledger: fixture.ledger,
+				anthropic,
+			}
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'hi' },
+					deps,
+				),
+			)
+
+			const committed = events.find((e) => e.type === 'committed')
+			if (committed?.type !== 'committed') throw new Error('expected committed')
+			const row = await fixture.storage.getBuild(fixture.projectId, committed.buildId)
+			expect(row.status).toBe('completed')
+		})
+	})
 })

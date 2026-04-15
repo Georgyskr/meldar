@@ -13,6 +13,8 @@ export type FeedbackRequest = {
 
 type Props = {
 	readonly onSubmit: (request: FeedbackRequest) => Promise<void>
+	readonly disabled?: boolean
+	readonly disabledReason?: string
 }
 
 const STITCH_KEYWORDS = [
@@ -49,7 +51,7 @@ function getSuggestionChips(): string[] {
 	return SHORT_INSTRUCTION_SUGGESTIONS.default
 }
 
-export function FeedbackBar({ onSubmit }: Props) {
+export function FeedbackBar({ onSubmit, disabled = false, disabledReason }: Props) {
 	const [instruction, setInstruction] = useState('')
 	const [referenceUrl, setReferenceUrl] = useState('')
 	const [referenceImage, setReferenceImage] = useState<File | null>(null)
@@ -88,7 +90,7 @@ export function FeedbackBar({ onSubmit }: Props) {
 
 	const handleSubmit = useCallback(async () => {
 		const trimmed = instruction.trim()
-		if (!trimmed || submitting) return
+		if (!trimmed || submitting || disabled) return
 
 		if (isShortInstruction(trimmed) && !showChips) {
 			setChips(getSuggestionChips())
@@ -113,7 +115,7 @@ export function FeedbackBar({ onSubmit }: Props) {
 		} finally {
 			setSubmitting(false)
 		}
-	}, [instruction, submitting, showChips, onSubmit, referenceUrl, referenceImage])
+	}, [instruction, submitting, disabled, showChips, onSubmit, referenceUrl, referenceImage])
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -131,7 +133,7 @@ export function FeedbackBar({ onSubmit }: Props) {
 	}, [])
 
 	const showStitchSuggestion = containsDesignKeyword(instruction)
-	const sendDisabled = instruction.trim().length === 0 || submitting
+	const sendDisabled = instruction.trim().length === 0 || submitting || disabled
 
 	return (
 		<Box
@@ -146,7 +148,9 @@ export function FeedbackBar({ onSubmit }: Props) {
 		>
 			<Flex direction="column" gap={2} maxWidth="720px" marginInline="auto">
 				<Text as="p" textStyle="label.sm" color="onSurfaceVariant">
-					Click any element above to change it, or describe what you want
+					{disabled && disabledReason
+						? disabledReason
+						: 'Click any element above to change it, or describe what you want'}
 				</Text>
 
 				{showStitchSuggestion && (

@@ -5,18 +5,20 @@ export function handleSseEvent(
 	event: OrchestratorEvent,
 	publish: (e: OrchestratorEvent) => void,
 ): void {
+	if (
+		event.type === 'failed' &&
+		(event.code === 'BuildInProgressError' || event.code === 'build_in_progress')
+	) {
+		// Losing side of the SQL partial-unique-index arbitration. The winning
+		// stream owns the UI; suppressing entirely (no publish, no toast) avoids
+		// flashing a red failure pill from the doomed race.
+		console.warn(`[runBuild] SSE skipped (build in progress): ${event.reason}`)
+		return
+	}
+
 	publish(event)
 
 	if (event.type === 'failed') {
-		// Race condition: another build was already streaming. No toast — the UI
-		// will pick up the other build's stream. But still log at warn level so
-		// the signal isn't lost for diagnostics.
-		if (event.code === 'BuildInProgressError' || event.code === 'build_in_progress') {
-			console.warn(`[runBuild] SSE skipped (build in progress): ${event.reason}`)
-			return
-		}
-		// Domain-level failure surfaced via toast — not a JS error. Use warn so
-		// E2E console-error assertions don't trip on expected failure paths.
 		console.warn(`[runBuild] SSE failed: ${event.code ?? 'UNKNOWN'}: ${event.reason}`)
 		toast.error('Something went sideways', event.reason)
 	}
