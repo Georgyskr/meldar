@@ -24,6 +24,12 @@ vi.mock('@/server/build/run-build', () => ({
 	runBuildForUser: vi.fn(async () => ({ ok: true, stream: new ReadableStream() })),
 }))
 
+vi.mock('@/server/lib/pipeline-lock', () => ({
+	isPipelineActive: vi.fn().mockResolvedValue(false),
+	acquirePipelineLock: vi.fn(),
+	releasePipelineLock: vi.fn(),
+}))
+
 const { POST } = await import('@/app/api/workspace/[projectId]/build/route')
 
 function makeRequest(body: unknown): {

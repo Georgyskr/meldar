@@ -1,5 +1,5 @@
 {
-  "id": "a6a4c72f-6b2e-428e-8f47-0dbac3880f57",
+  "id": "c92196bb-115f-4d95-b1a6-5216f9b3ad94",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -763,6 +763,24 @@
         },
         "error_message": {
           "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preview_probe_status": {
+          "name": "preview_probe_status",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preview_probe_body_length": {
+          "name": "preview_probe_body_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preview_probe_body_preview": {
+          "name": "preview_probe_body_preview",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1865,6 +1883,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "pipeline_active_at": {
+          "name": "pipeline_active_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pipeline_active_id": {
+          "name": "pipeline_active_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1921,6 +1951,22 @@
           ],
           "isUnique": false,
           "where": "\"projects\".\"current_build_id\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_projects_pipeline_active": {
+          "name": "idx_projects_pipeline_active",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"projects\".\"pipeline_active_at\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}

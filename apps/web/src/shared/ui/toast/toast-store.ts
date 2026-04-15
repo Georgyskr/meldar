@@ -9,15 +9,33 @@ export type ToastItem = {
 
 const MAX_VISIBLE = 3
 const AUTO_DISMISS_MS = 5000
+const DEDUP_WINDOW_MS = 10_000
 
 let items: readonly ToastItem[] = []
 const listeners = new Set<() => void>()
+const recentKeys = new Map<string, number>()
 
 function emit() {
 	for (const fn of listeners) fn()
 }
 
+function dedupKey(opts: Omit<ToastItem, 'id'>): string {
+	return `${opts.type}\0${opts.title}\0${opts.description ?? ''}`
+}
+
 function addToast(opts: Omit<ToastItem, 'id'>): string {
+	const key = dedupKey(opts)
+	const now = Date.now()
+	const lastSeen = recentKeys.get(key)
+	if (lastSeen !== undefined && now - lastSeen < DEDUP_WINDOW_MS) {
+		const existing = items.find((i) => dedupKey(i) === key)
+		if (existing) {
+			recentKeys.set(key, now)
+			return existing.id
+		}
+	}
+	recentKeys.set(key, now)
+
 	const id = crypto.randomUUID()
 	items = [...items, { ...opts, id }].slice(-MAX_VISIBLE)
 	emit()

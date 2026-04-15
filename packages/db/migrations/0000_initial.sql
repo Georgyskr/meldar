@@ -83,6 +83,9 @@ CREATE TABLE "builds" (
 	"prompt_hash" text,
 	"token_cost" integer,
 	"error_message" text,
+	"preview_probe_status" integer,
+	"preview_probe_body_length" integer,
+	"preview_probe_body_preview" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"completed_at" timestamp with time zone,
 	CONSTRAINT "builds_status_valid" CHECK ("builds"."status" IN ('streaming', 'completed', 'failed', 'rolled_back')),
@@ -209,6 +212,8 @@ CREATE TABLE "projects" (
 	"preview_url" text,
 	"preview_url_updated_at" timestamp with time zone,
 	"wishes" jsonb,
+	"pipeline_active_at" timestamp with time zone,
+	"pipeline_active_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
@@ -317,5 +322,7 @@ CREATE INDEX "idx_project_files_project_active" ON "project_files" USING btree (
 CREATE INDEX "idx_project_files_content_hash" ON "project_files" USING btree ("content_hash");--> statement-breakpoint
 CREATE INDEX "idx_projects_user_lastbuild" ON "projects" USING btree ("user_id","last_build_at" DESC NULLS LAST) WHERE "projects"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_projects_current_build" ON "projects" USING btree ("current_build_id") WHERE "projects"."current_build_id" IS NOT NULL;--> statement-breakpoint
+CREATE INDEX "idx_projects_pipeline_active" ON "projects" USING btree ("id") WHERE "projects"."pipeline_active_at" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "idx_token_transactions_user_created" ON "token_transactions" USING btree ("user_id","created_at" DESC NULLS LAST);--> statement-breakpoint
-CREATE INDEX "idx_users_created_at" ON "users" USING btree ("created_at");
+CREATE INDEX "idx_users_created_at" ON "users" USING btree ("created_at");--> statement-breakpoint
+ALTER TABLE "builds" ADD CONSTRAINT "builds_parent_build_id_fkey" FOREIGN KEY ("parent_build_id") REFERENCES "builds"("id") ON DELETE SET NULL;

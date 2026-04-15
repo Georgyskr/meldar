@@ -1,3 +1,0 @@
-ALTER TABLE users ADD COLUMN welcome_email_sent_at TIMESTAMP WITH TIME ZONE;
-ALTER TABLE users ADD COLUMN first_build_email_sent_at TIMESTAMP WITH TIME ZONE;
-ALTER TABLE users ADD COLUMN last_nudge_sent_at TIMESTAMP WITH TIME ZONE;

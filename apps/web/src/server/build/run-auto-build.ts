@@ -11,16 +11,32 @@ import {
 import { and, eq, inArray } from 'drizzle-orm'
 import { guardedDeployCall } from '@/server/deploy/guarded-deploy-call'
 import { recordAiCall } from '@/server/lib/ai-call-log'
+import { releasePipelineLock } from '@/server/lib/pipeline-lock'
 import { createSpendGuardForUser } from '@/server/lib/spend-ceiling'
 import { sseStreamFromGenerator } from './run-build'
 
 export type RunAutoBuildInput = {
 	readonly projectId: string
 	readonly userId: string
+	readonly pipelineId?: string
 	readonly signal?: AbortSignal
 }
 
 export async function* runAutoBuild(
+	input: RunAutoBuildInput,
+): AsyncGenerator<OrchestratorEvent, void, unknown> {
+	try {
+		yield* runAutoBuildInner(input)
+	} finally {
+		if (input.pipelineId) {
+			await releasePipelineLock(input.projectId, input.pipelineId).catch((err) => {
+				console.error('[run-auto-build] releasePipelineLock failed', err)
+			})
+		}
+	}
+}
+
+async function* runAutoBuildInner(
 	input: RunAutoBuildInput,
 ): AsyncGenerator<OrchestratorEvent, void, unknown> {
 	const db = getDb()

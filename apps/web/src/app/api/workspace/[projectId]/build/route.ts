@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { runBuildForUser } from '@/server/build/run-build'
 import { requireAuth } from '@/server/identity/require-auth'
+import { isPipelineActive } from '@/server/lib/pipeline-lock'
 import { checkRateLimit, mustHaveRateLimit, workspaceBuildLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
@@ -59,6 +60,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
 				},
 			},
 			{ status: serviceError ? 503 : 429 },
+		)
+	}
+
+	if (await isPipelineActive(projectId)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: 'PIPELINE_IN_PROGRESS',
+					message:
+						'Setup is still running. Wait for the current pipeline to finish before sending feedback.',
+				},
+			},
+			{ status: 409 },
 		)
 	}
 

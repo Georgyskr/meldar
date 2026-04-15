@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { runAutoBuild, sseStreamFromGenerator } from '@/server/build/run-auto-build'
 import { requireAuth } from '@/server/identity/require-auth'
+import { acquirePipelineLock } from '@/server/lib/pipeline-lock'
 import { checkRateLimit, mustHaveRateLimit, workspaceBuildLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
@@ -67,9 +68,26 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
+	const lock = await acquirePipelineLock(projectId)
+	if (!lock.ok) {
+		return NextResponse.json(
+			{
+				error: {
+					code: lock.reason === 'project_not_found' ? 'NOT_FOUND' : 'PIPELINE_IN_PROGRESS',
+					message:
+						lock.reason === 'project_not_found'
+							? 'Project not found.'
+							: 'Setup is already running for this project.',
+				},
+			},
+			{ status: lock.reason === 'project_not_found' ? 404 : 409 },
+		)
+	}
+
 	const generator = runAutoBuild({
 		projectId,
 		userId: auth.userId,
+		pipelineId: lock.pipelineId,
 		signal: request.signal,
 	})
 

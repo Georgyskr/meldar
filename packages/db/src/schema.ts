@@ -162,6 +162,11 @@ export const projects = pgTable(
 		previewUrl: text('preview_url'),
 		previewUrlUpdatedAt: timestamp('preview_url_updated_at', { withTimezone: true }),
 		wishes: jsonb('wishes'),
+		// Set when an auto-build pipeline starts; cleared in finally. Holds for
+		// the entire pipeline (all sub-tasks + deploy), so /build returns 409
+		// rather than slipping a single build between pipeline sub-tasks.
+		pipelineActiveAt: timestamp('pipeline_active_at', { withTimezone: true }),
+		pipelineActiveId: uuid('pipeline_active_id'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 		deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -173,6 +178,9 @@ export const projects = pgTable(
 		index('idx_projects_current_build')
 			.on(table.currentBuildId)
 			.where(sql`${table.currentBuildId} IS NOT NULL`),
+		index('idx_projects_pipeline_active')
+			.on(table.id)
+			.where(sql`${table.pipelineActiveAt} IS NOT NULL`),
 		check('projects_tier_valid', sql`${table.tier} IN ('builder', 'pro', 'vip')`),
 	],
 )

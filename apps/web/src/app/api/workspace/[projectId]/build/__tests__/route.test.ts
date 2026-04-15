@@ -183,6 +183,12 @@ vi.mock('@/server/lib/verify-project-ownership', () => ({
 	verifyProjectOwnership: mockVerifyProjectOwnership,
 }))
 
+vi.mock('@/server/lib/pipeline-lock', () => ({
+	isPipelineActive: vi.fn().mockResolvedValue(false),
+	acquirePipelineLock: vi.fn(),
+	releasePipelineLock: vi.fn(),
+}))
+
 const { mockGetActiveStreamingBuild } = vi.hoisted(() => ({
 	mockGetActiveStreamingBuild: vi.fn<(projectId: string) => Promise<string | null>>(),
 }))
