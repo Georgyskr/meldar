@@ -71,6 +71,11 @@ const API_HOSTNAMES = new Set([
 	'meldar-sandbox-worker.gosha-skryuchenkov.workers.dev',
 ])
 const PREVIEW_BASE_HOSTNAME = 'meldar.ai'
+// CF Sandbox SDK preview URL shape: `{port}-{sandboxId}[-{token}].{base}`.
+// Matching this lets us detect preview-targeted requests that the SDK
+// couldn't route (null return) so we don't silently passthrough and
+// cause a CF edge loop back into this same worker.
+const PREVIEW_HOST_PATTERN = /^\d+-[\w-]+\.meldar\.ai$/
 
 export function createSandboxWorker(deps: SandboxWorkerDeps) {
 	const now = deps.now ?? (() => Date.now())
@@ -79,12 +84,29 @@ export function createSandboxWorker(deps: SandboxWorkerDeps) {
 	async function handleFetch(request: Request, env: SandboxWorkerEnv): Promise<Response> {
 		const requestId = readOrGenerateRequestId(request)
 		try {
+			const preUrl = new URL(request.url)
+			if (
+				preUrl.pathname === '/_next/webpack-hmr' &&
+				request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
+			) {
+				return jsonResponse({ error: 'HMR_NOT_AVAILABLE' }, 404, requestId)
+			}
+
 			if (deps.proxyToSandbox) {
 				const proxied = await deps.proxyToSandbox(request, env)
 				if (proxied) return stampRequestId(proxied, requestId)
 			}
 
 			const url = new URL(request.url)
+
+			if (PREVIEW_HOST_PATTERN.test(url.host)) {
+				console.warn(
+					`[sandbox-worker] preview host ${url.host} not routable by proxyToSandbox ` +
+						`(path=${url.pathname}, upgrade=${request.headers.get('Upgrade') ?? 'none'}); ` +
+						'refusing passthrough to avoid edge loop.',
+				)
+				return jsonResponse({ error: 'PREVIEW_UNROUTABLE' }, 502, requestId)
+			}
 
 			if (
 				!API_HOSTNAMES.has(url.host) &&

@@ -199,6 +199,84 @@ describe('sandbox worker', () => {
 			expect(proxyToSandbox).toHaveBeenCalledOnce()
 			expect(passthroughFetch).not.toHaveBeenCalled()
 		})
+
+		it('does NOT passthrough a WebSocket upgrade on a preview hostname when proxy returns null', async () => {
+			const proxyToSandbox = vi.fn().mockResolvedValue(null)
+			const passthroughFetch = vi
+				.fn()
+				.mockResolvedValue(new Response('should never be called', { status: 200 }))
+			const w = createSandboxWorker({
+				getSandbox: getSandboxFn as never,
+				proxyToSandbox,
+				passthroughFetch,
+				now: () => FIXED_NOW,
+			})
+			const req = new Request('https://3001-p-deadbeef-tokenABC.meldar.ai/api/custom-ws', {
+				method: 'GET',
+				headers: { Upgrade: 'websocket', Connection: 'Upgrade' },
+			})
+			const res = await w.fetch(req, env)
+			expect(res.status).toBe(502)
+			expect(passthroughFetch).not.toHaveBeenCalled()
+		})
+
+		it('does NOT passthrough a non-WS request on a preview-shaped hostname when proxy returns null', async () => {
+			const proxyToSandbox = vi.fn().mockResolvedValue(null)
+			const passthroughFetch = vi
+				.fn()
+				.mockResolvedValue(new Response('should never be called', { status: 200 }))
+			const w = createSandboxWorker({
+				getSandbox: getSandboxFn as never,
+				proxyToSandbox,
+				passthroughFetch,
+				now: () => FIXED_NOW,
+			})
+			const req = new Request('https://3001-p-deadbeef-tokenABC.meldar.ai/some-path', {
+				method: 'GET',
+			})
+			const res = await w.fetch(req, env)
+			expect(res.status).toBe(502)
+			expect(passthroughFetch).not.toHaveBeenCalled()
+		})
+
+		it('short-circuits /_next/webpack-hmr WS upgrade with 404 without touching proxy', async () => {
+			const proxyToSandbox = vi
+				.fn()
+				.mockResolvedValue(new Response('should never be called', { status: 200 }))
+			const passthroughFetch = vi.fn()
+			const w = createSandboxWorker({
+				getSandbox: getSandboxFn as never,
+				proxyToSandbox,
+				passthroughFetch,
+				now: () => FIXED_NOW,
+			})
+			const req = new Request(
+				'https://3001-p-deadbeef-tokenABC.meldar.ai/_next/webpack-hmr?id=abc',
+				{
+					method: 'GET',
+					headers: { Upgrade: 'websocket', Connection: 'Upgrade' },
+				},
+			)
+			const res = await w.fetch(req, env)
+			expect(res.status).toBe(404)
+			expect(proxyToSandbox).not.toHaveBeenCalled()
+			expect(passthroughFetch).not.toHaveBeenCalled()
+		})
+
+		it('does NOT short-circuit /_next/webpack-hmr for non-WS GET (lets proxy handle it)', async () => {
+			const proxyToSandbox = vi.fn().mockResolvedValue(new Response('proxied', { status: 200 }))
+			const w = createSandboxWorker({
+				getSandbox: getSandboxFn as never,
+				proxyToSandbox,
+				now: () => FIXED_NOW,
+			})
+			const req = new Request('https://3001-p-deadbeef-tokenABC.meldar.ai/_next/webpack-hmr', {
+				method: 'GET',
+			})
+			const res = await w.fetch(req, env)
+			expect(res.status).toBe(200)
+			expect(proxyToSandbox).toHaveBeenCalledOnce()
+		})
 	})
 
 	describe('HMAC verification', () => {

@@ -30,7 +30,12 @@ export default {
 				proxyToSandbox: async (req: Request, workerEnv: unknown) => {
 					try {
 						return await proxyToSandbox(req, workerEnv as never)
-					} catch {
+					} catch (err) {
+						const u = new URL(req.url)
+						console.error(
+							`[sandbox-worker] proxyToSandbox threw for host=${u.host} path=${u.pathname} upgrade=${req.headers.get('Upgrade') ?? 'none'}:`,
+							err,
+						)
 						return null
 					}
 				},

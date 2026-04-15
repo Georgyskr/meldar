@@ -52,6 +52,12 @@ const IGNORED_CONSOLE_PATTERNS = [
 	/Download the React DevTools/,
 	/Warning: Each child in a list/,
 	/migrated since no migrate function/,
+	// The sandbox worker deliberately returns 404 for /_next/webpack-hmr WS
+	// upgrades (HMR is not supported in immutable preview snapshots). The
+	// browser still logs a handshake error — 404 is the expected shape, so
+	// allow it. Any other response code (500, 502, …) is a real bug and must
+	// still fail the test.
+	/WebSocket connection to '[^']*\/_next\/webpack-hmr[^']*' failed: Error during WebSocket handshake: Unexpected response code: 404/,
 ]
 
 const PIPELINE_BUG_PATTERNS = [
