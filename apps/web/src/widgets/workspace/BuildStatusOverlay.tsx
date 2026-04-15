@@ -3,6 +3,7 @@
 import { css } from '@styled-system/css'
 import { Box, Flex } from '@styled-system/jsx'
 import { useEffect, useRef, useState } from 'react'
+import { useWorkspaceBuild } from '@/features/workspace'
 import { Text } from '@/shared/ui/typography'
 import { type BuildStatusPhase, deriveBuildStatus } from './lib/build-status'
 
@@ -15,14 +16,12 @@ type Props = {
 
 export function BuildStatusOverlay({ activeBuildCardId, failureMessage }: Props) {
 	const phase = deriveBuildStatus(activeBuildCardId, failureMessage)
+	const { lastBuildAt } = useWorkspaceBuild()
 	const [visible, setVisible] = useState<BuildStatusPhase | null>(null)
-	const prevPhaseRef = useRef(phase)
+	const shownBuildAtRef = useRef<number | null>(null)
 	const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
 	useEffect(() => {
-		const prev = prevPhaseRef.current
-		prevPhaseRef.current = phase
-
 		if (fadeTimerRef.current !== null) {
 			clearTimeout(fadeTimerRef.current)
 			fadeTimerRef.current = null
@@ -38,7 +37,8 @@ export function BuildStatusOverlay({ activeBuildCardId, failureMessage }: Props)
 			return
 		}
 
-		if (prev === 'building' && phase === 'idle') {
+		if (lastBuildAt !== null && lastBuildAt !== shownBuildAtRef.current) {
+			shownBuildAtRef.current = lastBuildAt
 			setVisible('done')
 			fadeTimerRef.current = setTimeout(() => {
 				setVisible(null)
@@ -48,7 +48,7 @@ export function BuildStatusOverlay({ activeBuildCardId, failureMessage }: Props)
 		}
 
 		setVisible(null)
-	}, [phase])
+	}, [phase, lastBuildAt])
 
 	useEffect(() => {
 		return () => {
@@ -66,7 +66,10 @@ export function BuildStatusOverlay({ activeBuildCardId, failureMessage }: Props)
 			insetBlockStart="12px"
 			insetInlineEnd="12px"
 			zIndex={10}
+			role="status"
 			aria-live="polite"
+			data-testid="build-pill"
+			data-phase={visible}
 		>
 			{visible === 'building' && <BuildingPill />}
 			{visible === 'done' && <DonePill />}

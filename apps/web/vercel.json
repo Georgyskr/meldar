@@ -3,6 +3,10 @@
 		{
 			"path": "/api/cron/reap-streaming-builds",
 			"schedule": "7 3 * * *"
+		},
+		{
+			"path": "/api/cron/cleanup-e2e-users",
+			"schedule": "23 4 * * *"
 		}
 	]
 }

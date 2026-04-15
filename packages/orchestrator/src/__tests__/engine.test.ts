@@ -1077,4 +1077,177 @@ describe('orchestrateBuild', () => {
 			expect(repairRow?.outputTokens).toBe(200)
 		})
 	})
+
+	describe('preview probe', () => {
+		it('records preview probe data after sandbox_ready with the served URL', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://sandbox.example.com/preview-xyz',
+				status: 'ready',
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
+
+			const previewProbeFetch = vi
+				.fn()
+				.mockResolvedValue({ status: 200, text: async () => '<html>hello</html>' })
+
+			const probeCalls: { buildId: string; status: number; bodyLength: number }[] = []
+			const realBeginBuild = fixture.storage.beginBuild.bind(fixture.storage)
+			const beginBuildSpy = vi
+				.spyOn(fixture.storage, 'beginBuild')
+				.mockImplementation(async (opts) => {
+					const ctx = await realBeginBuild(opts)
+					const realRecord = ctx.recordPreviewProbe.bind(ctx)
+					ctx.recordPreviewProbe = async (probe) => {
+						probeCalls.push({
+							buildId: ctx.buildId,
+							status: probe.status,
+							bodyLength: probe.bodyLength,
+						})
+						await realRecord(probe)
+					}
+					return ctx
+				})
+
+			await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{
+						storage: fixture.storage,
+						sandbox,
+						ledger: fixture.ledger,
+						anthropic,
+						previewProbeFetch,
+					},
+				),
+			)
+
+			beginBuildSpy.mockRestore()
+
+			expect(previewProbeFetch).toHaveBeenCalledTimes(1)
+			expect(previewProbeFetch.mock.calls[0][0]).toBe('https://sandbox.example.com/preview-xyz')
+
+			expect(probeCalls).toHaveLength(1)
+			expect(probeCalls[0].status).toBe(200)
+			expect(probeCalls[0].bodyLength).toBe('<html>hello</html>'.length)
+		})
+
+		it('still records probe when status is non-2xx', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://sandbox.example.com/preview',
+				status: 'ready',
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
+
+			const previewProbeFetch = vi
+				.fn()
+				.mockResolvedValue({ status: 503, text: async () => 'Service Unavailable' })
+
+			const probeCalls: { status: number; bodyLength: number; bodyPreview: string }[] = []
+			const realBeginBuild = fixture.storage.beginBuild.bind(fixture.storage)
+			const beginBuildSpy = vi
+				.spyOn(fixture.storage, 'beginBuild')
+				.mockImplementation(async (opts) => {
+					const ctx = await realBeginBuild(opts)
+					const realRecord = ctx.recordPreviewProbe.bind(ctx)
+					ctx.recordPreviewProbe = async (probe) => {
+						probeCalls.push({
+							status: probe.status,
+							bodyLength: probe.bodyLength,
+							bodyPreview: probe.bodyPreview,
+						})
+						await realRecord(probe)
+					}
+					return ctx
+				})
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{
+						storage: fixture.storage,
+						sandbox,
+						ledger: fixture.ledger,
+						anthropic,
+						previewProbeFetch,
+					},
+				),
+			)
+
+			beginBuildSpy.mockRestore()
+
+			expect(events.some((e) => e.type === 'committed')).toBe(true)
+			expect(events.some((e) => e.type === 'sandbox_ready')).toBe(true)
+			expect(probeCalls).toHaveLength(1)
+			expect(probeCalls[0].status).toBe(503)
+			expect(probeCalls[0].bodyPreview).toBe('Service Unavailable')
+		})
+
+		it('does not run probe when no sandbox is configured', async () => {
+			const previewProbeFetch = vi.fn()
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
+
+			await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{
+						storage: fixture.storage,
+						sandbox: null,
+						ledger: fixture.ledger,
+						anthropic,
+						previewProbeFetch,
+					},
+				),
+			)
+
+			expect(previewProbeFetch).not.toHaveBeenCalled()
+		})
+
+		it('does not fail the build when recordPreviewProbe throws', async () => {
+			const writeFiles = vi.fn().mockResolvedValue({
+				projectId: fixture.projectId,
+				previewUrl: 'https://sandbox.example.com/preview',
+				status: 'ready',
+			})
+			const sandbox = makeStubSandbox({ writeFiles })
+			const { client: anthropic } = makeToolUseMock([{ path: 'src/a.ts', content: 'a' }])
+
+			const previewProbeFetch = vi.fn().mockResolvedValue({ status: 200, text: async () => 'ok' })
+			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+			const realBeginBuild = fixture.storage.beginBuild.bind(fixture.storage)
+			const beginBuildSpy = vi
+				.spyOn(fixture.storage, 'beginBuild')
+				.mockImplementation(async (opts) => {
+					const ctx = await realBeginBuild(opts)
+					ctx.recordPreviewProbe = async () => {
+						throw new Error('forced storage failure')
+					}
+					return ctx
+				})
+
+			const events = await collectEvents(
+				orchestrateBuild(
+					{ projectId: fixture.projectId, userId: fixture.userId, prompt: 'p' },
+					{
+						storage: fixture.storage,
+						sandbox,
+						ledger: fixture.ledger,
+						anthropic,
+						previewProbeFetch,
+					},
+				),
+			)
+
+			beginBuildSpy.mockRestore()
+			consoleWarnSpy.mockRestore()
+
+			expect(events.some((e) => e.type === 'committed')).toBe(true)
+			expect(events.some((e) => e.type === 'sandbox_ready')).toBe(true)
+			expect(events.some((e) => e.type === 'failed')).toBe(false)
+		})
+	})
 })

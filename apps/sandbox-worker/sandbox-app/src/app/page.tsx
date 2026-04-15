@@ -13,28 +13,15 @@ export default function HomePage() {
 		>
 			<h1
 				style={{
-					fontSize: '3rem',
+					fontSize: '2.5rem',
 					fontWeight: 700,
-					background: 'linear-gradient(135deg, #623153 0%, #ffb876 100%)',
-					WebkitBackgroundClip: 'text',
-					WebkitTextFillColor: 'transparent',
-					backgroundClip: 'text',
 					marginBottom: '1rem',
 				}}
 			>
-				Hello Meldar
+				Meldar sandbox
 			</h1>
-			<p style={{ fontSize: '1.25rem', color: '#4f434a', marginBottom: '2rem' }}>
-				Next.js 16 running inside a Cloudflare Sandbox container
-			</p>
-			<p
-				style={{
-					fontSize: '0.875rem',
-					color: '#81737a',
-					fontFamily: 'monospace',
-				}}
-			>
-				Rendered at {new Date().toISOString()}
+			<p style={{ maxWidth: 480, color: '#555' }}>
+				Preview stub — replaced by the LLM when the user submits a prompt.
 			</p>
 		</main>
 	)

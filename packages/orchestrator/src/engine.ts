@@ -10,6 +10,7 @@ import {
 	usageToCents,
 } from '@meldar/tokens'
 import { z } from 'zod'
+import { type PreviewProbeFetch, probePreviewUrl } from './preview-probe'
 import { BUILD_SYSTEM_PROMPT, buildProjectFilesBlock, buildUserPromptBlock } from './prompts'
 import { LOCKED_STARTER_PATHS } from './starter-files'
 import {
@@ -86,6 +87,7 @@ export type OrchestratorDeps = {
 	readonly anthropic: Anthropic
 	readonly globalSpendGuard?: GlobalSpendGuard
 	readonly aiCallLogger?: AiCallLogger
+	readonly previewProbeFetch?: PreviewProbeFetch
 }
 
 export async function* orchestrateBuild(
@@ -527,6 +529,18 @@ export async function* orchestrateBuild(
 							type: 'sandbox_ready',
 							previewUrl: parsedUrl.data,
 						}
+
+						const probe = await probePreviewUrl(parsedUrl.data, {
+							fetchImpl: deps.previewProbeFetch,
+						})
+						if (probe.status < 200 || probe.status >= 300) {
+							console.warn(
+								`[orchestrator] preview probe non-success: status=${probe.status} length=${probe.bodyLength} (build=${buildId})`,
+							)
+						}
+						await buildContext.recordPreviewProbe(probe).catch((err) => {
+							console.warn('[orchestrator] recordPreviewProbe failed (non-fatal)', err)
+						})
 					}
 				}
 			} catch (err) {

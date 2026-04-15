@@ -31,9 +31,20 @@ export type BuildRow = {
 	readonly promptHash: string | null
 	readonly tokenCost: number | null
 	readonly errorMessage: string | null
+	readonly previewProbeStatus: number | null
+	readonly previewProbeBodyLength: number | null
+	readonly previewProbeBodyPreview: string | null
 	readonly createdAt: Date
 	readonly completedAt: Date | null
 }
+
+export type PreviewProbeData = {
+	readonly status: number
+	readonly bodyLength: number
+	readonly bodyPreview: string
+}
+
+export const PREVIEW_PROBE_BODY_PREVIEW_MAX = 256 as const
 
 export type BuildStatus = 'streaming' | 'completed' | 'failed' | 'rolled_back'
 export type BuildTrigger = 'template' | 'user_prompt' | 'kanban_card' | 'rollback' | 'upload'

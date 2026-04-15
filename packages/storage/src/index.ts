@@ -46,10 +46,15 @@ export type {
 	CreateProjectOptions,
 	KanbanCardRow,
 	KanbanCardState,
+	PreviewProbeData,
 	ProjectFileRow,
 	ProjectRow,
 	ProjectTier,
 	StorageFile,
 	UpdateKanbanCardInput,
 } from './types'
-export { MAX_FILE_CONTENT_BYTES, MAX_FILES_PER_BUILD } from './types'
+export {
+	MAX_FILE_CONTENT_BYTES,
+	MAX_FILES_PER_BUILD,
+	PREVIEW_PROBE_BODY_PREVIEW_MAX,
+} from './types'

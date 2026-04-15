@@ -18,6 +18,8 @@ import {
 	type KanbanCardRow,
 	MAX_FILE_CONTENT_BYTES,
 	MAX_FILES_PER_BUILD,
+	PREVIEW_PROBE_BODY_PREVIEW_MAX,
+	type PreviewProbeData,
 	type ProjectFileRow,
 	type ProjectRow,
 	type StorageFile,
@@ -93,6 +95,9 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			promptHash: null,
 			tokenCost: null,
 			errorMessage: null,
+			previewProbeStatus: null,
+			previewProbeBodyLength: null,
+			previewProbeBodyPreview: null,
 			createdAt: now,
 			completedAt: now,
 		}
@@ -202,6 +207,9 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			promptHash: options.promptHash ?? null,
 			tokenCost: null,
 			errorMessage: null,
+			previewProbeStatus: null,
+			previewProbeBodyLength: null,
+			previewProbeBodyPreview: null,
 			createdAt: now,
 			completedAt: null,
 		}
@@ -255,6 +263,9 @@ export class InMemoryProjectStorage implements ProjectStorage {
 			promptHash: null,
 			tokenCost: null,
 			errorMessage: null,
+			previewProbeStatus: null,
+			previewProbeBodyLength: null,
+			previewProbeBodyPreview: null,
 			createdAt: now,
 			completedAt: now,
 		}
@@ -651,6 +662,17 @@ export class InMemoryProjectStorage implements ProjectStorage {
 	}
 
 	/** @internal */
+	_recordPreviewProbe(buildId: string, probe: PreviewProbeData): void {
+		const build = this._getBuildOrThrow(buildId)
+		this.builds.set(buildId, {
+			...build,
+			previewProbeStatus: probe.status,
+			previewProbeBodyLength: probe.bodyLength,
+			previewProbeBodyPreview: probe.bodyPreview.slice(0, PREVIEW_PROBE_BODY_PREVIEW_MAX),
+		})
+	}
+
+	/** @internal */
 	_failBuild(buildId: string, reason: string, tokenCost: number | undefined): BuildRow {
 		const build = this._getBuildOrThrow(buildId)
 		if (build.status !== 'streaming') {
@@ -709,6 +731,10 @@ class InMemoryBuildContext implements BuildContext {
 
 	async fail(reason: string, options?: { tokenCost?: number }): Promise<BuildRow> {
 		return this.storage._failBuild(this.buildId, reason, options?.tokenCost)
+	}
+
+	async recordPreviewProbe(probe: PreviewProbeData): Promise<void> {
+		this.storage._recordPreviewProbe(this.buildId, probe)
 	}
 }
 

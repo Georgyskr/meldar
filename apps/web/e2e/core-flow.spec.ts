@@ -1,17 +1,16 @@
+import AxeBuilder from '@axe-core/playwright'
 import { getDb } from '@meldar/db/client'
 import { projects, users } from '@meldar/db/schema'
 import { expect, type Page, test } from '@playwright/test'
 import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
+import { installSseCapture, type SseCaptureHandle } from './lib/sse-capture'
 
 const TEST_EMAIL = `e2e-core-${Date.now()}@meldar-test.local`
 const TEST_PASSWORD = 'E2e-test-password-9876!'
 
-// Shared across serial tests — breaks if retries > 0 (retries reset worker state)
-let signUpSucceeded = false
-let createdProjectId: string | undefined
-
 test.use({ storageState: { cookies: [], origins: [] } })
+test.describe.configure({ retries: 0 })
 
 async function injectAuthCookie(page: Page): Promise<void> {
 	const secret = process.env.AUTH_SECRET
@@ -23,7 +22,7 @@ async function injectAuthCookie(page: Page): Promise<void> {
 		.from(users)
 		.where(eq(users.email, TEST_EMAIL))
 		.limit(1)
-	if (!user) throw new Error(`Test user ${TEST_EMAIL} not found — sign-up test may have failed`)
+	if (!user) throw new Error(`Test user ${TEST_EMAIL} not found — sign-up step may have failed`)
 
 	const token = jwt.sign(
 		{
@@ -58,6 +57,8 @@ const IGNORED_CONSOLE_PATTERNS = [
 const PIPELINE_BUG_PATTERNS = [
 	/invalid_request_error/i,
 	/tool_use ids? (were|was) found without tool_result/i,
+	/overloaded_error/i,
+	/rate_limit_error/i,
 	/\brequest_id:?\s*req_/i,
 	/\b(4\d\d|5\d\d)\s+\{.*error/i,
 	/Something went wrong\b/i,
@@ -67,6 +68,68 @@ function assertNoPipelineBugs(text: string | null | undefined, context: string):
 	if (!text) return
 	for (const pattern of PIPELINE_BUG_PATTERNS) {
 		expect(text, `${context} leaked a backend-contract failure: ${text}`).not.toMatch(pattern)
+	}
+}
+
+const NEXT_ERROR_PAGE_PATTERNS = [
+	/Application error: a[n]? (client|server)-side exception/i,
+	/<title>\s*(404|500)\b/i,
+	/<title>\s*Internal Server Error\b/i,
+]
+
+const NEXT_APP_MARKERS = [
+	/self\.__next_f\.push\(/,
+	/_next\/static\//i,
+	/href="\/_next\//i,
+	/<html[^>]+data-next/i,
+]
+
+const AUTH_WALL_URL_PATTERNS = [/\/sign-in\b/, /\/sign-up\b/, /\/onboarding\b/]
+
+const AUTH_WALL_BODY_PATTERNS = [
+	/sign in to (meldar|your account)/i,
+	/create your account/i,
+	/<title>\s*Sign (in|up)\b/i,
+]
+
+function assertNotAuthWall(finalUrl: string, body: string): void {
+	for (const pattern of AUTH_WALL_URL_PATTERNS) {
+		expect(
+			finalUrl,
+			`preview navigation ended on an auth page (${finalUrl}) — the sandbox URL redirected to Meldar auth instead of serving content`,
+		).not.toMatch(pattern)
+	}
+	for (const pattern of AUTH_WALL_BODY_PATTERNS) {
+		expect(
+			body,
+			`preview body looks like a Meldar auth page (matched ${pattern}) — the beacon check would be a false negative`,
+		).not.toMatch(pattern)
+	}
+}
+
+function assertNotNextErrorPage(body: string): void {
+	for (const pattern of NEXT_ERROR_PAGE_PATTERNS) {
+		expect(body, `preview body looks like a Next.js error page (matched ${pattern})`).not.toMatch(
+			pattern,
+		)
+	}
+}
+
+function assertLooksLikeNextApp(body: string): void {
+	const hit = NEXT_APP_MARKERS.some((p) => p.test(body))
+	expect(
+		hit,
+		'preview body does not look like a Next.js app (no self.__next_f.push, no _next/static, no /_next/ href, no data-next on <html>)',
+	).toBe(true)
+}
+
+function stripCacheBuster(url: string): string {
+	try {
+		const u = new URL(url)
+		u.searchParams.delete('t')
+		return u.toString()
+	} catch {
+		return url
 	}
 }
 
@@ -81,157 +144,257 @@ function collectConsoleErrors(page: Page): string[] {
 	return errors
 }
 
-test.describe
-	.serial('Core user flow', () => {
-		test.afterAll(async () => {
-			try {
-				const db = getDb()
-				const [user] = await db
-					.select({ id: users.id })
-					.from(users)
-					.where(eq(users.email, TEST_EMAIL))
-					.limit(1)
-				if (user) {
-					await db.delete(projects).where(eq(projects.userId, user.id))
-					await db.delete(users).where(eq(users.id, user.id))
+// Chromium's CDP discards response bodies for completed streaming responses,
+// so page.on('response') + response.text() fails on SSE. We capture the
+// forensic signals we CAN get: preview URL, response status, and a body sample.
+type BuildForensics = {
+	projectId: string | null
+	previewUrl: string | null
+	previewStatus: number | null
+	previewBody: string | null
+	buildId: string | null
+}
+
+async function attachForensics(f: BuildForensics, sse?: SseCaptureHandle): Promise<void> {
+	const info = test.info()
+	await info.attach('build-context.json', {
+		body: JSON.stringify(f, null, 2),
+		contentType: 'application/json',
+	})
+	if (f.previewBody !== null) {
+		await info.attach('preview-body.txt', {
+			body: f.previewBody,
+			contentType: 'text/plain',
+		})
+	}
+	if (sse) {
+		const jsonl = await sse.asJsonl().catch(() => '')
+		if (jsonl.length > 0) {
+			await info.attach('sse-events.jsonl', {
+				body: jsonl,
+				contentType: 'application/jsonl',
+			})
+		}
+	}
+}
+
+test.describe('Core user flow', () => {
+	test.afterAll(async () => {
+		try {
+			const db = getDb()
+			const [user] = await db
+				.select({ id: users.id })
+				.from(users)
+				.where(eq(users.email, TEST_EMAIL))
+				.limit(1)
+			if (user) {
+				await db.delete(projects).where(eq(projects.userId, user.id))
+				await db.delete(users).where(eq(users.id, user.id))
+			}
+		} catch (err) {
+			console.error('[e2e cleanup] Failed to clean up test user:', err)
+		}
+	})
+
+	test('signup → onboard → build with beacon → preview verified → admin → settings', async ({
+		page,
+		browser,
+	}) => {
+		test.setTimeout(120_000)
+		const consoleErrors = collectConsoleErrors(page)
+		const forensics: BuildForensics = {
+			projectId: null,
+			previewUrl: null,
+			previewStatus: null,
+			previewBody: null,
+			buildId: null,
+		}
+		const sseCapture = await installSseCapture(page, [
+			/\/api\/workspace\/[0-9a-f-]{36}\/build$/,
+			/\/api\/workspace\/[0-9a-f-]{36}\/auto-build$/,
+		])
+		const beacon = `MELDAR-E2E-${Date.now()}-BEACON`
+		test.info().annotations.push({ type: 'beacon', description: beacon })
+
+		try {
+			await test.step('sign up + land on onboarding', async () => {
+				await page.goto('/sign-up')
+				await expect(page.getByText('Create your account')).toBeVisible()
+				await page.fill('#signup-email', TEST_EMAIL)
+				await page.fill('#signup-password', TEST_PASSWORD)
+				await page.getByRole('button', { name: /create account/i }).click()
+				await page.waitForURL('**/onboarding**')
+				await expect(page.getByText('What do you need today')).toBeVisible()
+			})
+
+			await test.step('onboarding door A → workspace', async () => {
+				await injectAuthCookie(page)
+				await page.goto('/onboarding')
+				await expect(page.getByText('What do you need today')).toBeVisible()
+				await page.getByRole('button', { name: /I need something for my business/i }).click()
+				await expect(page.getByText('What kind of business')).toBeVisible()
+				await page.getByRole('radio', { name: /Consulting/i }).click()
+				await page.getByRole('button', { name: /Continue/i }).click()
+				await expect(page.getByText(/put together for you/i)).toBeVisible()
+				await page.getByRole('button', { name: /Let.*go/i }).click()
+				await page.waitForURL('**/workspace/**', { timeout: 30_000 })
+				const match = page.url().match(/\/workspace\/([0-9a-f-]{36})/)
+				expect(match).toBeTruthy()
+				forensics.projectId = match?.[1] ?? null
+				test.info().annotations.push({
+					type: 'projectId',
+					description: forensics.projectId ?? 'unknown',
+				})
+			})
+
+			await test.step('workspace renders setup UI', async () => {
+				await injectAuthCookie(page)
+				await page.goto(`/workspace/${forensics.projectId}`)
+				await expect(page.getByText(/Setting up your page|Opening your page/i)).toBeVisible()
+				await expect(page.locator('textarea')).toBeVisible()
+				await expect(page.getByLabel('Send feedback')).toBeVisible()
+			})
+
+			await test.step('build with beacon prompt + preview semantic fidelity', async () => {
+				await injectAuthCookie(page)
+				await page.goto(`/workspace/${forensics.projectId}`)
+
+				const textarea = page.locator('textarea')
+				await expect(textarea).toBeVisible()
+
+				const pill = page.getByTestId('build-pill')
+				await pill.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {})
+				await pill.waitFor({ state: 'hidden', timeout: 180_000 }).catch(() => {})
+
+				const keepBuildingBtn = page.getByRole('button', { name: /keep building/i })
+				if (await keepBuildingBtn.isVisible().catch(() => false)) {
+					await keepBuildingBtn.click()
 				}
-			} catch (err) {
-				console.error('[e2e cleanup] Failed to clean up test user:', err)
-			}
-		})
 
-		test('sign up and land on onboarding', async ({ page }) => {
-			await page.goto('/sign-up')
-			await expect(page.getByText('Create your account')).toBeVisible()
+				await textarea.fill(
+					`Create a simple landing page. Render an h1 element that has attribute data-e2e-beacon="${beacon}" and whose visible text is exactly "${beacon}". Add a short paragraph below describing a consulting business.`,
+				)
+				await page.getByLabel('Send feedback').click()
 
-			await page.fill('#signup-email', TEST_EMAIL)
-			await page.fill('#signup-password', TEST_PASSWORD)
-			await page.getByRole('button', { name: /create account/i }).click()
+				const errorToast = page
+					.getByRole('alert')
+					.filter({ hasText: /something went sideways|setup stalled/i })
+					.first()
 
-			await page.waitForURL('**/onboarding**')
-			await expect(page.getByText('What do you need today')).toBeVisible()
-			signUpSucceeded = true
-		})
+				await Promise.race([
+					expect(pill).toHaveAttribute('data-phase', 'building', { timeout: 60_000 }),
+					expect(errorToast).toBeVisible({ timeout: 60_000 }),
+				])
 
-		test('onboarding \u2014 Door A through to workspace', async ({ page }) => {
-			test.skip(!signUpSucceeded, 'Sign-up did not complete')
+				const pillPhase = await pill.getAttribute('data-phase').catch(() => null)
+				const buildStarted = pillPhase === 'building'
 
-			await injectAuthCookie(page)
-			await page.goto('/onboarding')
-			await expect(page.getByText('What do you need today')).toBeVisible()
+				if (!buildStarted) {
+					const toastText = await errorToast.textContent()
+					expect(toastText?.length ?? 0).toBeGreaterThan(10)
+					assertNoPipelineBugs(toastText, 'immediate failure toast')
+					return
+				}
 
-			// Door A
-			await page.getByRole('button', { name: /I need something for my business/i }).click()
-			await expect(page.getByText('What kind of business')).toBeVisible()
+				await expect(pill).toHaveAttribute('data-phase', /done|failed/, { timeout: 180_000 })
+				const finalPhase = await pill.getAttribute('data-phase')
 
-			// Pick Consulting
-			await page.getByRole('radio', { name: /Consulting/i }).click()
-			await page.getByRole('button', { name: /Continue/i }).click()
+				if (finalPhase === 'failed') {
+					const toastText = await errorToast.textContent().catch(() => null)
+					expect(toastText?.length ?? 0).toBeGreaterThan(10)
+					assertNoPipelineBugs(toastText, 'post-build failure toast')
+					return
+				}
 
-			// Proposal Preview
-			await expect(page.getByText(/put together for you/i)).toBeVisible()
-			await page.getByRole('button', { name: /Let.*go/i }).click()
+				const iframe = page.locator('iframe[title="Live preview"]')
+				await expect(iframe).toBeVisible({ timeout: 75_000 })
+				const rawSrc = await iframe.getAttribute('src')
+				expect(rawSrc, 'iframe must have a real preview URL').toBeTruthy()
+				expect(rawSrc).toMatch(/^https?:\/\//)
+				const src = stripCacheBuster(rawSrc as string)
+				forensics.previewUrl = src
 
-			await page.waitForURL('**/workspace/**', { timeout: 30_000 })
-			const match = page.url().match(/\/workspace\/([0-9a-f-]{36})/)
-			expect(match).toBeTruthy()
-			createdProjectId = match?.[1]
-		})
+				const sandboxContext = await browser.newContext()
+				const sandboxPage = await sandboxContext.newPage()
+				try {
+					const navResponse = await sandboxPage.goto(src, {
+						timeout: 180_000,
+						waitUntil: 'domcontentloaded',
+					})
+					forensics.previewStatus = navResponse?.status() ?? null
+					expect(
+						navResponse?.status(),
+						`preview URL ${src} should serve content (got ${navResponse?.status()})`,
+					).toBeLessThan(400)
 
-		test('workspace loads with setup state and feedback bar', async ({ page }) => {
-			test.skip(!createdProjectId, 'No project from previous test')
+					const previewBody = await sandboxPage.content()
+					forensics.previewBody = previewBody
+					expect(previewBody.trim().length, 'preview body must be non-empty').toBeGreaterThan(0)
+					assertNotAuthWall(sandboxPage.url(), previewBody)
+					assertNotNextErrorPage(previewBody)
+					assertLooksLikeNextApp(previewBody)
 
-			await injectAuthCookie(page)
-			await page.goto(`/workspace/${createdProjectId}`)
-
-			await expect(page.getByText(/Setting up your page|Opening your page/i)).toBeVisible()
-			await expect(page.locator('textarea')).toBeVisible()
-			await expect(page.getByLabel('Send feedback')).toBeVisible()
-		})
-
-		test('type prompt, trigger build, build completes with outcome', async ({ page }) => {
-			test.skip(!createdProjectId, 'No project from previous test')
-			test.setTimeout(180_000)
-			const consoleErrors = collectConsoleErrors(page)
-
-			await injectAuthCookie(page)
-			await page.goto(`/workspace/${createdProjectId}`)
-
-			const textarea = page.locator('textarea')
-			await expect(textarea).toBeVisible()
-
-			// The workspace auto-starts a build on mount. Wait for it to finish
-			// (pill appears then disappears) before firing a manual build.
-			const initialPill = page.getByText('Updating\u2026')
-			await initialPill.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {})
-			await initialPill.waitFor({ state: 'hidden', timeout: 120_000 }).catch(() => {})
-
-			// Dismiss first-build celebration dialog if it appeared
-			const keepBuildingBtn = page.getByRole('button', { name: /keep building/i })
-			if (await keepBuildingBtn.isVisible().catch(() => false)) {
-				await keepBuildingBtn.click()
-			}
-
-			await textarea.fill(
-				'Create a simple landing page with a headline that says Welcome and a paragraph describing the business',
-			)
-
-			await page.getByLabel('Send feedback').click()
-
-			// Setup can start (showing "Updating…") or fail immediately (e.g. R2 not configured)
-			const buildingPill = page.getByText('Updating\u2026')
-			const errorToast = page
-				.getByRole('alert')
-				.filter({ hasText: /something went sideways|setup stalled/i })
-				.first()
-			await expect(buildingPill.or(errorToast)).toBeVisible({ timeout: 60_000 })
-
-			const buildStarted = await buildingPill.isVisible()
-
-			if (buildStarted) {
-				// Setup started — wait for it to finish
-				await expect(buildingPill).toBeHidden({ timeout: 120_000 })
-
-				const donePill = page.getByText('\u2713 Updated')
-				const failedPill = page.getByText(/something went sideways/i).first()
-				const outcomeLocator = donePill.or(failedPill).or(errorToast).first()
-				await expect(outcomeLocator).toBeVisible({ timeout: 10_000 })
-
-				const succeeded = await donePill.isVisible()
-				if (succeeded) {
-					// A successful build MUST produce a live preview URL that
-					// actually renders non-empty content. If the Anthropic pipeline
-					// silently returned 400 and the UI ate the error, a stale
-					// "Done" pill would pass an iframe-src-only check. Frame
-					// content verification is what catches that class of bug.
-					const iframe = page.locator('iframe[title="Live preview"]')
-					await expect(iframe).toBeVisible({ timeout: 30_000 })
-					const src = await iframe.getAttribute('src')
-					expect(src, 'iframe must have a real preview URL').toBeTruthy()
-					expect(src).toMatch(/^https?:\/\//)
-
-					const frame = page.frameLocator('iframe[title="Live preview"]')
+					const beaconLocator = sandboxPage.locator(`[data-e2e-beacon="${beacon}"]`)
 					await expect(
-						frame.locator('body'),
-						'iframe body must render visible text (non-whitespace)',
-					).toContainText(/\S+/, { timeout: 60_000 })
-				} else {
-					const toastEl = page.getByRole('alert').first()
-					await expect(toastEl).toBeVisible()
-					const text = await toastEl.textContent()
-					expect(text?.length).toBeGreaterThan(10)
-					assertNoPipelineBugs(text, 'build failure toast')
+						beaconLocator,
+						`preview must render an element with data-e2e-beacon="${beacon}" — if absent, the LLM ignored an explicit structural instruction OR the rendered DOM does not match the SSR body`,
+					).toBeVisible({ timeout: 60_000 })
+					await expect(beaconLocator).toHaveText(beacon)
+
+					const axeResult = await new AxeBuilder({ page: sandboxPage })
+						.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+						.disableRules(['color-contrast'])
+						.analyze()
+					const serious = axeResult.violations.filter(
+						(v) => v.impact === 'serious' || v.impact === 'critical',
+					)
+					expect(
+						serious,
+						`preview has serious/critical a11y violations:\n${serious.map((v) => `- ${v.id}: ${v.description}`).join('\n')}`,
+					).toEqual([])
+				} finally {
+					await sandboxPage.close()
+					await sandboxContext.close()
 				}
-			} else {
-				// Build failed before the pill appeared — verify it's a
-				// real user-facing failure (rate limited, budget, etc.),
-				// not a raw API-contract leak.
-				const toastEl = page.getByRole('alert').first()
-				await expect(toastEl).toBeVisible()
-				const text = await toastEl.textContent()
-				expect(text?.length).toBeGreaterThan(10)
-				assertNoPipelineBugs(text, 'immediate failure toast')
-			}
+			})
+
+			await test.step('admin dashboard + settings', async () => {
+				await injectAuthCookie(page)
+				await page.goto(`/workspace/${forensics.projectId}/admin`)
+				await expect(page.getByText('Manage your bookings and review AI actions.')).toBeVisible()
+				await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible()
+				await expect(page.getByRole('button', { name: 'Bookings' })).toBeVisible()
+				await expect(page.getByRole('button', { name: 'Approvals' })).toBeVisible()
+
+				await page.goto(`/workspace/${forensics.projectId}/admin/settings`)
+				await expect(page.getByText('Business details')).toBeVisible()
+				await expect(page.getByText('Services')).toBeVisible()
+				await expect(page.getByText('Available hours')).toBeVisible()
+			})
+
+			await test.step('settings persist across reload', async () => {
+				await injectAuthCookie(page)
+				await page.goto(`/workspace/${forensics.projectId}/admin/settings`)
+				await expect(page.getByText('Business details')).toBeVisible()
+
+				const uniqueName = `E2E Biz ${Date.now()}`
+				const nameInput = page.locator('#settings-name')
+				await nameInput.clear()
+				await nameInput.fill(uniqueName)
+
+				const saveButton = page.getByRole('button', { name: /save changes/i })
+				await saveButton.click()
+
+				await expect(page.getByRole('alert').filter({ hasText: /settings saved/i })).toBeVisible({
+					timeout: 10_000,
+				})
+				await expect(saveButton).toBeVisible()
+				await expect(page.getByRole('alert').filter({ hasText: /could not save/i })).toBeHidden()
+
+				await page.reload()
+				await expect(page.getByText('Business details')).toBeVisible()
+				await expect(nameInput).toHaveValue(uniqueName)
+			})
 
 			expect(consoleErrors, `Unexpected console errors:\n${consoleErrors.join('\n')}`).toHaveLength(
 				0,
@@ -239,55 +402,9 @@ test.describe
 			for (const line of consoleErrors) {
 				assertNoPipelineBugs(line, 'browser console')
 			}
-		})
-
-		test('admin dashboard renders tabs and settings page loads', async ({ page }) => {
-			test.skip(!createdProjectId, 'No project from previous test')
-
-			await injectAuthCookie(page)
-			await page.goto(`/workspace/${createdProjectId}/admin`)
-
-			await expect(page.getByText('Manage your bookings and review AI actions.')).toBeVisible()
-
-			await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible()
-			await expect(page.getByRole('button', { name: 'Bookings' })).toBeVisible()
-			await expect(page.getByRole('button', { name: 'Approvals' })).toBeVisible()
-
-			await page.goto(`/workspace/${createdProjectId}/admin/settings`)
-			await expect(page.getByText('Business details')).toBeVisible()
-			await expect(page.getByText('Services')).toBeVisible()
-			await expect(page.getByText('Available hours')).toBeVisible()
-		})
-
-		test('settings save persists across page reload', async ({ page }) => {
-			test.skip(!createdProjectId, 'No project from previous test')
-
-			await injectAuthCookie(page)
-			await page.goto(`/workspace/${createdProjectId}/admin/settings`)
-			await expect(page.getByText('Business details')).toBeVisible()
-
-			const uniqueName = `E2E Biz ${Date.now()}`
-			const nameInput = page.locator('#settings-name')
-			await nameInput.clear()
-			await nameInput.fill(uniqueName)
-
-			const saveButton = page.getByRole('button', { name: /save changes/i })
-			await saveButton.click()
-
-			// Success toast must appear
-			await expect(page.getByRole('alert').filter({ hasText: /settings saved/i })).toBeVisible({
-				timeout: 10_000,
-			})
-
-			// Button must revert to idle state
-			await expect(saveButton).toBeVisible()
-
-			// Error toast must NOT have appeared
-			await expect(page.getByRole('alert').filter({ hasText: /could not save/i })).toBeHidden()
-
-			// PERSISTENCE: reload and verify the value was written to the database
-			await page.reload()
-			await expect(page.getByText('Business details')).toBeVisible()
-			await expect(nameInput).toHaveValue(uniqueName)
-		})
+		} finally {
+			forensics.buildId = await sseCapture.buildId().catch(() => null)
+			await attachForensics(forensics, sseCapture)
+		}
 	})
+})

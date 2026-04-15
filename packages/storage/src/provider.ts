@@ -4,6 +4,7 @@ import type {
 	CreateKanbanCardInput,
 	CreateProjectOptions,
 	KanbanCardRow,
+	PreviewProbeData,
 	ProjectFileRow,
 	ProjectRow,
 	StorageFile,
@@ -33,6 +34,8 @@ export interface BuildContext {
 
 	/** Does NOT flip current_build_id; build_files stays in place as partial state. */
 	fail(reason: string, options?: { tokenCost?: number }): Promise<BuildRow>
+
+	recordPreviewProbe(probe: PreviewProbeData): Promise<void>
 }
 
 export interface ProjectStorage {

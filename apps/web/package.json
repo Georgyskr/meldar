@@ -43,6 +43,7 @@
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.11.1",
 		"@meldar/test-utils": "workspace:*",
 		"@meldar/tooling-config": "workspace:*",
 		"@park-ui/cli": "^1.0.1",

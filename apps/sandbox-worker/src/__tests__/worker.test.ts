@@ -937,7 +937,7 @@ describe('sandbox worker', () => {
 			// deadlocks the reviewer explicitly flagged.
 			const timeoutError = new WorkerError(
 				'DEV_SERVER_TIMEOUT',
-				'dev server not ready after 90000ms (readiness=tcp)',
+				'dev server not ready after 85000ms (readiness=tcp)',
 			)
 			const logs: string[] = []
 			const logSpy = vi.spyOn(console, 'log').mockImplementation((msg: string) => {
@@ -1081,7 +1081,7 @@ describe('sandbox worker', () => {
 			sandboxRegistry.set(FIRST_NAME, execSandbox)
 		})
 
-		it("/start uses TCP-bound readiness (iframe rendering doesn't wait for first-page compile)", async () => {
+		it('/start waits for HTTP readiness so the iframe never loads a pre-compile blank', async () => {
 			const req = await signedRequest('/api/v1/start', {
 				projectId: 'proj_first',
 				userId: 'user_1',
@@ -1093,24 +1093,21 @@ describe('sandbox worker', () => {
 
 			const cmd = execSandbox.exec?.mock.calls[0][0] as string
 			expect(cmd).toContain('/dev/tcp/localhost/3001')
-			// HTTP-probe readiness was too strict — Next.js first compile can
-			// exceed the HTTP probe budget even on a healthy sandbox. TCP-ready
-			// lets the iframe render; first-request compile is the browser's
-			// normal progressive-load story.
-			expect(cmd).not.toContain('curl -s -o /dev/null')
+			expect(cmd).toContain('curl -s -o /dev/null')
 		})
 
-		it('/prewarm uses TCP-bound readiness (same contract as /start)', async () => {
+		it('/prewarm waits for HTTP readiness so the sandbox is actually serving when returned', async () => {
 			const req = await signedRequest('/api/v1/prewarm', { projectId: 'proj_first' })
 			const res = await worker.fetch(req, env)
 			expect(res.status).toBe(200)
 
 			const cmd = execSandbox.exec?.mock.calls[0][0] as string
 			expect(cmd).toContain('/dev/tcp/localhost/3001')
-			expect(cmd).not.toContain('curl -s -o /dev/null')
+			expect(cmd).toContain('curl -s -o /dev/null')
 		})
 
-		it('/write uses TCP probe (same fast path as /start)', async () => {
+		it('/write on a cold sandbox (no existing port) waits for HTTP readiness', async () => {
+			execSandbox.getExposedPorts.mockResolvedValue([])
 			const req = await signedRequest('/api/v1/write', {
 				projectId: 'proj_first',
 				files: [{ path: 'a.ts', content: 'a' }],
@@ -1119,8 +1116,22 @@ describe('sandbox worker', () => {
 			expect(res.status).toBe(200)
 
 			const cmd = execSandbox.exec?.mock.calls[0][0] as string
-			expect(cmd).toContain('/dev/tcp/localhost/3001')
-			expect(cmd).not.toContain('curl')
+			expect(cmd).toContain('curl -s -o /dev/null')
+		})
+
+		it('/write on a warm sandbox still waits on HTTP readiness (catches mid-compile stale-bundle race)', async () => {
+			execSandbox.getExposedPorts.mockResolvedValue([
+				{ port: 3001, url: 'https://3001-proj.example.test/' },
+			])
+			const req = await signedRequest('/api/v1/write', {
+				projectId: 'proj_first',
+				files: [{ path: 'a.ts', content: 'a' }],
+			})
+			const res = await worker.fetch(req, env)
+			expect(res.status).toBe(200)
+
+			const cmd = execSandbox.exec?.mock.calls[0][0] as string
+			expect(cmd).toContain('curl -s -o /dev/null')
 		})
 
 		it('dev-server-probe-failed error includes readiness mode in message', async () => {
@@ -1255,7 +1266,7 @@ describe('sandbox worker', () => {
 	})
 
 	describe('readiness via startProcess fallback (no-exec path)', () => {
-		it('/start calls waitForPort in tcp mode (TCP-bound is the iframe-readiness contract)', async () => {
+		it('/start calls waitForPort in http mode so the iframe never loads a pre-compile blank', async () => {
 			const proc = {
 				waitForPort: vi.fn().mockResolvedValue(undefined),
 				kill: vi.fn().mockResolvedValue(undefined),
@@ -1271,16 +1282,20 @@ describe('sandbox worker', () => {
 			})
 			const res = await worker.fetch(req, env)
 			expect(res.status).toBe(200)
-			expect(proc.waitForPort).toHaveBeenCalledWith(3001, expect.objectContaining({ mode: 'tcp' }))
+			expect(proc.waitForPort).toHaveBeenCalledWith(
+				3001,
+				expect.objectContaining({ mode: 'http', path: '/' }),
+			)
 		})
 
-		it('/write calls waitForPort in tcp mode', async () => {
+		it('/write on a cold sandbox waits for HTTP readiness', async () => {
 			const proc = {
 				waitForPort: vi.fn().mockResolvedValue(undefined),
 				kill: vi.fn().mockResolvedValue(undefined),
 			}
 			fakeSandbox.startProcess.mockResolvedValueOnce(proc)
 			fakeSandbox.getProcess.mockResolvedValueOnce(null)
+			fakeSandbox.getExposedPorts.mockResolvedValueOnce([])
 
 			const req = await signedRequest('/api/v1/write', {
 				projectId: 'proj_first',
@@ -1288,9 +1303,27 @@ describe('sandbox worker', () => {
 			})
 			const res = await worker.fetch(req, env)
 			expect(res.status).toBe(200)
-			expect(proc.waitForPort).toHaveBeenCalledWith(3001, expect.objectContaining({ mode: 'tcp' }))
-			const opts = proc.waitForPort.mock.calls[0][1] as { path?: string }
-			expect(opts.path).toBeUndefined()
+			expect(proc.waitForPort).toHaveBeenCalledWith(3001, expect.objectContaining({ mode: 'http' }))
+		})
+
+		it('/write on a warm sandbox uses HTTP readiness (catches mid-compile stale-bundle race)', async () => {
+			const proc = {
+				waitForPort: vi.fn().mockResolvedValue(undefined),
+				kill: vi.fn().mockResolvedValue(undefined),
+			}
+			fakeSandbox.startProcess.mockResolvedValueOnce(proc)
+			fakeSandbox.getProcess.mockResolvedValueOnce(null)
+			fakeSandbox.getExposedPorts.mockResolvedValue([
+				{ port: 3001, url: 'https://3001-proj.example.test/' },
+			])
+
+			const req = await signedRequest('/api/v1/write', {
+				projectId: 'proj_first',
+				files: [{ path: 'a.ts', content: 'a' }],
+			})
+			const res = await worker.fetch(req, env)
+			expect(res.status).toBe(200)
+			expect(proc.waitForPort).toHaveBeenCalledWith(3001, expect.objectContaining({ mode: 'http' }))
 		})
 	})
 

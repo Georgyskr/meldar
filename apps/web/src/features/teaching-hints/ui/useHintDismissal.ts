@@ -18,14 +18,15 @@ function getDismissed(): Set<HintId> {
 
 let cached: Set<HintId> | null = null
 const listeners = new Set<() => void>()
+const EMPTY_DISMISSED: ReadonlySet<HintId> = new Set<HintId>()
 
-function getSnapshot(): Set<HintId> {
+function getSnapshot(): ReadonlySet<HintId> {
 	if (!cached) cached = getDismissed()
 	return cached
 }
 
-function getServerSnapshot(): Set<HintId> {
-	return new Set()
+function getServerSnapshot(): ReadonlySet<HintId> {
+	return EMPTY_DISMISSED
 }
 
 function subscribe(fn: () => void): () => void {

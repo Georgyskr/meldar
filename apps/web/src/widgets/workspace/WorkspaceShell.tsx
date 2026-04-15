@@ -81,7 +81,11 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 		if (!hasReadyWork) return
 		autoBuildStartedRef.current = true
 		markAutoBuildKicked(projectId)
-		runAutoBuild(projectId, publish)
+		const controller = new AbortController()
+		runAutoBuild(projectId, publish, controller.signal)
+		return () => {
+			controller.abort()
+		}
 	}, [projectId, cards, previewUrl, activeBuildCardId, publish])
 
 	const handleFeedbackSubmit = useCallback(
@@ -110,15 +114,16 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 async function runAutoBuild(
 	projectId: string,
 	publish: ReturnType<typeof useWorkspaceBuild>['publish'],
+	signal?: AbortSignal,
 ): Promise<void> {
 	try {
 		const response = await fetch(`/api/workspace/${projectId}/auto-build`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
+			signal,
 		})
 
 		if (response.status === 409) {
-			// Build already in progress — nothing to do, the UI will pick up the stream naturally
 			return
 		}
 
@@ -142,9 +147,11 @@ async function runAutoBuild(
 		}
 
 		for await (const event of consumeSseStream(response.body)) {
+			if (signal?.aborted) return
 			handleSseEvent(event, publish)
 		}
 	} catch (err) {
+		if (signal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) return
 		const message = err instanceof Error ? err.message : 'Network error'
 		console.error('[runAutoBuild] exception:', err)
 		toast.error('Setup failed', message)

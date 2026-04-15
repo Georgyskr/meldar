@@ -48,6 +48,8 @@ import {
 	type KanbanCardState,
 	MAX_FILE_CONTENT_BYTES,
 	MAX_FILES_PER_BUILD,
+	PREVIEW_PROBE_BODY_PREVIEW_MAX,
+	type PreviewProbeData,
 	type ProjectFileRow,
 	type ProjectRow,
 	type ProjectTier,
@@ -193,6 +195,9 @@ export class PostgresProjectStorage implements ProjectStorage {
 			promptHash: null,
 			tokenCost: null,
 			errorMessage: null,
+			previewProbeStatus: null,
+			previewProbeBodyLength: null,
+			previewProbeBodyPreview: null,
 			createdAt: now,
 			completedAt: now,
 		}
@@ -448,6 +453,9 @@ export class PostgresProjectStorage implements ProjectStorage {
 			promptHash: null,
 			tokenCost: null,
 			errorMessage: null,
+			previewProbeStatus: null,
+			previewProbeBodyLength: null,
+			previewProbeBodyPreview: null,
 			createdAt: now,
 			completedAt: now,
 		}
@@ -902,6 +910,17 @@ class PostgresBuildContext implements BuildContext {
 		}
 		return rowToBuild(row)
 	}
+
+	async recordPreviewProbe(probe: PreviewProbeData): Promise<void> {
+		await this.db
+			.update(schema.builds)
+			.set({
+				previewProbeStatus: probe.status,
+				previewProbeBodyLength: probe.bodyLength,
+				previewProbeBodyPreview: probe.bodyPreview.slice(0, PREVIEW_PROBE_BODY_PREVIEW_MAX),
+			})
+			.where(eq(schema.builds.id, this.buildId))
+	}
 }
 
 function rowToProject(row: typeof schema.projects.$inferSelect): ProjectRow {
@@ -933,6 +952,9 @@ function rowToBuild(row: typeof schema.builds.$inferSelect): BuildRow {
 		promptHash: row.promptHash,
 		tokenCost: row.tokenCost,
 		errorMessage: row.errorMessage,
+		previewProbeStatus: row.previewProbeStatus,
+		previewProbeBodyLength: row.previewProbeBodyLength,
+		previewProbeBodyPreview: row.previewProbeBodyPreview,
 		createdAt: row.createdAt,
 		completedAt: row.completedAt,
 	}

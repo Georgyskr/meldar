@@ -192,6 +192,9 @@ export const builds = pgTable(
 		promptHash: text('prompt_hash'), // sha256 of the prompt for reproducibility / cache
 		tokenCost: integer('token_cost'), // cumulative tokens for this Build
 		errorMessage: text('error_message'),
+		previewProbeStatus: integer('preview_probe_status'),
+		previewProbeBodyLength: integer('preview_probe_body_length'),
+		previewProbeBodyPreview: text('preview_probe_body_preview'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		completedAt: timestamp('completed_at', { withTimezone: true }),
 	},

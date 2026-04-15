@@ -53,7 +53,7 @@ const PROCESS_ID = 'next-dev-server'
 const HMAC_WINDOW_MS = 5 * 60 * 1000
 // Cold start budget: container provisioning (~15-25s) + npm dev boot (~5-10s) = ~30-45s.
 // Give a 90s ceiling to absorb tail latency on the first request after deploy.
-const DEV_SERVER_READY_TIMEOUT_MS = 90_000
+const DEV_SERVER_READY_TIMEOUT_MS = 85_000
 
 const REQUEST_ID_HEADER = 'x-meldar-request-id'
 const REQUEST_ID_PATTERN = /^[0-9a-f]{32}$/
@@ -61,8 +61,8 @@ const USER_ID_HEADER = 'x-meldar-user-id'
 const USER_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/
 // When readiness='http', TCP bind must happen within this window; the remaining
 // budget is spent waiting for the first 2xx/3xx from the dev server root.
-const TCP_PHASE_SECONDS = 30
-const HTTP_PHASE_SECONDS = 60
+const TCP_PHASE_SECONDS = 15
+const HTTP_PHASE_SECONDS = 18
 
 type Readiness = 'tcp' | 'http'
 
@@ -188,7 +188,7 @@ async function handlePrewarm(body: unknown, ctx: RouteContext): Promise<Response
 
 	return withSandboxActivity(sandbox, async () => {
 		try {
-			const port = await ensureDevServer(sandbox, ctx.hostname, 'tcp', {
+			const port = await ensureDevServer(sandbox, ctx.hostname, 'http', {
 				requestId: ctx.requestId,
 				projectId,
 				sandboxName,
@@ -226,7 +226,7 @@ async function handleStart(body: unknown, ctx: RouteContext): Promise<Response> 
 				await sandbox.writeFile(`/app/${sanitizeFilePath(file.path)}`, file.content)
 			}
 
-			const port = await ensureDevServer(sandbox, ctx.hostname, 'tcp', {
+			const port = await ensureDevServer(sandbox, ctx.hostname, 'http', {
 				requestId: ctx.requestId,
 				projectId,
 				sandboxName,
@@ -266,6 +266,7 @@ async function ensureDevServer(
 	const path: 'warm' | 'cold' = existingPort ? 'warm' : 'cold'
 	const port = existingPort ?? (await sandbox.exposePort(NEXT_PORT, { hostname }))
 	const exposePortMs = Date.now() - t0
+	const effectiveReadiness: 'tcp' | 'http' = readiness
 
 	// Pin container alive on first access. Without this, the container is
 	// killed by inactivity (~10m default), and the next request pays a
@@ -290,8 +291,8 @@ async function ensureDevServer(
 			})
 			if (proc.waitForPort) {
 				await proc.waitForPort(NEXT_PORT, {
-					mode: readiness,
-					...(readiness === 'http' ? { path: '/', status: { min: 200, max: 399 } } : {}),
+					mode: effectiveReadiness,
+					...(effectiveReadiness === 'http' ? { path: '/', status: { min: 200, max: 399 } } : {}),
 				})
 			}
 		}
@@ -321,7 +322,7 @@ async function ensureDevServer(
 	const httpLoop =
 		`code=000; ` +
 		`for i in $(seq 1 ${HTTP_PHASE_SECONDS}); do ` +
-		`code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 http://localhost:${NEXT_PORT}/ || echo 000); ` +
+		`code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:${NEXT_PORT}/ || echo 000); ` +
 		`case "$code" in 2??|3??) exit 0 ;; esac; ` +
 		`sleep 1; ` +
 		`done; ` +
@@ -334,7 +335,7 @@ async function ensureDevServer(
 	const launch =
 		`${tcpProbe} || { cd /app && setsid nohup npm run dev > /tmp/dev-server.log 2>&1 < /dev/null & }; ` +
 		`${tcpLoop}`
-	const cmd = readiness === 'http' ? `(${launch}; ${httpLoop})` : `(${launch}; exit 0)`
+	const cmd = effectiveReadiness === 'http' ? `(${launch}; ${httpLoop})` : `(${launch}; exit 0)`
 
 	const tProbe = Date.now()
 	const probe = sandbox.exec(cmd, { timeout: DEV_SERVER_READY_TIMEOUT_MS + 5_000 })
@@ -360,10 +361,10 @@ async function ensureDevServer(
 		// DEV_SERVER_TIMEOUT → exit 124 so classifyDevServerFailure maps it
 		// to READINESS_TIMEOUT; -1 is the sentinel for any other rejection.
 		const exitCode = code === 'DEV_SERVER_TIMEOUT' ? 124 : -1
-		const stderrTail = code === 'DEV_SERVER_TIMEOUT' ? '' : message.slice(0, 400)
+		const stderrTail = code === 'DEV_SERVER_TIMEOUT' ? '' : message.slice(0, 1200)
 		logDevServerReady(meta, {
 			path,
-			readiness,
+			readiness: effectiveReadiness,
 			exposePortMs,
 			probeMs,
 			exitCode,
@@ -376,23 +377,23 @@ async function ensureDevServer(
 	if (result.exitCode !== 0) {
 		logDevServerReady(meta, {
 			path,
-			readiness,
+			readiness: effectiveReadiness,
 			exposePortMs,
 			probeMs,
 			exitCode: result.exitCode,
 			errorCode: 'DEV_SERVER_PROBE_FAILED',
-			stderrTail: result.stderr.slice(0, 400),
+			stderrTail: result.stderr.slice(0, 1200),
 		})
 		throw new WorkerError(
 			'DEV_SERVER_PROBE_FAILED',
-			`dev server probe failed (exit=${result.exitCode}, readiness=${readiness}): ${result.stderr.slice(0, 400)}`,
+			`dev server probe failed (exit=${result.exitCode}, readiness=${effectiveReadiness}): ${result.stderr.slice(0, 1200)}`,
 			{ loggedAtSource: true },
 		)
 	}
 
 	logDevServerReady(meta, {
 		path,
-		readiness,
+		readiness: effectiveReadiness,
 		exposePortMs,
 		probeMs,
 		exitCode: 0,
@@ -513,7 +514,7 @@ async function handleWrite(body: unknown, ctx: RouteContext): Promise<Response> 
 				}
 			}
 
-			const port = await ensureDevServer(sandbox, ctx.hostname, 'tcp', {
+			const port = await ensureDevServer(sandbox, ctx.hostname, 'http', {
 				requestId: ctx.requestId,
 				projectId,
 				sandboxName,
