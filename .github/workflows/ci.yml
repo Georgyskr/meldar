@@ -69,7 +69,6 @@ jobs:
             command -v setsid
             command -v nohup
             command -v curl
-            command -v fuser
             command -v pkill
             bash -c "(echo > /dev/tcp/127.0.0.1/1) 2>/dev/null; echo devtcp-supported"
           '
@@ -82,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check, sandbox-worker-image-smoke]
     if: github.ref == 'refs/heads/main'
-    timeout-minutes: 10
+    timeout-minutes: 15
     concurrency:
       group: deploy-sandbox-worker
       cancel-in-progress: false

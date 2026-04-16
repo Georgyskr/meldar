@@ -1104,7 +1104,6 @@ describe('sandbox worker', () => {
 			const execMock = execSandbox.exec
 			expect(execMock).toHaveBeenCalledOnce()
 			const killCmd = execMock?.mock.calls[0][0] as string
-			expect(killCmd).toContain(`fuser -k 3001/tcp`)
 			expect(killCmd).toContain('pkill -f "next-server"')
 			expect(killCmd).toContain('pkill -f "npm run dev"')
 
@@ -1144,7 +1143,7 @@ describe('sandbox worker', () => {
 
 			expect(execSandbox.exec).toHaveBeenCalledTimes(2)
 			const stopCmd = execSandbox.exec?.mock.calls[1][0] as string
-			expect(stopCmd).toContain('fuser -k 3001/tcp')
+			expect(stopCmd).toContain('pkill -f "next-server"')
 			expect(execSandbox.setKeepAlive).toHaveBeenCalledWith(true)
 			expect(execSandbox.setKeepAlive).toHaveBeenLastCalledWith(false)
 		})

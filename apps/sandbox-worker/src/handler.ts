@@ -590,8 +590,7 @@ async function handleStop(body: unknown, ctx: RouteContext): Promise<Response> {
 			// Kill by port+name; trailing `true` keeps the shell exit 0 so
 			// stop is idempotent when nothing is running.
 			await sandbox.exec(
-				`bash -c 'fuser -k ${NEXT_PORT}/tcp 2>/dev/null; ` +
-					`pkill -f "next-server" 2>/dev/null; ` +
+				`bash -c 'pkill -f "next-server" 2>/dev/null; ` +
 					`pkill -f "npm run dev" 2>/dev/null; true'`,
 			)
 			if (sandbox.setKeepAlive) {

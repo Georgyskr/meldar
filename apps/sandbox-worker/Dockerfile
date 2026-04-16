@@ -1,14 +1,5 @@
 FROM docker.io/cloudflare/sandbox:0.8.8
 
-RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries \
-	&& echo 'Acquire::By-Hash "yes";' > /etc/apt/apt.conf.d/80-by-hash \
-	&& apt-get update \
-	&& apt-get install -y --no-install-recommends \
-		psmisc \
-		procps \
-		curl \
-	&& rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 COPY sandbox-app/package.json sandbox-app/package-lock.json ./
