@@ -3,21 +3,18 @@
 import { css } from '@styled-system/css'
 import { Box, Flex } from '@styled-system/jsx'
 import { useEffect, useRef, useState } from 'react'
-import { useWorkspaceBuild } from '@/features/workspace'
+import { derivePipelinePhase, useWorkspaceBuild } from '@/features/workspace'
 import { Text } from '@/shared/ui/typography'
-import { type BuildStatusPhase, deriveBuildStatus } from './lib/build-status'
+
+type OverlayPhase = 'building' | 'done' | 'failed'
 
 const DONE_PILL_FADE_MS = 3000
 
-type Props = {
-	readonly activeBuildCardId: string | null
-	readonly failureMessage: string | null
-}
-
-export function BuildStatusOverlay({ activeBuildCardId, failureMessage }: Props) {
-	const { lastBuildAt, pipelineActive } = useWorkspaceBuild()
-	const phase = deriveBuildStatus(activeBuildCardId, failureMessage, pipelineActive)
-	const [visible, setVisible] = useState<BuildStatusPhase | null>(null)
+export function BuildStatusOverlay() {
+	const workspace = useWorkspaceBuild()
+	const { lastBuildAt } = workspace
+	const pipeline = derivePipelinePhase(workspace)
+	const [visible, setVisible] = useState<OverlayPhase | null>(null)
 	const shownBuildAtRef = useRef<number | null>(null)
 	const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -27,12 +24,12 @@ export function BuildStatusOverlay({ activeBuildCardId, failureMessage }: Props)
 			fadeTimerRef.current = null
 		}
 
-		if (phase === 'building') {
+		if (pipeline.kind === 'building' || pipeline.kind === 'deploying') {
 			setVisible('building')
 			return
 		}
 
-		if (phase === 'failed') {
+		if (pipeline.kind === 'failed') {
 			setVisible('failed')
 			return
 		}
@@ -48,7 +45,7 @@ export function BuildStatusOverlay({ activeBuildCardId, failureMessage }: Props)
 		}
 
 		setVisible(null)
-	}, [phase, lastBuildAt])
+	}, [pipeline.kind, lastBuildAt])
 
 	useEffect(() => {
 		return () => {

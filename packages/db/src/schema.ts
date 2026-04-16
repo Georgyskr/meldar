@@ -155,18 +155,13 @@ export const projects = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		name: text('name').notNull(),
-		templateId: text('template_id').notNull(), // e.g. 'next-landing-v1'
-		tier: text('tier').notNull().default('builder'), // 'builder' | 'pro' | 'vip'
-		currentBuildId: uuid('current_build_id'), // FK added manually, DEFERRABLE
+		templateId: text('template_id').notNull(),
+		tier: text('tier').notNull().default('builder'),
+		currentBuildId: uuid('current_build_id'),
 		lastBuildAt: timestamp('last_build_at', { withTimezone: true }),
 		previewUrl: text('preview_url'),
 		previewUrlUpdatedAt: timestamp('preview_url_updated_at', { withTimezone: true }),
 		wishes: jsonb('wishes'),
-		// Set when an auto-build pipeline starts; cleared in finally. Holds for
-		// the entire pipeline (all sub-tasks + deploy), so /build returns 409
-		// rather than slipping a single build between pipeline sub-tasks.
-		pipelineActiveAt: timestamp('pipeline_active_at', { withTimezone: true }),
-		pipelineActiveId: uuid('pipeline_active_id'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 		deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -178,11 +173,68 @@ export const projects = pgTable(
 		index('idx_projects_current_build')
 			.on(table.currentBuildId)
 			.where(sql`${table.currentBuildId} IS NOT NULL`),
-		index('idx_projects_pipeline_active')
-			.on(table.id)
-			.where(sql`${table.pipelineActiveAt} IS NOT NULL`),
 		check('projects_tier_valid', sql`${table.tier} IN ('builder', 'pro', 'vip')`),
 	],
+)
+
+/**
+ * Single authoritative source of truth for "a pipeline is active on project X".
+ * Partial unique index arbitrates concurrent starts atomically: only one row can
+ * hold state ∈ ('running','deploying') per project at any instant.
+ */
+export const pipelineRuns = pgTable(
+	'pipeline_runs',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		projectId: uuid('project_id')
+			.notNull()
+			.references(() => projects.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		kind: text('kind').notNull(),
+		state: text('state').notNull().default('running'),
+		startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+		heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }).notNull().defaultNow(),
+		endedAt: timestamp('ended_at', { withTimezone: true }),
+		currentCardId: uuid('current_card_id'),
+		totalCards: integer('total_cards'),
+		errorCode: text('error_code'),
+		errorReason: text('error_reason'),
+	},
+	(table) => [
+		uniqueIndex('ux_pipeline_runs_project_active')
+			.on(table.projectId)
+			.where(sql`${table.state} IN ('running', 'deploying')`),
+		index('idx_pipeline_runs_project_started').on(table.projectId, table.startedAt.desc()),
+		index('idx_pipeline_runs_heartbeat')
+			.on(table.heartbeatAt)
+			.where(sql`${table.state} IN ('running', 'deploying')`),
+		check(
+			'pipeline_runs_state_valid',
+			sql`${table.state} IN ('running', 'deploying', 'succeeded', 'failed', 'cancelled')`,
+		),
+		check('pipeline_runs_kind_valid', sql`${table.kind} IN ('single', 'auto')`),
+	],
+)
+
+/**
+ * Append-only log of pipeline transitions. Client reconnects via
+ * /pipeline-events?since=<seq> to replay events it missed. Monotonic seq is
+ * unique per run.
+ */
+export const pipelineEvents = pgTable(
+	'pipeline_events',
+	{
+		runId: uuid('run_id')
+			.notNull()
+			.references(() => pipelineRuns.id, { onDelete: 'cascade' }),
+		seq: integer('seq').notNull(),
+		type: text('type').notNull(),
+		payload: jsonb('payload').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [primaryKey({ columns: [table.runId, table.seq] })],
 )
 
 export const builds = pgTable(
@@ -192,13 +244,16 @@ export const builds = pgTable(
 		projectId: uuid('project_id')
 			.notNull()
 			.references(() => projects.id, { onDelete: 'cascade' }),
+		pipelineRunId: uuid('pipeline_run_id').references(() => pipelineRuns.id, {
+			onDelete: 'cascade',
+		}),
 		parentBuildId: uuid('parent_build_id'),
-		status: text('status').notNull(), // 'streaming' | 'completed' | 'failed' | 'rolled_back'
-		triggeredBy: text('triggered_by').notNull(), // 'template' | 'user_prompt' | 'kanban_card' | 'rollback' | 'upload' (phase 2)
+		status: text('status').notNull(),
+		triggeredBy: text('triggered_by').notNull(),
 		kanbanCardId: uuid('kanban_card_id'),
-		modelVersion: text('model_version'), // e.g. 'claude-sonnet-4-6'
-		promptHash: text('prompt_hash'), // sha256 of the prompt for reproducibility / cache
-		tokenCost: integer('token_cost'), // cumulative tokens for this Build
+		modelVersion: text('model_version'),
+		promptHash: text('prompt_hash'),
+		tokenCost: integer('token_cost'),
 		errorMessage: text('error_message'),
 		previewProbeStatus: integer('preview_probe_status'),
 		previewProbeBodyLength: integer('preview_probe_body_length'),
@@ -214,12 +269,10 @@ export const builds = pgTable(
 		index('idx_builds_project_streaming_created')
 			.on(table.projectId, table.createdAt.desc())
 			.where(sql`${table.status} = 'streaming'`),
-		// Enforces at most one streaming build per project — prevents the race
-		// where two concurrent POSTs both pass the non-atomic guard.
+		index('idx_builds_pipeline_run').on(table.pipelineRunId),
 		uniqueIndex('ux_builds_project_streaming')
 			.on(table.projectId)
 			.where(sql`${table.status} = 'streaming'`),
-		// Self-referential FK added in hand-edited migration SQL (Drizzle limitation).
 		check(
 			'builds_status_valid',
 			sql`${table.status} IN ('streaming', 'completed', 'failed', 'rolled_back')`,

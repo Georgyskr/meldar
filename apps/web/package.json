@@ -9,8 +9,9 @@
 		"prepare": "panda codegen",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
-		"test:e2e": "playwright test",
-		"test:e2e:ui": "playwright test --ui"
+		"test:e2e": "playwright test --grep-invert=@nightly",
+		"test:e2e:ui": "playwright test --ui",
+		"test:e2e:nightly": "playwright test --grep=@nightly"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.80.0",

@@ -6,8 +6,9 @@ dotenv.config({ path: path.resolve(__dirname, '.env.local') })
 
 export default defineConfig({
 	testDir: './e2e',
+	timeout: 480_000,
 	expect: {
-		timeout: 20_000,
+		timeout: 180_000,
 	},
 	retries: 0,
 	fullyParallel: false,
@@ -17,11 +18,17 @@ export default defineConfig({
 		headless: true,
 		screenshot: 'only-on-failure',
 		trace: 'retain-on-failure',
+		actionTimeout: 30_000,
+		navigationTimeout: 30_000,
 	},
 	webServer: {
-		command: 'pnpm dev --port 3101',
+		command: 'pnpm build && pnpm start --port 3101',
 		port: 3101,
 		reuseExistingServer: !process.env.CI,
+		timeout: 240_000,
+		env: {
+			DISABLE_RATE_LIMIT: '1',
+		},
 	},
 	projects: [
 		{

@@ -162,4 +162,116 @@ describe('FeedbackBar', () => {
 		const attachButton = container.querySelector('[aria-label="Attach reference"]')
 		expect(attachButton).not.toBeNull()
 	})
+
+	describe('draft persistence', () => {
+		beforeEach(() => {
+			window.sessionStorage.clear()
+		})
+
+		it('saves typed draft to sessionStorage scoped by draftKey', () => {
+			act(() => {
+				root.render(createElement(FeedbackBar, { onSubmit: vi.fn(), draftKey: 'proj-1' }))
+			})
+			const textarea = container.querySelector('textarea') as HTMLTextAreaElement
+			act(() => {
+				const set = Object.getOwnPropertyDescriptor(
+					window.HTMLTextAreaElement.prototype,
+					'value',
+				)?.set
+				set?.call(textarea, 'make the button pink')
+				textarea.dispatchEvent(new Event('change', { bubbles: true }))
+			})
+			expect(window.sessionStorage.getItem('meldar.feedback-draft.proj-1')).toBe(
+				'make the button pink',
+			)
+		})
+
+		it('restores draft on mount when sessionStorage has a value', () => {
+			window.sessionStorage.setItem('meldar.feedback-draft.proj-2', 'change price to 50')
+			act(() => {
+				root.render(createElement(FeedbackBar, { onSubmit: vi.fn(), draftKey: 'proj-2' }))
+			})
+			const textarea = container.querySelector('textarea') as HTMLTextAreaElement
+			expect(textarea.value).toBe('change price to 50')
+		})
+
+		it('clears the draft after a successful submit', async () => {
+			const onSubmit = vi.fn().mockResolvedValue(undefined)
+			act(() => {
+				root.render(createElement(FeedbackBar, { onSubmit, draftKey: 'proj-3' }))
+			})
+			const textarea = container.querySelector('textarea') as HTMLTextAreaElement
+			act(() => {
+				const set = Object.getOwnPropertyDescriptor(
+					window.HTMLTextAreaElement.prototype,
+					'value',
+				)?.set
+				set?.call(textarea, 'add a bigger hero section that takes the full width')
+				textarea.dispatchEvent(new Event('change', { bubbles: true }))
+			})
+			expect(window.sessionStorage.getItem('meldar.feedback-draft.proj-3')).toContain('hero')
+			const send = container.querySelector('[aria-label="Send feedback"]') as HTMLButtonElement
+			await act(async () => {
+				send.click()
+			})
+			await act(async () => {
+				await Promise.resolve()
+			})
+			expect(window.sessionStorage.getItem('meldar.feedback-draft.proj-3')).toBeNull()
+		})
+
+		it('keeps the draft when submit fails', async () => {
+			const onSubmit = vi.fn().mockImplementation(async () => {
+				throw new Error('network')
+			})
+			act(() => {
+				root.render(createElement(FeedbackBar, { onSubmit, draftKey: 'proj-4' }))
+			})
+			const textarea = container.querySelector('textarea') as HTMLTextAreaElement
+			act(() => {
+				const set = Object.getOwnPropertyDescriptor(
+					window.HTMLTextAreaElement.prototype,
+					'value',
+				)?.set
+				set?.call(textarea, 'add a bigger hero section that takes the full width')
+				textarea.dispatchEvent(new Event('change', { bubbles: true }))
+			})
+			const send = container.querySelector('[aria-label="Send feedback"]') as HTMLButtonElement
+			await act(async () => {
+				try {
+					send.click()
+					await Promise.resolve().then(() => Promise.resolve())
+				} catch {
+					/* expected */
+				}
+			})
+			expect(window.sessionStorage.getItem('meldar.feedback-draft.proj-4')).toContain('hero')
+		})
+
+		it('scopes drafts per draftKey (no cross-project bleed)', () => {
+			window.sessionStorage.setItem('meldar.feedback-draft.proj-A', 'A-text')
+			window.sessionStorage.setItem('meldar.feedback-draft.proj-B', 'B-text')
+			act(() => {
+				root.render(createElement(FeedbackBar, { onSubmit: vi.fn(), draftKey: 'proj-A' }))
+			})
+			const textarea = container.querySelector('textarea') as HTMLTextAreaElement
+			expect(textarea.value).toBe('A-text')
+		})
+
+		it('omits persistence entirely when draftKey is not provided', () => {
+			act(() => {
+				root.render(createElement(FeedbackBar, { onSubmit: vi.fn() }))
+			})
+			const textarea = container.querySelector('textarea') as HTMLTextAreaElement
+			act(() => {
+				const set = Object.getOwnPropertyDescriptor(
+					window.HTMLTextAreaElement.prototype,
+					'value',
+				)?.set
+				set?.call(textarea, 'hello')
+				textarea.dispatchEvent(new Event('change', { bubbles: true }))
+			})
+			expect(window.sessionStorage.length).toBe(0)
+		})
+	})
 })

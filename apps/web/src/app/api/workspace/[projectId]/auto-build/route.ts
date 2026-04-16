@@ -1,9 +1,8 @@
-import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@meldar/storage'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { runAutoBuild, sseStreamFromGenerator } from '@/server/build/run-auto-build'
 import { requireAuth } from '@/server/identity/require-auth'
-import { acquirePipelineLock } from '@/server/lib/pipeline-lock'
+import { startPipelineRun } from '@/server/lib/pipeline-lock'
 import { checkRateLimit, mustHaveRateLimit, workspaceBuildLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
@@ -48,27 +47,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	let storage: ReturnType<typeof buildProjectStorageFromEnv>
-	try {
-		storage = buildProjectStorageFromEnv()
-	} catch {
-		storage = buildProjectStorageWithoutR2()
-	}
-	const activeBuildId = await storage.getActiveStreamingBuild(projectId)
-	if (activeBuildId) {
-		return NextResponse.json(
-			{
-				error: {
-					code: 'BUILD_IN_PROGRESS',
-					message: 'Setup is already running for this project.',
-					activeBuildId,
-				},
-			},
-			{ status: 409 },
-		)
-	}
-
-	const lock = await acquirePipelineLock(projectId)
+	const lock = await startPipelineRun(projectId, auth.userId, 'auto')
 	if (!lock.ok) {
 		return NextResponse.json(
 			{

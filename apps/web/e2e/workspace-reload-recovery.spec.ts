@@ -62,7 +62,6 @@ test.describe('Workspace reload recovery', () => {
 	})
 
 	test('reloading mid-setup is not a dead-end — pill or preview recovers', async ({ page }) => {
-		test.setTimeout(180_000)
 		let projectId: string | null = null
 
 		await test.step('sign up + onboard', async () => {
@@ -78,14 +77,14 @@ test.describe('Workspace reload recovery', () => {
 			await page.getByRole('button', { name: /Continue/i }).click()
 			await expect(page.getByText(/put together for you/i)).toBeVisible()
 			await page.getByRole('button', { name: /Let.*go/i }).click()
-			await page.waitForURL('**/workspace/**', { timeout: 30_000 })
+			await page.waitForURL('**/workspace/**')
 			projectId = page.url().match(/\/workspace\/([0-9a-f-]{36})/)?.[1] ?? null
 			expect(projectId).toBeTruthy()
 		})
 
 		await test.step('wait for initial build pill to appear', async () => {
 			const pill = page.getByTestId('build-pill')
-			await expect(pill).toHaveAttribute('data-phase', 'building', { timeout: 45_000 })
+			await expect(pill).toHaveAttribute('data-phase', 'building')
 		})
 
 		await test.step('reload mid-build and verify workspace is NOT permanently stuck', async () => {
@@ -93,14 +92,9 @@ test.describe('Workspace reload recovery', () => {
 			await page.reload()
 			const pill = page.getByTestId('build-pill')
 			const iframe = page.locator('iframe[title="Live preview"]')
-			// After reload the client MUST NOT silently stay on "Setting up your page…"
-			// forever. Either the build resumes (pill 'building'), it completes
-			// (iframe), or it fails (pill 'failed'). Stuck = regression.
 			await Promise.race([
-				expect(pill).toHaveAttribute('data-phase', /building|done|failed/, {
-					timeout: 120_000,
-				}),
-				expect(iframe).toBeVisible({ timeout: 120_000 }),
+				expect(pill).toHaveAttribute('data-phase', /building|done|failed/),
+				expect(iframe).toBeVisible(),
 			])
 		})
 	})

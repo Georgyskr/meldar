@@ -10,6 +10,7 @@ import {
 	usageToCents,
 } from '@meldar/tokens'
 import { z } from 'zod'
+import { composeAbortSignals } from './lib/abort'
 import { type PreviewProbeFetch, probePreviewUrl } from './preview-probe'
 import { BUILD_SYSTEM_PROMPT, buildProjectFilesBlock, buildUserPromptBlock } from './prompts'
 import { LOCKED_STARTER_PATHS } from './starter-files'
@@ -26,6 +27,8 @@ const writeFileInputSchema = z.object({
 	path: z.string().min(1).max(512),
 	content: z.string().max(10 * 1024 * 1024),
 })
+
+const LLM_CALL_SOFT_TIMEOUT_MS = 3 * 60 * 1000
 
 export const previewUrlSchema = z
 	.string()
@@ -169,6 +172,7 @@ export async function* orchestrateBuild(
 		const userPromptBlock = buildUserPromptBlock(request.prompt, request.wishes)
 
 		const anthropicStartedAt = Date.now()
+		const llmSignal = composeAbortSignals([request.signal], LLM_CALL_SOFT_TIMEOUT_MS)
 		const stream = deps.anthropic.messages.stream(
 			{
 				model,
@@ -198,9 +202,14 @@ export async function* orchestrateBuild(
 					},
 				],
 			},
-			request.signal ? { signal: request.signal } : undefined,
+			{ signal: llmSignal.signal },
 		)
-		const response = await stream.finalMessage()
+		let response: Anthropic.Messages.Message
+		try {
+			response = await stream.finalMessage()
+		} finally {
+			llmSignal.dispose()
+		}
 		const anthropicLatencyMs = Date.now() - anthropicStartedAt
 
 		// A non-natural stop means the last tool_use input may be partial JSON —
@@ -225,7 +234,10 @@ export async function* orchestrateBuild(
 				.map((b) => b.text)
 				.join('\n')
 				.slice(0, 500)
-			throw new Error(`Sonnet returned no file writes. Response text: ${textPreview || '<empty>'}`)
+			throw new OrchestratorBuildError(
+				`Sonnet returned no file writes. Response text: ${textPreview || '<empty>'}`,
+				'no_tool_uses',
+			)
 		}
 
 		const validatedFiles: { path: string; content: string }[] = []
@@ -233,7 +245,10 @@ export async function* orchestrateBuild(
 		for (const toolUse of toolUses) {
 			const parsed = writeFileInputSchema.safeParse(toolUse.input)
 			if (!parsed.success) {
-				throw new Error(`tool_use input failed Zod validation: ${parsed.error.message}`)
+				throw new OrchestratorBuildError(
+					`tool_use input failed Zod validation: ${parsed.error.message}`,
+					'tool_input_invalid',
+				)
 			}
 			const file = parsed.data
 
@@ -256,7 +271,10 @@ export async function* orchestrateBuild(
 		}
 
 		if (validatedFiles.length === 0) {
-			throw new Error('Sonnet returned no writable file writes (all targeted locked paths)')
+			throw new OrchestratorBuildError(
+				'Sonnet returned no writable file writes (all targeted locked paths)',
+				'all_locked_paths',
+			)
 		}
 
 		const existingPaths = new Set(currentFiles.map((f) => f.path))
@@ -268,6 +286,11 @@ export async function* orchestrateBuild(
 			console.error(
 				`[orchestrator] [project=${request.projectId} build=${buildId}] validation failed, attempting self-repair:\n${errorSummary}`,
 			)
+			yield {
+				type: 'repair_started',
+				errorCount: validation.errors.length,
+				affectedPaths: validation.errors.map((e) => e.path),
+			}
 
 			const errorsByPath = new Map(validation.errors.map((e) => [e.path, e.message]))
 			const allPriorToolUses = response.content.filter(
@@ -301,39 +324,44 @@ export async function* orchestrateBuild(
 			)
 
 			const repairStartedAt = Date.now()
-			repairResponse = await deps.anthropic.messages
-				.stream(
-					{
-						model,
-						max_tokens: MAX_OUTPUT_TOKENS_PER_BUILD,
-						system: [
-							{ type: 'text', text: BUILD_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
-						],
-						tools: [WRITE_FILE_TOOL],
-						messages: [
-							{
-								role: 'user',
-								content: [
-									{ type: 'text', text: projectFilesBlock, cache_control: { type: 'ephemeral' } },
-									{ type: 'text', text: userPromptBlock },
-								],
-							},
-							{ role: 'assistant', content: response.content },
-							{
-								role: 'user',
-								content: [
-									...toolResultBlocks,
-									{
-										type: 'text',
-										text: `Fix ONLY the errors flagged in the tool_results above. Do not rewrite files that returned "ok".`,
-									},
-								],
-							},
-						],
-					},
-					request.signal ? { signal: request.signal } : undefined,
-				)
-				.finalMessage()
+			const repairLlmSignal = composeAbortSignals([request.signal], LLM_CALL_SOFT_TIMEOUT_MS)
+			try {
+				repairResponse = await deps.anthropic.messages
+					.stream(
+						{
+							model,
+							max_tokens: MAX_OUTPUT_TOKENS_PER_BUILD,
+							system: [
+								{ type: 'text', text: BUILD_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+							],
+							tools: [WRITE_FILE_TOOL],
+							messages: [
+								{
+									role: 'user',
+									content: [
+										{ type: 'text', text: projectFilesBlock, cache_control: { type: 'ephemeral' } },
+										{ type: 'text', text: userPromptBlock },
+									],
+								},
+								{ role: 'assistant', content: response.content },
+								{
+									role: 'user',
+									content: [
+										...toolResultBlocks,
+										{
+											type: 'text',
+											text: `Fix ONLY the errors flagged in the tool_results above. Do not rewrite files that returned "ok".`,
+										},
+									],
+								},
+							],
+						},
+						{ signal: repairLlmSignal.signal },
+					)
+					.finalMessage()
+			} finally {
+				repairLlmSignal.dispose()
+			}
 			repairLatencyMs = Date.now() - repairStartedAt
 
 			if (repairResponse.stop_reason !== 'end_turn' && repairResponse.stop_reason !== 'tool_use') {
@@ -374,6 +402,7 @@ export async function* orchestrateBuild(
 				console.error(
 					`[orchestrator] [project=${request.projectId} build=${buildId}] repair failed: ${detail}`,
 				)
+				yield { type: 'repair_failed', reason: detail, code: 'validation_failed' }
 				throw new OrchestratorBuildError(
 					"Meldar couldn't finish this step. The code had issues — trying a different approach usually fixes it.",
 					'validation_failed',
@@ -382,6 +411,7 @@ export async function* orchestrateBuild(
 			console.log(
 				`[orchestrator] [project=${request.projectId} build=${buildId}] self-repair succeeded`,
 			)
+			yield { type: 'repair_succeeded', filesRewritten: validatedFiles.length }
 		}
 
 		const repairUsage = repairResponse?.usage
@@ -579,11 +609,6 @@ export async function* orchestrateBuild(
 			kanbanCardId: request.kanbanCardId,
 		}
 	} finally {
-		// Covers the stream-cancel path: `ReadableStream.cancel()` calls
-		// `generator.return()`, which resumes the try block at the current yield
-		// and skips the catch above. Without this finally the `builds` row stays
-		// `status='streaming'` until the 30-min reaper cron fires — blocking every
-		// new build via the `ux_builds_project_streaming` partial unique index.
 		if (buildContext && !terminated) {
 			await buildContext.fail('stream_cancelled').catch(() => undefined)
 		}

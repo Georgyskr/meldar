@@ -202,8 +202,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Run Playwright E2E
-        run: pnpm --filter @meldar/web exec playwright test e2e/core-flow.spec.ts
+      - name: Run Playwright E2E (default suite — excludes @nightly)
+        run: pnpm --filter @meldar/web run test:e2e
 
       - name: Upload test artifacts on failure
         if: failure()

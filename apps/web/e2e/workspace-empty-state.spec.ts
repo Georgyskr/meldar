@@ -13,15 +13,6 @@ async function createOrGetProject(request: APIRequestContext): Promise<string> {
 }
 
 test.describe('Workspace empty state', () => {
-	test('new empty project renders onboarding chat', async ({ page, request }) => {
-		const projectId = await createOrGetProject(request)
-
-		await page.goto(`/workspace/${projectId}`)
-
-		await expect(page.getByText(/what are you making/i)).toBeVisible()
-		await expect(page.getByText(/rough is fine/i)).toBeVisible()
-	})
-
 	test('empty workspace is not a blank screen', async ({ page, request }) => {
 		const projectId = await createOrGetProject(request)
 
@@ -31,25 +22,12 @@ test.describe('Workspace empty state', () => {
 		expect(bodyText.length).toBeGreaterThan(100)
 	})
 
-	test('template chips are visible in onboarding chat', async ({ page, request }) => {
-		const projectId = await createOrGetProject(request)
-
-		await page.goto(`/workspace/${projectId}`)
-		await expect(page.getByText(/what are you making/i)).toBeVisible()
-
-		await expect(page.getByRole('button', { name: /gym tracker/i })).toBeVisible()
-		await expect(page.getByRole('button', { name: /habit tracker/i })).toBeVisible()
-	})
-
-	test('skip-onboarding param shows template picker', async ({ page, request }) => {
+	test('skip-onboarding param does not surface onboarding copy', async ({ page, request }) => {
 		const projectId = await createOrGetProject(request)
 
 		await page.goto(`/workspace/${projectId}?skip-onboarding=1`)
 
 		const bodyText = (await page.textContent('body')) ?? ''
-		const hasCards = bodyText.includes('Your plan') || bodyText.includes('of')
-		if (!hasCards) {
-			await expect(page.getByText(/pick a template|start building/i)).toBeVisible()
-		}
+		expect(bodyText).not.toMatch(/what are you making/i)
 	})
 })

@@ -1,27 +1,27 @@
 'use client'
 
 import { Box, Flex } from '@styled-system/jsx'
+import type { PipelinePhase } from '@/features/workspace'
 import { Text } from '@/shared/ui'
 import { gradientButton } from './glass-styles'
 
 export function GlassPlanFooter({
 	totalCards,
 	buildsCompleted,
-	pipelineActive,
-	currentCardIndex,
+	phase,
 	onStartBuild,
 }: {
 	readonly totalCards: number
 	readonly buildsCompleted: number
-	readonly pipelineActive: boolean
-	readonly currentCardIndex: number | null
+	readonly phase: PipelinePhase
 	readonly onStartBuild: () => void
 }) {
-	if (pipelineActive && currentCardIndex !== null) {
+	if (phase.kind === 'building' && phase.cardIndex !== null && phase.totalCards !== null) {
+		const pct = ((phase.cardIndex + 1) / phase.totalCards) * 100
 		return (
 			<Box paddingBlock="6" paddingInline="4" textAlign="center">
 				<Text textStyle="secondary.sm" color="onSurfaceVariant">
-					Building step {currentCardIndex + 1} of {totalCards}...
+					Building step {phase.cardIndex + 1} of {phase.totalCards}...
 				</Text>
 				<Box
 					marginBlockStart="3"
@@ -35,9 +35,19 @@ export function GlassPlanFooter({
 						borderRadius="full"
 						background="linear-gradient(135deg, #623153 0%, #FFB876 100%)"
 						transition="width 0.5s ease"
-						style={{ width: `${((currentCardIndex + 1) / totalCards) * 100}%` }}
+						style={{ width: `${pct}%` }}
 					/>
 				</Box>
+			</Box>
+		)
+	}
+
+	if (phase.kind === 'deploying') {
+		return (
+			<Box paddingBlock="6" paddingInline="4" textAlign="center">
+				<Text textStyle="secondary.sm" color="onSurfaceVariant">
+					Deploying to {phase.hostname}...
+				</Text>
 			</Box>
 		)
 	}

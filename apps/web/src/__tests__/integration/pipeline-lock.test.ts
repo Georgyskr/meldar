@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
-	acquirePipelineLock,
-	isPipelineActive,
-	releasePipelineLock,
+	endPipelineRun,
+	findActivePipelineRun,
+	heartbeatPipelineRun,
+	startPipelineRun,
 } from '@/server/lib/pipeline-lock'
 import {
 	cleanupTestProject,
@@ -12,7 +13,7 @@ import {
 	HAS_DATABASE,
 } from './setup'
 
-describe.skipIf(!HAS_DATABASE)('pipeline-lock', () => {
+describe.skipIf(!HAS_DATABASE)('pipeline-lock (pipeline_runs table)', () => {
 	let userId: string
 	let projectId: string
 
@@ -28,62 +29,64 @@ describe.skipIf(!HAS_DATABASE)('pipeline-lock', () => {
 		await cleanupTestUser(userId)
 	})
 
-	it('first acquire succeeds; second acquire on same project fails with pipeline_active', async () => {
-		const a = await acquirePipelineLock(projectId)
+	it('first startPipelineRun succeeds; second on same project returns pipeline_active', async () => {
+		const a = await startPipelineRun(projectId, userId, 'auto')
 		expect(a.ok).toBe(true)
 
-		const b = await acquirePipelineLock(projectId)
+		const b = await startPipelineRun(projectId, userId, 'single')
 		expect(b.ok).toBe(false)
 		if (!b.ok) expect(b.reason).toBe('pipeline_active')
 
-		if (a.ok) await releasePipelineLock(projectId, a.pipelineId)
+		if (a.ok) await endPipelineRun(a.pipelineId, 'succeeded')
 	})
 
-	it('after release, a new acquire succeeds', async () => {
-		const a = await acquirePipelineLock(projectId)
+	it('after endPipelineRun, a new startPipelineRun succeeds', async () => {
+		const a = await startPipelineRun(projectId, userId, 'auto')
 		expect(a.ok).toBe(true)
-		if (a.ok) await releasePipelineLock(projectId, a.pipelineId)
+		if (a.ok) await endPipelineRun(a.pipelineId, 'succeeded')
 
-		const b = await acquirePipelineLock(projectId)
+		const b = await startPipelineRun(projectId, userId, 'auto')
 		expect(b.ok).toBe(true)
-		if (b.ok) await releasePipelineLock(projectId, b.pipelineId)
+		if (b.ok) await endPipelineRun(b.pipelineId, 'succeeded')
 	})
 
-	it('isPipelineActive reflects the lock state', async () => {
-		expect(await isPipelineActive(projectId)).toBe(false)
+	it('findActivePipelineRun reflects the lock state', async () => {
+		expect(await findActivePipelineRun(projectId)).toBeNull()
 
-		const a = await acquirePipelineLock(projectId)
+		const a = await startPipelineRun(projectId, userId, 'auto')
 		expect(a.ok).toBe(true)
-		expect(await isPipelineActive(projectId)).toBe(true)
+		const active = await findActivePipelineRun(projectId)
+		expect(active).not.toBeNull()
+		expect(active?.state).toBe('running')
+		expect(active?.kind).toBe('auto')
 
-		if (a.ok) await releasePipelineLock(projectId, a.pipelineId)
-		expect(await isPipelineActive(projectId)).toBe(false)
+		if (a.ok) await endPipelineRun(a.pipelineId, 'succeeded')
+		expect(await findActivePipelineRun(projectId)).toBeNull()
 	})
 
-	it('release with wrong pipelineId is a no-op (does not unlock another holder)', async () => {
-		const a = await acquirePipelineLock(projectId)
+	it('endPipelineRun on already-terminal run is a no-op (idempotent)', async () => {
+		const a = await startPipelineRun(projectId, userId, 'auto')
 		expect(a.ok).toBe(true)
-
-		await releasePipelineLock(projectId, '00000000-0000-0000-0000-000000000000')
-		expect(await isPipelineActive(projectId)).toBe(true)
-
-		if (a.ok) await releasePipelineLock(projectId, a.pipelineId)
+		if (!a.ok) return
+		await endPipelineRun(a.pipelineId, 'succeeded')
+		await endPipelineRun(a.pipelineId, 'failed', { errorCode: 'nope' })
+		// second call must not resurrect the run or change error_code
+		expect(await findActivePipelineRun(projectId)).toBeNull()
 	})
 
 	it('returns project_not_found for a nonexistent project', async () => {
-		const result = await acquirePipelineLock('00000000-0000-0000-0000-000000000000')
+		const result = await startPipelineRun('00000000-0000-0000-0000-000000000000', userId, 'auto')
 		expect(result.ok).toBe(false)
 		if (!result.ok) expect(result.reason).toBe('project_not_found')
 	})
 
-	it('two concurrent acquires: only one wins', async () => {
-		// Make sure no lock is held first.
-		const a = await acquirePipelineLock(projectId)
-		if (a.ok) await releasePipelineLock(projectId, a.pipelineId)
+	it('two concurrent startPipelineRun: only one wins', async () => {
+		const existing = await findActivePipelineRun(projectId)
+		if (existing) await endPipelineRun(existing.id, 'succeeded')
 
 		const [r1, r2] = await Promise.all([
-			acquirePipelineLock(projectId),
-			acquirePipelineLock(projectId),
+			startPipelineRun(projectId, userId, 'auto'),
+			startPipelineRun(projectId, userId, 'auto'),
 		])
 		const wins = [r1, r2].filter((r) => r.ok)
 		const losses = [r1, r2].filter((r) => !r.ok)
@@ -91,6 +94,18 @@ describe.skipIf(!HAS_DATABASE)('pipeline-lock', () => {
 		expect(losses).toHaveLength(1)
 
 		const winner = wins[0]
-		if (winner?.ok) await releasePipelineLock(projectId, winner.pipelineId)
+		if (winner?.ok) await endPipelineRun(winner.pipelineId, 'succeeded')
+	})
+
+	it('heartbeat keeps the run alive', async () => {
+		const a = await startPipelineRun(projectId, userId, 'auto')
+		expect(a.ok).toBe(true)
+		if (!a.ok) return
+
+		await heartbeatPipelineRun(a.pipelineId)
+		const active = await findActivePipelineRun(projectId)
+		expect(active?.id).toBe(a.pipelineId)
+
+		await endPipelineRun(a.pipelineId, 'succeeded')
 	})
 })

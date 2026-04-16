@@ -11,6 +11,7 @@ export {
 	orchestrateBuild,
 	previewUrlSchema,
 } from './engine'
+export { type ComposedSignal, composeAbortSignals } from './lib/abort'
 export { routeModel } from './model-routing'
 export {
 	BUILD_SYSTEM_PROMPT,

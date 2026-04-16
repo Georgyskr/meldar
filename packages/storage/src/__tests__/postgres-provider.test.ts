@@ -179,6 +179,7 @@ describe('PostgresProjectStorage — query shape', () => {
 				{
 					id: 'fake_build',
 					projectId: 'fake_project',
+					pipelineRunId: null,
 					parentBuildId: null,
 					status: 'completed',
 					triggeredBy: 'kanban_card',
@@ -220,6 +221,7 @@ describe('PostgresProjectStorage — query shape', () => {
 				{
 					id: 'fake_build',
 					projectId: 'fake_project',
+					pipelineRunId: null,
 					parentBuildId: null,
 					status: 'failed',
 					triggeredBy: 'kanban_card',

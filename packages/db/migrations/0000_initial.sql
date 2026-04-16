@@ -75,6 +75,7 @@ CREATE TABLE "build_files" (
 CREATE TABLE "builds" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"project_id" uuid NOT NULL,
+	"pipeline_run_id" uuid,
 	"parent_build_id" uuid,
 	"status" text NOT NULL,
 	"triggered_by" text NOT NULL,
@@ -169,6 +170,32 @@ CREATE TABLE "kanban_cards" (
 	CONSTRAINT "kanban_cards_generated_by_valid" CHECK ("kanban_cards"."generated_by" IN ('template', 'haiku', 'user'))
 );
 --> statement-breakpoint
+CREATE TABLE "pipeline_events" (
+	"run_id" uuid NOT NULL,
+	"seq" integer NOT NULL,
+	"type" text NOT NULL,
+	"payload" jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "pipeline_events_run_id_seq_pk" PRIMARY KEY("run_id","seq")
+);
+--> statement-breakpoint
+CREATE TABLE "pipeline_runs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"project_id" uuid NOT NULL,
+	"user_id" uuid NOT NULL,
+	"kind" text NOT NULL,
+	"state" text DEFAULT 'running' NOT NULL,
+	"started_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"heartbeat_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"ended_at" timestamp with time zone,
+	"current_card_id" uuid,
+	"total_cards" integer,
+	"error_code" text,
+	"error_reason" text,
+	CONSTRAINT "pipeline_runs_state_valid" CHECK ("pipeline_runs"."state" IN ('running', 'deploying', 'succeeded', 'failed', 'cancelled')),
+	CONSTRAINT "pipeline_runs_kind_valid" CHECK ("pipeline_runs"."kind" IN ('single', 'auto'))
+);
+--> statement-breakpoint
 CREATE TABLE "project_domains" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"project_id" uuid NOT NULL,
@@ -212,8 +239,6 @@ CREATE TABLE "projects" (
 	"preview_url" text,
 	"preview_url_updated_at" timestamp with time zone,
 	"wishes" jsonb,
-	"pipeline_active_at" timestamp with time zone,
-	"pipeline_active_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
@@ -288,9 +313,13 @@ ALTER TABLE "ai_call_log" ADD CONSTRAINT "ai_call_log_user_id_users_id_fk" FOREI
 ALTER TABLE "audit_orders" ADD CONSTRAINT "audit_orders_xray_id_xray_results_id_fk" FOREIGN KEY ("xray_id") REFERENCES "public"."xray_results"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "build_files" ADD CONSTRAINT "build_files_build_id_builds_id_fk" FOREIGN KEY ("build_id") REFERENCES "public"."builds"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "builds" ADD CONSTRAINT "builds_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "builds" ADD CONSTRAINT "builds_pipeline_run_id_pipeline_runs_id_fk" FOREIGN KEY ("pipeline_run_id") REFERENCES "public"."pipeline_runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "deployment_log" ADD CONSTRAINT "deployment_log_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "discovery_sessions" ADD CONSTRAINT "discovery_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "kanban_cards" ADD CONSTRAINT "kanban_cards_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "pipeline_events" ADD CONSTRAINT "pipeline_events_run_id_pipeline_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."pipeline_runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "pipeline_runs" ADD CONSTRAINT "pipeline_runs_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "pipeline_runs" ADD CONSTRAINT "pipeline_runs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project_domains" ADD CONSTRAINT "project_domains_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project_files" ADD CONSTRAINT "project_files_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "projects" ADD CONSTRAINT "projects_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -309,12 +338,16 @@ CREATE INDEX "idx_build_files_content_hash" ON "build_files" USING btree ("conte
 CREATE INDEX "idx_builds_project_created" ON "builds" USING btree ("project_id","created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "idx_builds_project_status" ON "builds" USING btree ("project_id","status") WHERE "builds"."status" IN ('streaming', 'failed');--> statement-breakpoint
 CREATE INDEX "idx_builds_project_streaming_created" ON "builds" USING btree ("project_id","created_at" DESC NULLS LAST) WHERE "builds"."status" = 'streaming';--> statement-breakpoint
+CREATE INDEX "idx_builds_pipeline_run" ON "builds" USING btree ("pipeline_run_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "ux_builds_project_streaming" ON "builds" USING btree ("project_id") WHERE "builds"."status" = 'streaming';--> statement-breakpoint
 CREATE INDEX "idx_deployment_log_user_created" ON "deployment_log" USING btree ("user_id","created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "idx_deployment_log_project_created" ON "deployment_log" USING btree ("project_id","created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "idx_deployment_log_status_created" ON "deployment_log" USING btree ("status","created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "idx_discovery_user_id" ON "discovery_sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "idx_kanban_cards_project_parent_position" ON "kanban_cards" USING btree ("project_id","parent_id","position");--> statement-breakpoint
+CREATE UNIQUE INDEX "ux_pipeline_runs_project_active" ON "pipeline_runs" USING btree ("project_id") WHERE "pipeline_runs"."state" IN ('running', 'deploying');--> statement-breakpoint
+CREATE INDEX "idx_pipeline_runs_project_started" ON "pipeline_runs" USING btree ("project_id","started_at" DESC NULLS LAST);--> statement-breakpoint
+CREATE INDEX "idx_pipeline_runs_heartbeat" ON "pipeline_runs" USING btree ("heartbeat_at") WHERE "pipeline_runs"."state" IN ('running', 'deploying');--> statement-breakpoint
 CREATE INDEX "idx_project_domains_project" ON "project_domains" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_project_domains_state" ON "project_domains" USING btree ("state") WHERE "project_domains"."state" NOT IN ('active', 'expired');--> statement-breakpoint
 CREATE UNIQUE INDEX "ux_project_files_project_path" ON "project_files" USING btree ("project_id","path") WHERE "project_files"."deleted_at" IS NULL;--> statement-breakpoint
@@ -322,7 +355,7 @@ CREATE INDEX "idx_project_files_project_active" ON "project_files" USING btree (
 CREATE INDEX "idx_project_files_content_hash" ON "project_files" USING btree ("content_hash");--> statement-breakpoint
 CREATE INDEX "idx_projects_user_lastbuild" ON "projects" USING btree ("user_id","last_build_at" DESC NULLS LAST) WHERE "projects"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_projects_current_build" ON "projects" USING btree ("current_build_id") WHERE "projects"."current_build_id" IS NOT NULL;--> statement-breakpoint
-CREATE INDEX "idx_projects_pipeline_active" ON "projects" USING btree ("id") WHERE "projects"."pipeline_active_at" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "idx_token_transactions_user_created" ON "token_transactions" USING btree ("user_id","created_at" DESC NULLS LAST);--> statement-breakpoint
-CREATE INDEX "idx_users_created_at" ON "users" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "idx_users_created_at" ON "users" USING btree ("created_at");
+--> statement-breakpoint
 ALTER TABLE "builds" ADD CONSTRAINT "builds_parent_build_id_fkey" FOREIGN KEY ("parent_build_id") REFERENCES "builds"("id") ON DELETE SET NULL;

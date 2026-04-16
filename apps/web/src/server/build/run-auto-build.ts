@@ -2,6 +2,7 @@ import { getDb } from '@meldar/db/client'
 import { kanbanCards, projects } from '@meldar/db/schema'
 import {
 	buildOrchestratorDeps,
+	composeAbortSignals,
 	type OrchestratorEvent,
 	orchestrateBuild,
 	resolveWishes,
@@ -11,7 +12,12 @@ import {
 import { and, eq, inArray } from 'drizzle-orm'
 import { guardedDeployCall } from '@/server/deploy/guarded-deploy-call'
 import { recordAiCall } from '@/server/lib/ai-call-log'
-import { releasePipelineLock } from '@/server/lib/pipeline-lock'
+import { appendPipelineEvent } from '@/server/lib/pipeline-event-log'
+import {
+	endPipelineRun,
+	heartbeatPipelineRun,
+	transitionToDeploying,
+} from '@/server/lib/pipeline-lock'
 import { createSpendGuardForUser } from '@/server/lib/spend-ceiling'
 import { sseStreamFromGenerator } from './run-build'
 
@@ -22,15 +28,81 @@ export type RunAutoBuildInput = {
 	readonly signal?: AbortSignal
 }
 
+import { PIPELINE_HEARTBEAT_INTERVAL_MS, PIPELINE_SOFT_DEADLINE_MS } from './timing'
+
+const HEARTBEAT_INTERVAL_MS = PIPELINE_HEARTBEAT_INTERVAL_MS
+
 export async function* runAutoBuild(
 	input: RunAutoBuildInput,
 ): AsyncGenerator<OrchestratorEvent, void, unknown> {
+	let heartbeat: ReturnType<typeof setInterval> | null = null
+	const pipelineId = input.pipelineId
+	if (pipelineId) {
+		heartbeat = setInterval(() => {
+			void heartbeatPipelineRun(pipelineId).catch((err) => {
+				console.error('[run-auto-build] heartbeat failed', err)
+			})
+		}, HEARTBEAT_INTERVAL_MS)
+	}
+
+	// Fire 20s before Vercel's 300s SIGKILL so the finally block below runs
+	// to completion — releases lock, writes terminal state. setTimeout + JS
+	// finally both die with SIGKILL, so reclaim-cron is the backup safety net.
+	const composed = composeAbortSignals([input.signal], PIPELINE_SOFT_DEADLINE_MS)
+
+	let terminalState: 'succeeded' | 'failed' | 'cancelled' = 'cancelled'
 	try {
-		yield* runAutoBuildInner(input)
+		for await (const event of runAutoBuildInner({ ...input, signal: composed.signal })) {
+			if (composed.signal.aborted) {
+				terminalState = 'failed'
+				yield {
+					type: 'pipeline_failed',
+					reason: 'pipeline exceeded soft deadline before completion',
+					cardId: 'deadline',
+				}
+				break
+			}
+			if (pipelineId) {
+				if (event.type === 'deploying') {
+					await transitionToDeploying(pipelineId).catch((err) => {
+						console.error('[run-auto-build] transitionToDeploying failed', err)
+					})
+				}
+				let seq: number | null = null
+				try {
+					seq = await appendPipelineEvent({
+						runId: pipelineId,
+						type: event.type,
+						payload: event,
+					})
+				} catch (err) {
+					console.error('[run-auto-build] appendPipelineEvent failed', err)
+					terminalState = 'failed'
+					yield {
+						type: 'pipeline_failed',
+						reason: 'event log unavailable',
+						cardId: 'unknown',
+					}
+					return
+				}
+				const yielded = { ...event, seq }
+				if (event.type === 'deployed') terminalState = 'succeeded'
+				else if (event.type === 'deploy_failed' || event.type === 'pipeline_failed')
+					terminalState = 'failed'
+				yield yielded
+				continue
+			}
+			if (event.type === 'deployed') terminalState = 'succeeded'
+			else if (event.type === 'deploy_failed' || event.type === 'pipeline_failed')
+				terminalState = 'failed'
+			yield event
+		}
 	} finally {
-		if (input.pipelineId) {
-			await releasePipelineLock(input.projectId, input.pipelineId).catch((err) => {
-				console.error('[run-auto-build] releasePipelineLock failed', err)
+		if (heartbeat) clearInterval(heartbeat)
+		composed.dispose()
+		if (pipelineId) {
+			await endPipelineRun(pipelineId, terminalState).catch((err) => {
+				console.error('[run-auto-build] endPipelineRun failed', err)
 			})
 		}
 	}

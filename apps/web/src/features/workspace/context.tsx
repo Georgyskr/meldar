@@ -57,7 +57,8 @@ export type WorkspaceBuildState = {
 	readonly lastBuildId: string | null
 	readonly currentCardIndex: number | null
 	readonly totalCards: number | null
-	readonly pipelineActive: boolean
+	readonly lastEventSeq: number
+	readonly pipelineStarting: boolean
 }
 
 export type WorkspaceUiAction =
@@ -65,7 +66,7 @@ export type WorkspaceUiAction =
 	| { type: 'ui/clearSelection' }
 	| { type: 'ui/openChat' }
 	| { type: 'ui/closeChat' }
-	| { type: 'ui/pipelineKick' }
+	| { type: 'ui/pipelineStarting' }
 
 export type WorkspaceBuildInit = {
 	readonly initialPreviewUrl: string | null
@@ -92,8 +93,49 @@ export function workspaceBuildInitialState(init: WorkspaceBuildInit): WorkspaceB
 		lastBuildId: null,
 		currentCardIndex: null,
 		totalCards: null,
-		pipelineActive: false,
+		lastEventSeq: 0,
+		pipelineStarting: false,
 	}
+}
+
+export type PipelinePhase =
+	| { readonly kind: 'idle' }
+	| {
+			readonly kind: 'building'
+			readonly cardId: string
+			readonly cardIndex: number | null
+			readonly totalCards: number | null
+	  }
+	| { readonly kind: 'deploying'; readonly slug: string; readonly hostname: string }
+	| { readonly kind: 'deployed'; readonly url: string; readonly at: number }
+	| { readonly kind: 'failed'; readonly reason: string; readonly code?: string }
+
+export function derivePipelinePhase(state: WorkspaceBuildState): PipelinePhase {
+	if (state.deployment.type === 'deploying') {
+		return { kind: 'deploying', slug: state.deployment.slug, hostname: state.deployment.hostname }
+	}
+	if (state.deployment.type === 'failed') {
+		return { kind: 'failed', reason: state.deployment.reason, code: state.deployment.code }
+	}
+	if (
+		state.activeBuildCardId !== null ||
+		state.currentCardIndex !== null ||
+		state.pipelineStarting
+	) {
+		return {
+			kind: 'building',
+			cardId: state.activeBuildCardId ?? '',
+			cardIndex: state.currentCardIndex,
+			totalCards: state.totalCards,
+		}
+	}
+	if (state.failureMessage !== null) {
+		return { kind: 'failed', reason: state.failureMessage }
+	}
+	if (state.deployment.type === 'deployed') {
+		return { kind: 'deployed', url: state.deployment.url, at: state.deployment.deployedAt }
+	}
+	return { kind: 'idle' }
 }
 
 export function deriveWorkspaceMode(state: WorkspaceBuildState): WorkspaceMode {
@@ -137,7 +179,7 @@ function isUiAction(action: WorkspaceAction): action is WorkspaceUiAction {
 		action.type === 'ui/clearSelection' ||
 		action.type === 'ui/openChat' ||
 		action.type === 'ui/closeChat' ||
-		action.type === 'ui/pipelineKick'
+		action.type === 'ui/pipelineStarting'
 	)
 }
 
@@ -155,11 +197,35 @@ export function workspaceBuildReducer(
 				return { ...state, chatOpen: true }
 			case 'ui/closeChat':
 				return { ...state, chatOpen: false }
-			case 'ui/pipelineKick':
-				return { ...state, pipelineActive: true }
+			case 'ui/pipelineStarting':
+				return { ...state, pipelineStarting: true, failureMessage: null }
 		}
 	}
 
+	const actionSeq = (action as { seq?: number }).seq
+	if (typeof actionSeq === 'number' && actionSeq <= state.lastEventSeq) {
+		return state
+	}
+	const nextSeqState = typeof actionSeq === 'number' ? { ...state, lastEventSeq: actionSeq } : state
+
+	const result = applyOrchestratorEvent(nextSeqState, action)
+	return result
+
+	function applyOrchestratorEvent(
+		current: WorkspaceBuildState,
+		ev: OrchestratorEvent,
+	): WorkspaceBuildState {
+		return orchestratorEventReducer(current, ev)
+	}
+}
+
+function orchestratorEventReducer(
+	inputState: WorkspaceBuildState,
+	action: OrchestratorEvent,
+): WorkspaceBuildState {
+	const state = inputState.pipelineStarting
+		? { ...inputState, pipelineStarting: false }
+		: inputState
 	switch (action.type) {
 		case 'started':
 			return {
@@ -208,6 +274,8 @@ export function workspaceBuildReducer(
 					blockedReason: action.reason,
 				}),
 				activeBuildCardId: null,
+				currentCardIndex: null,
+				totalCards: null,
 				failureMessage: action.reason,
 			}
 		case 'deploying':
@@ -228,7 +296,8 @@ export function workspaceBuildReducer(
 					url: action.url,
 					deployedAt: Date.now(),
 				},
-				pipelineActive: false,
+				currentCardIndex: null,
+				totalCards: null,
 			}
 		case 'deploy_failed':
 			console.error(`[deploy] failed: code=${action.code} reason=${action.reason}`)
@@ -239,25 +308,17 @@ export function workspaceBuildReducer(
 					reason: action.reason,
 					code: action.code,
 				},
-				pipelineActive: false,
+				currentCardIndex: null,
+				totalCards: null,
 			}
 		case 'card_started':
 			return {
 				...state,
 				currentCardIndex: action.cardIndex,
 				totalCards: action.totalCards,
-				pipelineActive: true,
+				activeBuildCardId: action.cardId,
+				failureMessage: null,
 				cards: updateCardState(state.cards, action.cardId, 'building'),
-			}
-		case 'pipeline_complete':
-			// Keep pipelineActive=true through the deploy phase. Only `deployed`
-			// or `deploy_failed` flips it off. If the server emits no deploy
-			// events (legacy flow), the component will still see the generator
-			// close and can surface a stale-pipeline state via other signals.
-			return {
-				...state,
-				currentCardIndex: null,
-				totalCards: null,
 			}
 		case 'pipeline_failed':
 			return {
@@ -268,7 +329,6 @@ export function workspaceBuildReducer(
 				activeBuildCardId: null,
 				currentCardIndex: null,
 				totalCards: null,
-				pipelineActive: false,
 				failureMessage: action.reason,
 			}
 		default:
@@ -305,7 +365,7 @@ type WorkspaceBuildContextValue = WorkspaceBuildState & {
 	readonly clearSelection: () => void
 	readonly openChat: () => void
 	readonly closeChat: () => void
-	readonly kickPipeline: () => void
+	readonly markPipelineStarting: () => void
 }
 
 const Ctx = createContext<WorkspaceBuildContextValue | null>(null)
@@ -362,7 +422,7 @@ export function WorkspaceBuildProvider({
 	const clearSelection = useCallback(() => dispatch({ type: 'ui/clearSelection' }), [])
 	const openChat = useCallback(() => dispatch({ type: 'ui/openChat' }), [])
 	const closeChat = useCallback(() => dispatch({ type: 'ui/closeChat' }), [])
-	const kickPipeline = useCallback(() => dispatch({ type: 'ui/pipelineKick' }), [])
+	const markPipelineStarting = useCallback(() => dispatch({ type: 'ui/pipelineStarting' }), [])
 
 	const mode = useMemo(() => deriveWorkspaceMode(state), [state])
 
@@ -375,9 +435,9 @@ export function WorkspaceBuildProvider({
 			clearSelection,
 			openChat,
 			closeChat,
-			kickPipeline,
+			markPipelineStarting,
 		}),
-		[state, mode, publish, selectTask, clearSelection, openChat, closeChat, kickPipeline],
+		[state, mode, publish, selectTask, clearSelection, openChat, closeChat, markPipelineStarting],
 	)
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

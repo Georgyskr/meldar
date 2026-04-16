@@ -15,6 +15,28 @@ type Props = {
 	readonly onSubmit: (request: FeedbackRequest) => Promise<void>
 	readonly disabled?: boolean
 	readonly disabledReason?: string
+	readonly draftKey?: string
+}
+
+const DRAFT_STORAGE_PREFIX = 'meldar.feedback-draft.'
+
+function readDraft(key: string | undefined): string {
+	if (!key || typeof window === 'undefined') return ''
+	try {
+		return window.sessionStorage.getItem(DRAFT_STORAGE_PREFIX + key) ?? ''
+	} catch {
+		return ''
+	}
+}
+
+function writeDraft(key: string | undefined, value: string): void {
+	if (!key || typeof window === 'undefined') return
+	try {
+		if (value.length === 0) window.sessionStorage.removeItem(DRAFT_STORAGE_PREFIX + key)
+		else window.sessionStorage.setItem(DRAFT_STORAGE_PREFIX + key, value)
+	} catch {
+		/* quota exceeded / private mode — drop silently */
+	}
 }
 
 const STITCH_KEYWORDS = [
@@ -51,8 +73,8 @@ function getSuggestionChips(): string[] {
 	return SHORT_INSTRUCTION_SUGGESTIONS.default
 }
 
-export function FeedbackBar({ onSubmit, disabled = false, disabledReason }: Props) {
-	const [instruction, setInstruction] = useState('')
+export function FeedbackBar({ onSubmit, disabled = false, disabledReason, draftKey }: Props) {
+	const [instruction, setInstruction] = useState(() => readDraft(draftKey))
 	const [referenceUrl, setReferenceUrl] = useState('')
 	const [referenceImage, setReferenceImage] = useState<File | null>(null)
 	const [showAttach, setShowAttach] = useState(false)
@@ -71,11 +93,13 @@ export function FeedbackBar({ onSubmit, disabled = false, disabledReason }: Prop
 
 	const handleTextareaChange = useCallback(
 		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-			setInstruction(e.target.value)
+			const value = e.target.value
+			setInstruction(value)
+			writeDraft(draftKey, value)
 			setShowChips(false)
 			autoResize()
 		},
-		[autoResize],
+		[autoResize, draftKey],
 	)
 
 	const handleChipClick = useCallback(
@@ -106,16 +130,28 @@ export function FeedbackBar({ onSubmit, disabled = false, disabledReason }: Prop
 				referenceImage: referenceImage ?? undefined,
 			})
 			setInstruction('')
+			writeDraft(draftKey, '')
 			setReferenceUrl('')
 			setReferenceImage(null)
 			setShowChips(false)
 			if (textareaRef.current) {
 				textareaRef.current.style.height = 'auto'
 			}
+		} catch (err) {
+			console.warn('[FeedbackBar] submit failed, draft preserved:', err)
 		} finally {
 			setSubmitting(false)
 		}
-	}, [instruction, submitting, disabled, showChips, onSubmit, referenceUrl, referenceImage])
+	}, [
+		instruction,
+		submitting,
+		disabled,
+		showChips,
+		onSubmit,
+		referenceUrl,
+		referenceImage,
+		draftKey,
+	])
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {

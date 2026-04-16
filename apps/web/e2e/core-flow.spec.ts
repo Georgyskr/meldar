@@ -202,11 +202,9 @@ test.describe('Core user flow', () => {
 		}
 	})
 
-	test('signup → onboard → build with beacon → preview verified → admin → settings', async ({
-		page,
-		browser,
-	}) => {
-		test.setTimeout(120_000)
+	test('signup → onboard → build with beacon → preview verified → admin → settings', {
+		tag: '@nightly',
+	}, async ({ page, browser }) => {
 		const consoleErrors = collectConsoleErrors(page)
 		const forensics: BuildForensics = {
 			projectId: null,
@@ -243,7 +241,7 @@ test.describe('Core user flow', () => {
 				await page.getByRole('button', { name: /Continue/i }).click()
 				await expect(page.getByText(/put together for you/i)).toBeVisible()
 				await page.getByRole('button', { name: /Let.*go/i }).click()
-				await page.waitForURL('**/workspace/**', { timeout: 30_000 })
+				await page.waitForURL('**/workspace/**')
 				const match = page.url().match(/\/workspace\/([0-9a-f-]{36})/)
 				expect(match).toBeTruthy()
 				forensics.projectId = match?.[1] ?? null
@@ -268,14 +266,15 @@ test.describe('Core user flow', () => {
 				const textarea = page.locator('textarea')
 				await expect(textarea).toBeVisible()
 
-				const pill = page.getByTestId('build-pill')
-				await pill.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {})
-				await pill.waitFor({ state: 'hidden', timeout: 180_000 }).catch(() => {})
-
 				const keepBuildingBtn = page.getByRole('button', { name: /keep building/i })
 				if (await keepBuildingBtn.isVisible().catch(() => false)) {
 					await keepBuildingBtn.click()
 				}
+
+				const busyMessage = page.getByText(/working on your current update/i)
+				await expect(busyMessage).toBeHidden()
+
+				const pill = page.getByTestId('build-pill')
 
 				await textarea.fill(
 					`Create a simple landing page. Render an h1 element that has attribute data-e2e-beacon="${beacon}" and whose visible text is exactly "${beacon}". Add a short paragraph below describing a consulting business.`,
@@ -288,8 +287,8 @@ test.describe('Core user flow', () => {
 					.first()
 
 				await Promise.race([
-					expect(pill).toHaveAttribute('data-phase', 'building', { timeout: 60_000 }),
-					expect(errorToast).toBeVisible({ timeout: 60_000 }),
+					expect(pill).toHaveAttribute('data-phase', 'building'),
+					expect(errorToast).toBeVisible(),
 				])
 
 				const pillPhase = await pill.getAttribute('data-phase').catch(() => null)
@@ -302,7 +301,7 @@ test.describe('Core user flow', () => {
 					return
 				}
 
-				await expect(pill).toHaveAttribute('data-phase', /done|failed/, { timeout: 180_000 })
+				await expect(pill).toHaveAttribute('data-phase', /done|failed/)
 				const finalPhase = await pill.getAttribute('data-phase')
 
 				if (finalPhase === 'failed') {
@@ -313,7 +312,7 @@ test.describe('Core user flow', () => {
 				}
 
 				const iframe = page.locator('iframe[title="Live preview"]')
-				await expect(iframe).toBeVisible({ timeout: 75_000 })
+				await expect(iframe).toBeVisible()
 				const rawSrc = await iframe.getAttribute('src')
 				expect(rawSrc, 'iframe must have a real preview URL').toBeTruthy()
 				expect(rawSrc).toMatch(/^https?:\/\//)
@@ -323,10 +322,7 @@ test.describe('Core user flow', () => {
 				const sandboxContext = await browser.newContext()
 				const sandboxPage = await sandboxContext.newPage()
 				try {
-					const navResponse = await sandboxPage.goto(src, {
-						timeout: 180_000,
-						waitUntil: 'domcontentloaded',
-					})
+					const navResponse = await sandboxPage.goto(src, { waitUntil: 'domcontentloaded' })
 					forensics.previewStatus = navResponse?.status() ?? null
 					expect(
 						navResponse?.status(),
@@ -344,7 +340,7 @@ test.describe('Core user flow', () => {
 					await expect(
 						beaconLocator,
 						`preview must render an element with data-e2e-beacon="${beacon}" — if absent, the LLM ignored an explicit structural instruction OR the rendered DOM does not match the SSR body`,
-					).toBeVisible({ timeout: 60_000 })
+					).toBeVisible()
 					await expect(beaconLocator).toHaveText(beacon)
 
 					const axeResult = await new AxeBuilder({ page: sandboxPage })
@@ -391,9 +387,7 @@ test.describe('Core user flow', () => {
 				const saveButton = page.getByRole('button', { name: /save changes/i })
 				await saveButton.click()
 
-				await expect(page.getByRole('alert').filter({ hasText: /settings saved/i })).toBeVisible({
-					timeout: 10_000,
-				})
+				await expect(page.getByRole('alert').filter({ hasText: /settings saved/i })).toBeVisible()
 				await expect(saveButton).toBeVisible()
 				await expect(page.getByRole('alert').filter({ hasText: /could not save/i })).toBeHidden()
 

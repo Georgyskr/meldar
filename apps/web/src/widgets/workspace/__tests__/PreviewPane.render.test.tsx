@@ -81,7 +81,6 @@ describe('PreviewPane', () => {
 				createElement(PreviewPane, {
 					previewUrl: null,
 					activeBuildCardId: null,
-					failureMessage: null,
 				}),
 			)
 		})
@@ -101,7 +100,7 @@ describe('PreviewPane', () => {
 				createElement(PreviewPane, {
 					previewUrl: null,
 					activeBuildCardId: 'some-card-id',
-					failureMessage: null,
+
 					writtenFiles: [
 						{ path: 'src/app/layout.tsx', sizeBytes: 500, writtenAt: 1 },
 						{ path: 'src/app/page.tsx', sizeBytes: 1200, writtenAt: 2 },
@@ -123,7 +122,7 @@ describe('PreviewPane', () => {
 				createElement(PreviewPane, {
 					previewUrl: null,
 					activeBuildCardId: 'some-card-id',
-					failureMessage: null,
+
 					writtenFiles: [],
 				}),
 			)
@@ -140,7 +139,7 @@ describe('PreviewPane', () => {
 				createElement(PreviewPane, {
 					previewUrl: null,
 					activeBuildCardId: null,
-					failureMessage: null,
+
 					writtenFiles: [{ path: 'src/app/page.tsx', sizeBytes: 1200, writtenAt: 1 }],
 					buildJustFinished: true,
 				}),
@@ -158,7 +157,6 @@ describe('PreviewPane', () => {
 				createElement(PreviewPane, {
 					previewUrl: 'https://sandbox-abc.workers.dev',
 					activeBuildCardId: null,
-					failureMessage: null,
 				}),
 			)
 		})

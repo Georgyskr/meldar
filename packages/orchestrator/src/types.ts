@@ -44,6 +44,19 @@ export type OrchestratorEvent =
 	| { type: 'card_started'; cardId: string; cardIndex: number; totalCards: number }
 	| { type: 'pipeline_complete'; totalBuilt: number; totalCards: number }
 	| { type: 'pipeline_failed'; cardId: string; reason: string }
+	| {
+			type: 'llm_call_completed'
+			kind: 'initial' | 'repair'
+			stopReason: string | null
+			latencyMs: number
+			inputTokens: number
+			outputTokens: number
+			cacheReadTokens?: number
+			cacheWriteTokens?: number
+	  }
+	| { type: 'repair_started'; errorCount: number; affectedPaths: readonly string[] }
+	| { type: 'repair_succeeded'; filesRewritten: number }
+	| { type: 'repair_failed'; reason: string; code: string }
 
 export type OrchestratorResult =
 	| { ok: true; buildId: string; fileCount: number; tokenCost: number; centsCharged: number }

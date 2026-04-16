@@ -1,23 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPreviewSrc, deriveBuildStatus } from '../lib/build-status'
-
-describe('deriveBuildStatus', () => {
-	it('returns building when activeBuildCardId is set', () => {
-		expect(deriveBuildStatus('card-1', null)).toBe('building')
-	})
-
-	it('returns building even when failureMessage is also set', () => {
-		expect(deriveBuildStatus('card-1', 'some error')).toBe('building')
-	})
-
-	it('returns failed when no active build but failure exists', () => {
-		expect(deriveBuildStatus(null, 'timeout')).toBe('failed')
-	})
-
-	it('returns idle when both are null', () => {
-		expect(deriveBuildStatus(null, null)).toBe('idle')
-	})
-})
+import { buildPreviewSrc } from '../lib/build-status'
 
 describe('buildPreviewSrc', () => {
 	it('appends cache-buster with ? when URL has no query', () => {

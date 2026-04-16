@@ -60,18 +60,17 @@ test.describe
 		})
 
 		test('sign up creates account', async ({ page }) => {
-			await page.goto('/sign-up', { waitUntil: 'domcontentloaded', timeout: 30_000 })
+			await page.goto('/sign-up', { waitUntil: 'domcontentloaded' })
 			await expect(page.getByText('Create your account')).toBeVisible()
 			await page.fill('#signup-email', TEST_EMAIL)
 			await page.fill('#signup-password', TEST_PASSWORD)
 			await page.getByRole('button', { name: /create account/i }).click()
-			await page.waitForURL('**/onboarding**', { timeout: 15_000 })
+			await page.waitForURL('**/onboarding**')
 			signUpSucceeded = true
 		})
 
 		test('Door A: vertical picker → proposal → workspace', async ({ page }) => {
 			test.skip(!signUpSucceeded, 'Sign-up did not complete')
-			test.setTimeout(60_000)
 
 			await injectAuthCookie(page)
 			await page.goto('/onboarding')
@@ -101,13 +100,12 @@ test.describe
 			await page.getByRole('button', { name: /Let.*go/i }).click()
 
 			// Should redirect to workspace
-			await page.waitForURL('**/workspace/**', { timeout: 30_000 })
+			await page.waitForURL('**/workspace/**')
 			expect(page.url()).toMatch(/\/workspace\/[0-9a-f-]{36}/)
 		})
 
 		test('Door B: examples → proposal → workspace', async ({ page }) => {
 			test.skip(!signUpSucceeded, 'Sign-up did not complete')
-			test.setTimeout(60_000)
 
 			await injectAuthCookie(page)
 			await page.goto('/onboarding')
@@ -127,12 +125,11 @@ test.describe
 
 			// Confirm
 			await page.getByRole('button', { name: /Let.*go/i }).click()
-			await page.waitForURL('**/workspace/**', { timeout: 30_000 })
+			await page.waitForURL('**/workspace/**')
 		})
 
 		test('Door C: freeform → proposal → workspace', async ({ page }) => {
 			test.skip(!signUpSucceeded, 'Sign-up did not complete')
-			test.setTimeout(60_000)
 
 			await injectAuthCookie(page)
 			await page.goto('/onboarding')
@@ -154,7 +151,7 @@ test.describe
 
 			// Confirm
 			await page.getByRole('button', { name: /Let.*go/i }).click()
-			await page.waitForURL('**/workspace/**', { timeout: 30_000 })
+			await page.waitForURL('**/workspace/**')
 		})
 
 		test('"Change things" goes back to source door', async ({ page }) => {

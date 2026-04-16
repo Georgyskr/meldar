@@ -2,7 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { runBuildForUser } from '@/server/build/run-build'
 import { requireAuth } from '@/server/identity/require-auth'
-import { isPipelineActive } from '@/server/lib/pipeline-lock'
+import { appendPipelineEvent } from '@/server/lib/pipeline-event-log'
+import { endPipelineRun, heartbeatPipelineRun, startPipelineRun } from '@/server/lib/pipeline-lock'
 import { checkRateLimit, mustHaveRateLimit, workspaceBuildLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 
@@ -63,19 +64,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	if (await isPipelineActive(projectId)) {
-		return NextResponse.json(
-			{
-				error: {
-					code: 'PIPELINE_IN_PROGRESS',
-					message:
-						'Setup is still running. Wait for the current pipeline to finish before sending feedback.',
-				},
-			},
-			{ status: 409 },
-		)
-	}
-
 	let body: unknown
 	try {
 		body = await request.json()
@@ -99,6 +87,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
+	const lock = await startPipelineRun(projectId, auth.userId, 'single')
+	if (!lock.ok) {
+		return NextResponse.json(
+			{
+				error: {
+					code: lock.reason === 'project_not_found' ? 'NOT_FOUND' : 'PIPELINE_IN_PROGRESS',
+					message:
+						lock.reason === 'project_not_found'
+							? 'Project not found.'
+							: 'Another build is still running. Wait a few seconds and try again.',
+				},
+			},
+			{ status: lock.reason === 'project_not_found' ? 404 : 409 },
+		)
+	}
+	const pipelineId = lock.pipelineId
+
 	const result = await runBuildForUser({
 		projectId,
 		userId: auth.userId,
@@ -109,6 +114,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 	})
 
 	if (!result.ok) {
+		await endPipelineRun(pipelineId, 'failed', {
+			errorCode: result.code,
+			errorReason: result.message,
+		}).catch(() => undefined)
 		return NextResponse.json(
 			{
 				error: {
@@ -121,13 +130,91 @@ export async function POST(request: NextRequest, context: RouteContext) {
 		)
 	}
 
-	return new Response(result.stream, {
+	return new Response(instrumentSingleBuildStream(result.stream, pipelineId), {
 		status: 200,
 		headers: {
 			'Content-Type': 'text/event-stream; charset=utf-8',
 			'Cache-Control': 'no-cache, no-transform',
 			Connection: 'keep-alive',
 			'X-Accel-Buffering': 'no',
+			'x-meldar-pipeline-id': pipelineId,
+		},
+	})
+}
+
+function instrumentSingleBuildStream(
+	stream: ReadableStream<Uint8Array>,
+	pipelineId: string,
+): ReadableStream<Uint8Array> {
+	const HEARTBEAT_INTERVAL_MS = 30_000
+	const heartbeat = setInterval(() => {
+		void heartbeatPipelineRun(pipelineId).catch((err) => {
+			console.error('[build-route] heartbeat failed', err)
+		})
+	}, HEARTBEAT_INTERVAL_MS)
+	let terminalState: 'succeeded' | 'failed' | 'cancelled' = 'cancelled'
+	let finished = false
+	const decoder = new TextDecoder()
+	let buf = ''
+
+	async function teardown(): Promise<void> {
+		if (finished) return
+		finished = true
+		clearInterval(heartbeat)
+		await endPipelineRun(pipelineId, terminalState).catch((err) => {
+			console.error('[build-route] endPipelineRun failed', err)
+		})
+	}
+
+	const reader = stream.getReader()
+	return new ReadableStream<Uint8Array>({
+		async pull(controller) {
+			try {
+				const { done, value } = await reader.read()
+				if (done) {
+					controller.close()
+					await teardown()
+					return
+				}
+				controller.enqueue(value)
+				buf += decoder.decode(value, { stream: true })
+				const records = buf.split('\n\n')
+				buf = records.pop() ?? ''
+				for (const record of records) {
+					const dataLine = record.split('\n').find((l) => l.startsWith('data:'))
+					if (!dataLine) continue
+					const raw = dataLine.slice(5).trim()
+					if (raw === '[DONE]') continue
+					try {
+						const event = JSON.parse(raw) as { type: string }
+						await appendPipelineEvent({ runId: pipelineId, type: event.type, payload: event })
+						if (event.type === 'committed') terminalState = 'succeeded'
+						else if (
+							event.type === 'failed' ||
+							event.type === 'pipeline_failed' ||
+							event.type === 'deploy_failed'
+						)
+							terminalState = 'failed'
+					} catch (err) {
+						console.error('[build-route] appendPipelineEvent failed', err)
+						terminalState = 'failed'
+						controller.error(err)
+						await teardown()
+						return
+					}
+				}
+			} catch (err) {
+				controller.error(err)
+				await teardown()
+			}
+		},
+		async cancel() {
+			try {
+				await reader.cancel()
+			} catch {
+				/* ignored */
+			}
+			await teardown()
 		},
 	})
 }

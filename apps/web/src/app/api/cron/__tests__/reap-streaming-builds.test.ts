@@ -42,24 +42,30 @@ describe('F7: reap-streaming-builds cron', () => {
 		expect(res.status).toBe(401)
 	})
 
-	it('executes UPDATE targeting streaming builds older than 30 minutes', async () => {
-		mockDbExecute.mockResolvedValueOnce({ rowCount: 3 })
+	it('executes pipeline_runs reap + builds reap + retention purge', async () => {
+		mockDbExecute
+			.mockResolvedValueOnce({ rowCount: 2 })
+			.mockResolvedValueOnce({ rowCount: 3 })
+			.mockResolvedValueOnce({ rowCount: 11 })
 		const res = await GET(makeRequest({ authorization: `Bearer ${CRON_SECRET}` }))
 
 		expect(res.status).toBe(200)
-		expect(await res.json()).toEqual({ reaped: 3 })
+		expect(await res.json()).toEqual({ pipelinesReaped: 2, buildsReaped: 3, runsPurged: 11 })
 
-		expect(mockDbExecute).toHaveBeenCalledOnce()
-		// Inspect the SQL string Drizzle built from the tagged template
-		const firstArg = mockDbExecute.mock.calls[0]?.[0] as {
-			queryChunks?: Array<{ value?: string[] }>
+		expect(mockDbExecute).toHaveBeenCalledTimes(3)
+		const renderChunks = (arg: unknown): string => {
+			const chunks = (arg as { queryChunks?: Array<{ value?: string[] }> }).queryChunks ?? []
+			return chunks.map((c) => (c?.value ? c.value.join('') : '')).join('')
 		}
-		const chunks = firstArg?.queryChunks ?? []
-		const rendered = chunks.map((c) => (c?.value ? c.value.join('') : '')).join('')
-		expect(rendered).toMatch(/UPDATE\s+builds/i)
-		expect(rendered).toMatch(/status\s*=\s*'failed'/)
-		expect(rendered).toMatch(/status\s*=\s*'streaming'/)
-		expect(rendered).toMatch(/INTERVAL\s+'30 minutes'/)
+		const firstSql = renderChunks(mockDbExecute.mock.calls[0]?.[0])
+		const secondSql = renderChunks(mockDbExecute.mock.calls[1]?.[0])
+		const thirdSql = renderChunks(mockDbExecute.mock.calls[2]?.[0])
+		expect(firstSql).toMatch(/UPDATE\s+pipeline_runs/i)
+		expect(firstSql).toMatch(/INTERVAL\s+'10 minutes'/)
+		expect(secondSql).toMatch(/UPDATE\s+builds/i)
+		expect(secondSql).toMatch(/INTERVAL\s+'30 minutes'/)
+		expect(thirdSql).toMatch(/DELETE FROM pipeline_runs/i)
+		expect(thirdSql).toMatch(/INTERVAL\s+'30 days'/)
 	})
 
 	it('returns 500 with structured error body when the UPDATE throws', async () => {
@@ -78,17 +84,22 @@ describe('F7: reap-streaming-builds cron', () => {
 		}
 	})
 
-	it('emits a structured log line with reapedCount and durationMs on success', async () => {
+	it('emits a structured log line with pipelinesReaped/buildsReaped/runsPurged and durationMs', async () => {
 		const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 		try {
-			mockDbExecute.mockResolvedValueOnce({ rowCount: 7 })
+			mockDbExecute
+				.mockResolvedValueOnce({ rowCount: 1 })
+				.mockResolvedValueOnce({ rowCount: 7 })
+				.mockResolvedValueOnce({ rowCount: 4 })
 			await GET(makeRequest({ authorization: `Bearer ${CRON_SECRET}` }))
 
 			expect(logSpy).toHaveBeenCalledOnce()
 			const line = logSpy.mock.calls[0]?.[0] as string
 			const parsed = JSON.parse(line) as Record<string, unknown>
 			expect(parsed.event).toBe('cron.reap_streaming_builds')
-			expect(parsed.reapedCount).toBe(7)
+			expect(parsed.pipelinesReaped).toBe(1)
+			expect(parsed.buildsReaped).toBe(7)
+			expect(parsed.runsPurged).toBe(4)
 			expect(typeof parsed.durationMs).toBe('number')
 		} finally {
 			logSpy.mockRestore()

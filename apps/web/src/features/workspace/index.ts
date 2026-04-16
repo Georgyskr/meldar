@@ -1,7 +1,9 @@
 export {
 	type BuildReceipt,
 	type DeploymentPhase,
+	derivePipelinePhase,
 	deriveWorkspaceMode,
+	type PipelinePhase,
 	useWorkspaceBuild,
 	WorkspaceBuildProvider,
 	type WorkspaceBuildProviderProps,

@@ -33,20 +33,47 @@ vi.mock('@/shared/ui/typography', () => ({
 	Text: ({ children }: { children?: ReactNode }) => createElement('span', null, children),
 }))
 
-const mockUseWorkspaceBuild = vi.fn()
-vi.mock('@/features/workspace', () => ({
-	useWorkspaceBuild: () => mockUseWorkspaceBuild(),
-}))
+type MockWorkspace = {
+	lastBuildAt: number | null
+	activeBuildCardId: string | null
+	failureMessage: string | null
+	currentCardIndex: number | null
+	totalCards: number | null
+	deployment: { type: 'idle' | 'deploying' | 'deployed' | 'failed'; [k: string]: unknown }
+}
+
+const mockUseWorkspaceBuild = vi.fn<() => MockWorkspace>()
+
+vi.mock('@/features/workspace', async () => {
+	const actual =
+		await vi.importActual<typeof import('@/features/workspace')>('@/features/workspace')
+	return {
+		...actual,
+		useWorkspaceBuild: () => mockUseWorkspaceBuild(),
+	}
+})
 
 import { BuildStatusOverlay } from '../BuildStatusOverlay'
 
 let container: HTMLDivElement
 let root: ReturnType<typeof createRoot>
 
+function workspace(overrides: Partial<MockWorkspace> = {}): MockWorkspace {
+	return {
+		lastBuildAt: null,
+		activeBuildCardId: null,
+		failureMessage: null,
+		currentCardIndex: null,
+		totalCards: null,
+		deployment: { type: 'idle' },
+		...overrides,
+	}
+}
+
 describe('BuildStatusOverlay', () => {
 	beforeEach(() => {
 		vi.useFakeTimers()
-		mockUseWorkspaceBuild.mockReturnValue({ lastBuildAt: null })
+		mockUseWorkspaceBuild.mockReturnValue(workspace())
 		container = document.createElement('div')
 		document.body.appendChild(container)
 		root = createRoot(container)
@@ -60,32 +87,42 @@ describe('BuildStatusOverlay', () => {
 		vi.useRealTimers()
 	})
 
-	function render(props: { activeBuildCardId: string | null; failureMessage: string | null }) {
+	function render() {
 		act(() => {
-			root.render(createElement(BuildStatusOverlay, props))
+			root.render(createElement(BuildStatusOverlay))
 		})
 	}
 
 	it('shows nothing when idle with no prior build', () => {
-		render({ activeBuildCardId: null, failureMessage: null })
-		const pill = container.querySelector('[data-testid="build-pill"]')
-		expect(pill).toBeNull()
+		render()
+		expect(container.querySelector('[data-testid="build-pill"]')).toBeNull()
 	})
 
 	it('shows the building pill while a build is active', () => {
-		render({ activeBuildCardId: 'card-1', failureMessage: null })
+		mockUseWorkspaceBuild.mockReturnValue(workspace({ activeBuildCardId: 'card-1' }))
+		render()
+		const pill = container.querySelector('[data-testid="build-pill"]')
+		expect(pill?.getAttribute('data-phase')).toBe('building')
+	})
+
+	it('shows the building pill during deploy phase', () => {
+		mockUseWorkspaceBuild.mockReturnValue(
+			workspace({ deployment: { type: 'deploying', slug: 'x', hostname: 'x.meldar.ai' } }),
+		)
+		render()
 		const pill = container.querySelector('[data-testid="build-pill"]')
 		expect(pill?.getAttribute('data-phase')).toBe('building')
 	})
 
 	it('shows the done pill when lastBuildAt appears while phase is idle', () => {
-		render({ activeBuildCardId: 'card-1', failureMessage: null })
+		mockUseWorkspaceBuild.mockReturnValue(workspace({ activeBuildCardId: 'card-1' }))
+		render()
 		expect(container.querySelector('[data-testid="build-pill"]')?.getAttribute('data-phase')).toBe(
 			'building',
 		)
 
-		mockUseWorkspaceBuild.mockReturnValue({ lastBuildAt: 12345 })
-		render({ activeBuildCardId: null, failureMessage: null })
+		mockUseWorkspaceBuild.mockReturnValue(workspace({ lastBuildAt: 12345 }))
+		render()
 
 		expect(container.querySelector('[data-testid="build-pill"]')?.getAttribute('data-phase')).toBe(
 			'done',
@@ -93,23 +130,23 @@ describe('BuildStatusOverlay', () => {
 	})
 
 	it('shows the done pill when the overlay mounts fresh after a build (remount race)', () => {
-		mockUseWorkspaceBuild.mockReturnValue({ lastBuildAt: 99999 })
-		render({ activeBuildCardId: null, failureMessage: null })
-
+		mockUseWorkspaceBuild.mockReturnValue(workspace({ lastBuildAt: 99999 }))
+		render()
 		expect(container.querySelector('[data-testid="build-pill"]')?.getAttribute('data-phase')).toBe(
 			'done',
 		)
 	})
 
 	it('shows the failed pill when a failure message is present', () => {
-		render({ activeBuildCardId: null, failureMessage: 'timeout' })
+		mockUseWorkspaceBuild.mockReturnValue(workspace({ failureMessage: 'timeout' }))
+		render()
 		const pill = container.querySelector('[data-testid="build-pill"]')
 		expect(pill?.getAttribute('data-phase')).toBe('failed')
 	})
 
 	it('done pill fades out after the timeout', () => {
-		mockUseWorkspaceBuild.mockReturnValue({ lastBuildAt: 500 })
-		render({ activeBuildCardId: null, failureMessage: null })
+		mockUseWorkspaceBuild.mockReturnValue(workspace({ lastBuildAt: 500 }))
+		render()
 		expect(container.querySelector('[data-testid="build-pill"]')).not.toBeNull()
 
 		act(() => {
@@ -119,7 +156,8 @@ describe('BuildStatusOverlay', () => {
 	})
 
 	it('exposes role=status for assistive tech announcements', () => {
-		render({ activeBuildCardId: 'card-1', failureMessage: null })
+		mockUseWorkspaceBuild.mockReturnValue(workspace({ activeBuildCardId: 'card-1' }))
+		render()
 		const pill = container.querySelector('[data-testid="build-pill"]')
 		expect(pill?.getAttribute('role')).toBe('status')
 	})

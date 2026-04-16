@@ -36,6 +36,7 @@ export function Toaster() {
 			gap={3}
 			maxWidth="380px"
 			width="full"
+			pointerEvents="none"
 		>
 			{items.map((item) => {
 				const Icon = ICONS[item.type]
@@ -53,6 +54,7 @@ export function Toaster() {
 						borderInlineStart="4px solid"
 						boxShadow="0 4px 24px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)"
 						animation="toastSlideIn 0.25s ease-out"
+						pointerEvents="auto"
 						style={{ borderInlineStartColor: color }}
 					>
 						<Box flexShrink={0} marginBlockStart="2px">

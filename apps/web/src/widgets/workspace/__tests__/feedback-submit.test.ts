@@ -25,9 +25,14 @@ vi.mock('@/server/build/run-build', () => ({
 }))
 
 vi.mock('@/server/lib/pipeline-lock', () => ({
-	isPipelineActive: vi.fn().mockResolvedValue(false),
-	acquirePipelineLock: vi.fn(),
-	releasePipelineLock: vi.fn(),
+	findActivePipelineRun: vi.fn().mockResolvedValue(null),
+	startPipelineRun: vi.fn().mockResolvedValue({ ok: true, pipelineId: 'test-pipeline-id' }),
+	endPipelineRun: vi.fn().mockResolvedValue(undefined),
+	heartbeatPipelineRun: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/server/lib/pipeline-event-log', () => ({
+	appendPipelineEvent: vi.fn().mockResolvedValue(1),
 }))
 
 const { POST } = await import('@/app/api/workspace/[projectId]/build/route')

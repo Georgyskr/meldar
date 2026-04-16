@@ -2,7 +2,7 @@
 
 import { Box, VStack } from '@styled-system/jsx'
 import { groupCards } from '@/features/kanban'
-import { useWorkspaceBuild } from '@/features/workspace'
+import { derivePipelinePhase, useWorkspaceBuild } from '@/features/workspace'
 import { Text } from '@/shared/ui'
 import { GlassMilestoneSection } from './GlassMilestoneSection'
 import { GlassPlanFooter } from './GlassPlanFooter'
@@ -14,7 +14,9 @@ export function GlassPlanView({
 	readonly onSelectCard: (cardId: string) => void
 	readonly onStartBuild: () => void
 }) {
-	const { cards, pipelineActive, currentCardIndex } = useWorkspaceBuild()
+	const workspace = useWorkspaceBuild()
+	const { cards } = workspace
+	const phase = derivePipelinePhase(workspace)
 
 	const { milestones, subtasksByMilestone } = groupCards(cards)
 
@@ -54,8 +56,7 @@ export function GlassPlanView({
 				<GlassPlanFooter
 					totalCards={totalSubtasks}
 					buildsCompleted={builtSubtasks}
-					pipelineActive={pipelineActive}
-					currentCardIndex={currentCardIndex}
+					phase={phase}
 					onStartBuild={onStartBuild}
 				/>
 			</VStack>

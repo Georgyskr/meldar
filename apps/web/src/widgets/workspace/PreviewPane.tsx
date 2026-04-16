@@ -11,17 +11,11 @@ import { isSafePreviewUrl } from './lib/preview-url'
 type Props = {
 	readonly previewUrl: string | null
 	readonly activeBuildCardId: string | null
-	readonly failureMessage: string | null
 	readonly writtenFiles?: readonly WrittenFile[]
 	readonly buildJustFinished?: boolean
 }
 
-export function PreviewPane({
-	previewUrl,
-	activeBuildCardId,
-	failureMessage,
-	buildJustFinished = false,
-}: Props) {
+export function PreviewPane({ previewUrl, activeBuildCardId, buildJustFinished = false }: Props) {
 	const isActive = activeBuildCardId !== null
 	const wasActiveRef = useRef(isActive)
 	const [cacheBuster, setCacheBuster] = useState(() => Date.now())
@@ -87,7 +81,7 @@ export function PreviewPane({
 				</Flex>
 			)}
 
-			<BuildStatusOverlay activeBuildCardId={activeBuildCardId} failureMessage={failureMessage} />
+			<BuildStatusOverlay />
 		</Flex>
 	)
 }

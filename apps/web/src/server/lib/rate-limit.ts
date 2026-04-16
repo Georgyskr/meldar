@@ -196,6 +196,7 @@ export async function checkRateLimit(
 	identifier: string,
 	critical = false,
 ): Promise<RateLimitResult> {
+	if (process.env.DISABLE_RATE_LIMIT === '1') return { success: true }
 	if (!limiter) return { success: true }
 	try {
 		return await limiter.limit(identifier)

@@ -8,11 +8,15 @@ import type { KanbanCard } from '@/features/kanban'
 import { FirstBuildCelebration } from '@/features/kanban'
 import type { FeedbackRequest } from '@/features/visual-feedback'
 import { FeedbackBar } from '@/features/visual-feedback'
-import { useWorkspaceBuild, WorkspaceBuildProvider } from '@/features/workspace'
+import {
+	derivePipelinePhase,
+	useWorkspaceBuild,
+	WorkspaceBuildProvider,
+} from '@/features/workspace'
 import { toast } from '@/shared/ui'
 import { handleSseEvent } from './lib/handle-sse-event'
-import { pollUntilBuildConcludes } from './lib/poll-until-build-concludes'
 import { runBuild } from './lib/run-build'
+import { subscribePipelineEvents } from './lib/subscribe-pipeline-events'
 import { PreviewPane } from './PreviewPane'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
 
@@ -57,6 +61,7 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 }
 
 function WorkspaceBody({ projectId }: { readonly projectId: string }) {
+	const workspace = useWorkspaceBuild()
 	const {
 		activeBuildCardId,
 		failureMessage,
@@ -65,14 +70,19 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 		writtenFiles,
 		lastBuildAt,
 		cards,
-		pipelineActive,
-		kickPipeline,
-	} = useWorkspaceBuild()
+		markPipelineStarting,
+	} = workspace
+	const phase = derivePipelinePhase(workspace)
+	const pipelineBusy = phase.kind === 'building' || phase.kind === 'deploying'
 	const buildJustFinished = lastBuildAt !== null && writtenFiles.length > 0 && !activeBuildCardId
 	const autoBuildStartedRef = useRef(false)
 	const autoBuildControllerRef = useRef<AbortController | null>(null)
 
 	useEffect(() => {
+		if (autoBuildStartedRef.current && failureMessage !== null && !previewUrl) {
+			autoBuildStartedRef.current = false
+			autoBuildControllerRef.current = null
+		}
 		if (autoBuildStartedRef.current) return
 		if (previewUrl) return
 		if (activeBuildCardId) return
@@ -84,10 +94,17 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 		autoBuildStartedRef.current = true
 		const controller = new AbortController()
 		autoBuildControllerRef.current = controller
-		const baseline = cards.map((c) => ({ id: c.id, state: c.state }))
-		kickPipeline()
-		runAutoBuild(projectId, publish, baseline, controller.signal)
-	}, [projectId, cards, previewUrl, activeBuildCardId, publish, kickPipeline])
+		markPipelineStarting()
+		runAutoBuild(projectId, publish, controller.signal)
+	}, [
+		projectId,
+		cards,
+		previewUrl,
+		activeBuildCardId,
+		failureMessage,
+		publish,
+		markPipelineStarting,
+	])
 
 	useEffect(() => {
 		return () => {
@@ -108,19 +125,17 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 				<PreviewPane
 					previewUrl={previewUrl}
 					activeBuildCardId={activeBuildCardId}
-					failureMessage={failureMessage}
 					writtenFiles={writtenFiles}
 					buildJustFinished={buildJustFinished}
 				/>
 			</Box>
 			<FeedbackBar
 				onSubmit={handleFeedbackSubmit}
-				disabled={pipelineActive || activeBuildCardId !== null}
+				disabled={pipelineBusy}
 				disabledReason={
-					pipelineActive || activeBuildCardId !== null
-						? 'Setting things up — you can tweak it as soon as it settles.'
-						: undefined
+					pipelineBusy ? 'Working on your current update — hold on a sec.' : undefined
 				}
+				draftKey={projectId}
 			/>
 		</>
 	)
@@ -129,7 +144,6 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 async function runAutoBuild(
 	projectId: string,
 	publish: ReturnType<typeof useWorkspaceBuild>['publish'],
-	baselineCards: readonly { id: string; state: string }[],
 	signal?: AbortSignal,
 ): Promise<void> {
 	try {
@@ -140,7 +154,9 @@ async function runAutoBuild(
 		})
 
 		if (response.status === 409) {
-			await pollUntilBuildConcludes(projectId, baselineCards, signal)
+			for await (const event of subscribePipelineEvents(projectId, signal)) {
+				handleSseEvent(event, publish)
+			}
 			return
 		}
 
