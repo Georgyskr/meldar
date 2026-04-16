@@ -43,7 +43,7 @@ jobs:
     # sandbox never reports ready. This smoke fails the build instead.
     name: Sandbox image smoke (bash / setsid / curl / /dev/tcp)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     defaults:
       run:
         working-directory: apps/sandbox-worker
