@@ -53,12 +53,15 @@ jobs:
       - uses: docker/setup-buildx-action@v4
 
       - name: Build container image
-        run: docker build -t meldar-sandbox-smoke .
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/sandbox-worker
+          load: true
+          tags: meldar-sandbox-smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Assert required tools exist in image
-        # --entrypoint bash bypasses the cloudflare/sandbox image's long-lived
-        # server entrypoint; without it, `docker run` never exits even after
-        # our user command succeeds, and the job hits its job-level timeout.
         run: |
           docker run --rm --entrypoint bash meldar-sandbox-smoke -lc '
             set -e
