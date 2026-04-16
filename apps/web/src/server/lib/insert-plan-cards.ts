@@ -81,3 +81,46 @@ export async function insertPlanCards(
 
 	return db.insert(kanbanCards).values(allValues).returning()
 }
+
+export async function insertPersonalizationCard(
+	projectId: string,
+	prompt: string,
+): Promise<string> {
+	const db = getDb()
+	const now = new Date()
+	const milestoneId = crypto.randomUUID()
+	const subtaskId = crypto.randomUUID()
+
+	await db.insert(kanbanCards).values([
+		{
+			id: milestoneId,
+			projectId,
+			parentId: null,
+			position: 0,
+			title: 'Set up your page',
+			description: 'Meldar is personalizing your booking page.',
+			taskType: 'page',
+			generatedBy: 'template',
+			dependsOn: [],
+			createdAt: now,
+			updatedAt: now,
+		},
+		{
+			id: subtaskId,
+			projectId,
+			parentId: milestoneId,
+			position: 0,
+			title: 'Personalizing your page',
+			description: prompt,
+			taskType: 'page',
+			state: 'ready',
+			generatedBy: 'template',
+			explainerText: 'Meldar is tailoring the copy and details to your business.',
+			dependsOn: [],
+			createdAt: now,
+			updatedAt: now,
+		},
+	])
+
+	return subtaskId
+}

@@ -19,7 +19,14 @@ const serviceSchema = z.object({
 })
 
 const settingsSchema = z.object({
-	businessName: z.string().min(1).max(200).optional(),
+	businessName: z
+		.string()
+		.min(1)
+		.max(200)
+		.regex(/^[\p{L}\p{N}\p{Zs}\-'.&,!()]+$/u, {
+			message: 'Business name contains invalid characters',
+		})
+		.optional(),
 	services: z.array(serviceSchema).max(50).optional(),
 	availableHours: z.record(z.string(), z.unknown()).optional(),
 	hours: z.record(z.string(), z.unknown()).optional(),

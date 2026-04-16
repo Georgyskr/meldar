@@ -1,4 +1,12 @@
 export {
+	type ArchetypeId,
+	type ArchetypeParams,
+	type BookingPageParams,
+	buildPersonalizationPrompt,
+	renderArchetypeTemplate,
+	renderBookingPageTemplate,
+} from './archetype-templates'
+export {
 	COMPONENT_VOCABULARY,
 	type ComponentType,
 	type ComponentTypeId,

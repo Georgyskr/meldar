@@ -79,12 +79,11 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 	const autoBuildControllerRef = useRef<AbortController | null>(null)
 
 	useEffect(() => {
-		if (autoBuildStartedRef.current && failureMessage !== null && !previewUrl) {
+		if (autoBuildStartedRef.current && failureMessage !== null) {
 			autoBuildStartedRef.current = false
 			autoBuildControllerRef.current = null
 		}
 		if (autoBuildStartedRef.current) return
-		if (previewUrl) return
 		if (activeBuildCardId) return
 		if (cards.length === 0) return
 		const hasUnbuiltWork = cards.some(

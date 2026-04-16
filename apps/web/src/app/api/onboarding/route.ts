@@ -1,37 +1,52 @@
-import { STARTER_FILES, TEMPLATE_PLANS } from '@meldar/orchestrator'
+import {
+	buildPersonalizationPrompt,
+	renderBookingPageTemplate,
+	STARTER_FILES,
+} from '@meldar/orchestrator'
+import { CloudflareSandboxProvider } from '@meldar/sandbox'
 import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@meldar/storage'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { BOOKING_VERTICALS, getVerticalById } from '@/entities/booking-verticals'
 import { provisionSubdomain } from '@/server/domains'
 import { requireAuth } from '@/server/identity/require-auth'
-import { insertPlanCards } from '@/server/lib/insert-plan-cards'
+import { insertPersonalizationCard } from '@/server/lib/insert-plan-cards'
 import { checkRateLimit, mustHaveRateLimit, projectsCreateLimit } from '@/server/lib/rate-limit'
-import { prewarmSandbox } from '@/server/sandbox/prewarm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const validVerticalIds = BOOKING_VERTICALS.map((v) => v.id)
 
-const serviceSchema = z.object({
-	name: z.string().min(1).max(80),
-	durationMinutes: z.number().int().min(5).max(480),
-})
-
 const bodySchema = z.object({
 	verticalId: z.string().refine((id) => validVerticalIds.includes(id), {
 		message: 'Unknown business type',
 	}),
-	businessName: z.string().trim().min(1).max(80).optional(),
-	services: z.array(serviceSchema).min(1).max(10).optional(),
-	websiteUrl: z.string().url().max(200).optional(),
+	businessName: z
+		.string()
+		.trim()
+		.min(1)
+		.max(80)
+		.regex(/^[\p{L}\p{N}\p{Zs}\-'.&,!()]+$/u, {
+			message: 'Business name contains invalid characters',
+		})
+		.optional(),
 	freeformDescription: z.string().max(500).optional(),
 })
 
 const limiter = mustHaveRateLimit(projectsCreateLimit, 'projectsCreate')
 
-const STARTER_INITIAL_FILES = STARTER_FILES.map((f) => ({ path: f.path, content: f.content }))
+const LOCKED_STARTER_FILES = STARTER_FILES.filter((f) =>
+	[
+		'package.json',
+		'tsconfig.json',
+		'next.config.ts',
+		'panda.config.ts',
+		'postcss.config.cjs',
+		'src/app/layout.tsx',
+		'.gitignore',
+	].includes(f.path),
+).map((f) => ({ path: f.path, content: f.content }))
 
 export async function POST(request: NextRequest) {
 	const auth = await requireAuth(request)
@@ -89,19 +104,54 @@ export async function POST(request: NextRequest) {
 	}
 
 	try {
+		const templateFiles = renderBookingPageTemplate({
+			businessName: projectName,
+			verticalLabel: vertical.label,
+			services: vertical.defaultServices,
+			hours: vertical.defaultHours,
+		})
+
+		const initialFiles = [...LOCKED_STARTER_FILES, ...templateFiles]
+
 		const created = await storage.createProject({
 			userId: auth.userId,
 			name: projectName,
 			templateId: 'booking-page',
-			initialFiles: hasR2 ? STARTER_INITIAL_FILES : [],
+			initialFiles: hasR2 ? initialFiles : [],
 		})
 
-		const bookingTemplate = TEMPLATE_PLANS.find((t) => t.id === 'booking-page')
-		if (bookingTemplate) {
-			await insertPlanCards(created.project.id, bookingTemplate.milestones, 'template')
-		}
+		const personalizationPrompt = buildPersonalizationPrompt(
+			{
+				businessName: projectName,
+				verticalLabel: vertical.label,
+				services: vertical.defaultServices,
+				hours: vertical.defaultHours,
+			},
+			parsed.data.freeformDescription,
+		)
+		await insertPersonalizationCard(created.project.id, personalizationPrompt)
 
-		prewarmSandbox(created.project.id).catch(() => {})
+		let previewUrl: string | null = null
+		try {
+			const sandbox = CloudflareSandboxProvider.fromEnv()
+			const handle = await sandbox.writeFiles({
+				projectId: created.project.id,
+				userId: auth.userId,
+				files: initialFiles,
+			})
+			previewUrl = handle.previewUrl
+
+			if (previewUrl) {
+				await storage.setPreviewUrl(created.project.id, previewUrl).catch((err) => {
+					console.warn('[api/onboarding] setPreviewUrl failed:', err)
+				})
+			}
+		} catch (sandboxErr) {
+			console.warn(
+				'[api/onboarding] sandbox writeFiles failed (non-fatal):',
+				sandboxErr instanceof Error ? sandboxErr.message : sandboxErr,
+			)
+		}
 
 		let subdomain: string | undefined
 		try {
@@ -115,6 +165,7 @@ export async function POST(request: NextRequest) {
 
 		return NextResponse.json({
 			projectId: created.project.id,
+			previewUrl,
 			subdomain,
 			vertical: {
 				id: vertical.id,

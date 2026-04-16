@@ -36,7 +36,26 @@ vi.mock('@/server/lib/rate-limit', () => ({
 
 vi.mock('@/server/lib/insert-plan-cards', () => ({
 	insertPlanCards: vi.fn(() => Promise.resolve([])),
+	insertPersonalizationCard: vi.fn(() => Promise.resolve('card-1')),
 }))
+
+vi.mock('@meldar/sandbox', async () => {
+	const actual = await vi.importActual<typeof import('@meldar/sandbox')>('@meldar/sandbox')
+	return {
+		...actual,
+		CloudflareSandboxProvider: {
+			fromEnv: () => ({
+				writeFiles: vi.fn(() =>
+					Promise.resolve({
+						projectId: 'p',
+						previewUrl: 'https://sandbox.test',
+						status: 'ready',
+					}),
+				),
+			}),
+		},
+	}
+})
 
 const { POST } = await import('../route')
 
