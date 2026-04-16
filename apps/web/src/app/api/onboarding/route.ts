@@ -131,27 +131,7 @@ export async function POST(request: NextRequest) {
 		)
 		await insertPersonalizationCard(created.project.id, personalizationPrompt)
 
-		let previewUrl: string | null = null
-		try {
-			const sandbox = CloudflareSandboxProvider.fromEnv()
-			const handle = await sandbox.writeFiles({
-				projectId: created.project.id,
-				userId: auth.userId,
-				files: initialFiles,
-			})
-			previewUrl = handle.previewUrl
-
-			if (previewUrl) {
-				await storage.setPreviewUrl(created.project.id, previewUrl).catch((err) => {
-					console.warn('[api/onboarding] setPreviewUrl failed:', err)
-				})
-			}
-		} catch (sandboxErr) {
-			console.warn(
-				'[api/onboarding] sandbox writeFiles failed (non-fatal):',
-				sandboxErr instanceof Error ? sandboxErr.message : sandboxErr,
-			)
-		}
+		writeSandboxFiles(created.project.id, auth.userId, initialFiles, storage)
 
 		let subdomain: string | undefined
 		try {
@@ -165,7 +145,6 @@ export async function POST(request: NextRequest) {
 
 		return NextResponse.json({
 			projectId: created.project.id,
-			previewUrl,
 			subdomain,
 			vertical: {
 				id: vertical.id,
@@ -180,5 +159,31 @@ export async function POST(request: NextRequest) {
 			{ error: { code: 'INTERNAL_ERROR', message: 'Failed to create your business' } },
 			{ status: 500 },
 		)
+	}
+}
+
+function writeSandboxFiles(
+	projectId: string,
+	userId: string,
+	files: Array<{ path: string; content: string }>,
+	storage: ReturnType<typeof buildProjectStorageFromEnv>,
+): void {
+	try {
+		const sandbox = CloudflareSandboxProvider.fromEnv()
+		sandbox
+			.writeFiles({ projectId, userId, files })
+			.then((handle) => {
+				if (handle.previewUrl) {
+					return storage.setPreviewUrl(projectId, handle.previewUrl)
+				}
+			})
+			.catch((err) => {
+				console.warn(
+					'[api/onboarding] sandbox writeFiles failed (non-fatal):',
+					err instanceof Error ? err.message : err,
+				)
+			})
+	} catch {
+		// CloudflareSandboxProvider.fromEnv() throws if env vars missing
 	}
 }
