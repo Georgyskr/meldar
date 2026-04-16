@@ -19,12 +19,15 @@ export function handleSseEvent(
 	publish(event)
 
 	if (event.type === 'failed') {
-		console.warn(`[runBuild] SSE failed: ${event.code ?? 'UNKNOWN'}: ${event.reason}`)
-		toast.error('Something went sideways', event.reason)
+		console.warn(
+			`[runBuild] SSE failed: ${event.code ?? 'UNKNOWN'}: ${event.reason}`,
+			event.detail ?? '',
+		)
+		toast.error(event.reason, event.suggestion ?? undefined)
 	}
 
 	if (event.type === 'pipeline_failed') {
 		console.warn(`[runBuild] pipeline failed: ${event.reason}`)
-		toast.error('Something went sideways', event.reason)
+		toast.error(event.reason)
 	}
 }

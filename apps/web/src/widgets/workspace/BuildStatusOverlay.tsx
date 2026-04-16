@@ -122,7 +122,7 @@ function FailedPill() {
 			background="error"
 		>
 			<Text textStyle="label.sm" color="surface">
-				Something went sideways &mdash; see the note below
+				Didn&rsquo;t work &mdash; try a different prompt
 			</Text>
 		</Flex>
 	)

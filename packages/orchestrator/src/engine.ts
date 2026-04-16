@@ -398,15 +398,131 @@ export async function* orchestrateBuild(
 
 			const revalidation = validateBuildFiles(validatedFiles, existingPaths)
 			if (!revalidation.ok) {
-				const detail = revalidation.errors.map((e) => `${e.path}: ${e.message}`).join('; ')
-				console.error(
-					`[orchestrator] [project=${request.projectId} build=${buildId}] repair failed: ${detail}`,
+				const remainingErrors = revalidation.errors.map((e) => `${e.path}: ${e.message}`).join('; ')
+				console.warn(
+					`[orchestrator] [project=${request.projectId} build=${buildId}] repair pass 1 still has ${revalidation.errors.length} error(s), retrying: ${remainingErrors}`,
 				)
-				yield { type: 'repair_failed', reason: detail, code: 'validation_failed' }
-				throw new OrchestratorBuildError(
-					"Meldar couldn't finish this step. The code had issues — trying a different approach usually fixes it.",
-					'validation_failed',
+
+				const retryErrorsByPath = new Map(revalidation.errors.map((e) => [e.path, e.message]))
+				const retryToolResults: Anthropic.Messages.ToolResultBlockParam[] = repairResponse.content
+					.filter((block): block is Anthropic.Messages.ToolUseBlock => block.type === 'tool_use')
+					.map((tu) => {
+						if (tu.name !== WRITE_FILE_TOOL.name) {
+							return { type: 'tool_result', tool_use_id: tu.id, content: 'ok' }
+						}
+						const parsed = writeFileInputSchema.safeParse(tu.input)
+						if (!parsed.success) {
+							return {
+								type: 'tool_result',
+								tool_use_id: tu.id,
+								content: 'Error: invalid tool input',
+								is_error: true,
+							}
+						}
+						const err = retryErrorsByPath.get(parsed.data.path)
+						if (err) {
+							return {
+								type: 'tool_result',
+								tool_use_id: tu.id,
+								content: `Error (second attempt): ${err}. You MUST avoid this pattern entirely — use a simpler alternative.`,
+								is_error: true,
+							}
+						}
+						return { type: 'tool_result', tool_use_id: tu.id, content: 'ok' }
+					})
+
+				const retry2Signal = composeAbortSignals([request.signal], LLM_CALL_SOFT_TIMEOUT_MS)
+				let retry2Response: Anthropic.Messages.Message
+				try {
+					retry2Response = await deps.anthropic.messages
+						.stream(
+							{
+								model,
+								max_tokens: MAX_OUTPUT_TOKENS_PER_BUILD,
+								system: [
+									{
+										type: 'text',
+										text: BUILD_SYSTEM_PROMPT,
+										cache_control: { type: 'ephemeral' },
+									},
+								],
+								tools: [WRITE_FILE_TOOL],
+								messages: [
+									{
+										role: 'user',
+										content: [
+											{
+												type: 'text',
+												text: projectFilesBlock,
+												cache_control: { type: 'ephemeral' },
+											},
+											{ type: 'text', text: userPromptBlock },
+										],
+									},
+									{ role: 'assistant', content: response.content },
+									{
+										role: 'user',
+										content: [
+											...toolResultBlocks,
+											{
+												type: 'text',
+												text: 'Fix ONLY the errors flagged in the tool_results above. Do not rewrite files that returned "ok".',
+											},
+										],
+									},
+									{ role: 'assistant', content: repairResponse.content },
+									{
+										role: 'user',
+										content: [
+											...retryToolResults,
+											{
+												type: 'text',
+												text: 'These errors persisted after your first fix. Use a completely different approach — simpler code, no fancy CSS, no unsupported features.',
+											},
+										],
+									},
+								],
+							},
+							{ signal: retry2Signal.signal },
+						)
+						.finalMessage()
+				} finally {
+					retry2Signal.dispose()
+				}
+
+				const retry2ToolUses = retry2Response.content.filter(
+					(block): block is Anthropic.Messages.ToolUseBlock =>
+						block.type === 'tool_use' && block.name === WRITE_FILE_TOOL.name,
 				)
+				for (const toolUse of retry2ToolUses) {
+					const parsed = writeFileInputSchema.safeParse(toolUse.input)
+					if (!parsed.success) continue
+					if (LOCKED_STARTER_PATHS.has(parsed.data.path)) continue
+					await buildContext.writeFile(parsed.data)
+					fileMap.set(parsed.data.path, parsed.data)
+					yield {
+						type: 'file_written',
+						path: parsed.data.path,
+						contentHash: await sha256Hex(parsed.data.content),
+						sizeBytes: byteLength(parsed.data.content),
+						fileIndex: fileIndex++,
+					}
+				}
+				validatedFiles.length = 0
+				validatedFiles.push(...fileMap.values())
+
+				const finalValidation = validateBuildFiles(validatedFiles, existingPaths)
+				if (!finalValidation.ok) {
+					const detail = finalValidation.errors.map((e) => `${e.path}: ${e.message}`).join('; ')
+					console.error(
+						`[orchestrator] [project=${request.projectId} build=${buildId}] repair failed after 2 attempts: ${detail}`,
+					)
+					yield { type: 'repair_failed', reason: detail, code: 'validation_failed' }
+					throw new OrchestratorBuildError(
+						"Meldar couldn't finish this step. The code had issues — trying a different approach usually fixes it.",
+						'validation_failed',
+					)
+				}
 			}
 			console.log(
 				`[orchestrator] [project=${request.projectId} build=${buildId}] self-repair succeeded`,
@@ -584,7 +700,7 @@ export async function* orchestrateBuild(
 			}
 		}
 	} catch (err) {
-		const reason = err instanceof Error ? err.message : String(err)
+		const rawReason = err instanceof Error ? err.message : String(err)
 		const isAbort =
 			err instanceof Error && (err.name === 'AbortError' || err.name === 'APIUserAbortError')
 		const code =
@@ -597,9 +713,11 @@ export async function* orchestrateBuild(
 						: 'unknown'
 
 		if (buildContext && !terminated) {
-			await buildContext.fail(reason).catch(() => undefined)
+			await buildContext.fail(rawReason).catch(() => undefined)
 			terminated = true
 		}
+
+		const { reason, suggestion } = userFacingError(code, rawReason)
 
 		yield {
 			type: 'failed',
@@ -607,11 +725,64 @@ export async function* orchestrateBuild(
 			buildId,
 			code,
 			kanbanCardId: request.kanbanCardId,
+			detail: rawReason !== reason ? rawReason : undefined,
+			suggestion,
 		}
 	} finally {
 		if (buildContext && !terminated) {
 			await buildContext.fail('stream_cancelled').catch(() => undefined)
 		}
+	}
+}
+
+function userFacingError(code: string, rawReason: string): { reason: string; suggestion: string } {
+	switch (code) {
+		case 'validation_failed':
+			return {
+				reason: "The generated code used features that aren't available in your app.",
+				suggestion: 'Try rephrasing — e.g. "use simple colors" or "keep the current style".',
+			}
+		case 'no_tool_uses':
+			return {
+				reason: 'The AI understood your request but didn\u2019t produce any code.',
+				suggestion: 'Try being more specific about what you want changed.',
+			}
+		case 'max_tokens_truncated':
+			return {
+				reason: 'The change was too large and got cut off.',
+				suggestion:
+					'Try a smaller change — e.g. "just update the header" instead of redesigning everything.',
+			}
+		case 'all_locked_paths':
+			return {
+				reason: 'The AI only tried to edit protected system files.',
+				suggestion: 'Ask for a change to your page content instead.',
+			}
+		case 'tool_input_invalid':
+			return {
+				reason: 'The AI produced a malformed response.',
+				suggestion: 'Try again — this is usually a one-off glitch.',
+			}
+		case 'aborted':
+			return {
+				reason: 'The build was cancelled.',
+				suggestion: 'You can try again whenever you\u2019re ready.',
+			}
+		case 'spend_ceiling_exceeded':
+			return {
+				reason: 'You\u2019ve hit your daily usage limit.',
+				suggestion: 'Your limit resets tomorrow. Upgrade your plan for more builds.',
+			}
+		case 'spend_paused':
+			return {
+				reason: 'Your account is paused.',
+				suggestion: 'Check your account settings to resume building.',
+			}
+		default:
+			return {
+				reason: 'Something went wrong with this build.',
+				suggestion: 'Try again — if it keeps failing, try a simpler prompt.',
+			}
 	}
 }
 

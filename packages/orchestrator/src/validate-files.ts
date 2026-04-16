@@ -159,10 +159,16 @@ const ALLOWED_APP_FILE_NAMES = new Set([
 	'layout.tsx',
 	'loading.tsx',
 	'error.tsx',
+	'global-error.tsx',
 	'not-found.tsx',
+	'template.tsx',
+	'default.tsx',
 	'globals.css',
 	'opengraph-image.tsx',
 	'icon.tsx',
+	'sitemap.ts',
+	'robots.ts',
+	'manifest.ts',
 ])
 
 export function validateFilePath(rawPath: string): ValidationResult {
@@ -515,6 +521,7 @@ const SHORTHAND_TO_LOGICAL: Record<string, string> = {
 }
 
 function isColorTokenValue(value: string): boolean {
+	if (value.includes('(')) return false
 	return /^[a-zA-Z]/.test(value) && value.includes('.')
 }
 
@@ -529,7 +536,7 @@ const CSS_COLOR_PROP_RE =
 const TEXT_STYLE_JSX_RE = /\btextStyle=["']([^"']+)["']/g
 const TEXT_STYLE_CSS_RE = /\btextStyle\s*:\s*['"]([^'"]+)['"]/g
 const SHORTHAND_JSX_RE = /\b(mb|mt|ml|mr|mx|my|pb|pt|pl|pr|px|py)[=:]["']/g
-const SHORTHAND_CSS_RE = /\b(mb|mt|ml|mr|mx|my|pb|pt|pl|pr|px|py)\s*:/g
+const SHORTHAND_CSS_RE = /\b(mb|mt|ml|mr|mx|my|pb|pt|pl|pr|px|py)\s*:\s*['"\d]/g
 
 export function validatePandaCss(files: readonly FileInput[]): ValidationResult {
 	const errors: ValidationError[] = []

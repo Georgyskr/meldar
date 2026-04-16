@@ -284,7 +284,9 @@ describe('orchestrateBuild', () => {
 			const failed = events[events.length - 1]
 			expect(failed.type).toBe('failed')
 			if (failed.type === 'failed') {
-				expect(failed.reason).toContain('no file writes')
+				expect(failed.code).toBe('no_tool_uses')
+				expect(failed.detail).toContain('no file writes')
+				expect(failed.suggestion).toBeTruthy()
 			}
 		})
 
@@ -417,7 +419,9 @@ describe('orchestrateBuild', () => {
 			const failed = events[events.length - 1]
 			expect(failed.type).toBe('failed')
 			if (failed.type === 'failed') {
-				expect(failed.reason).toContain('Zod')
+				expect(failed.code).toBe('tool_input_invalid')
+				expect(failed.detail).toContain('Zod')
+				expect(failed.suggestion).toBeTruthy()
 			}
 		})
 

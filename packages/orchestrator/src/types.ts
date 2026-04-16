@@ -40,7 +40,15 @@ export type OrchestratorEvent =
 			code: string
 			rejected: boolean
 	  }
-	| { type: 'failed'; reason: string; buildId?: string; code?: string; kanbanCardId?: string }
+	| {
+			type: 'failed'
+			reason: string
+			buildId?: string
+			code?: string
+			kanbanCardId?: string
+			detail?: string
+			suggestion?: string
+	  }
 	| { type: 'card_started'; cardId: string; cardIndex: number; totalCards: number }
 	| { type: 'pipeline_complete'; totalBuilt: number; totalCards: number }
 	| { type: 'pipeline_failed'; cardId: string; reason: string }

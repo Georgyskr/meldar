@@ -232,6 +232,16 @@ describe('validateFilePath', () => {
 		expect(validateFilePath('app/not-found.tsx').ok).toBe(true)
 	})
 
+	it('allows all standard Next.js App Router conventions', () => {
+		expect(validateFilePath('app/template.tsx').ok).toBe(true)
+		expect(validateFilePath('app/default.tsx').ok).toBe(true)
+		expect(validateFilePath('app/global-error.tsx').ok).toBe(true)
+		expect(validateFilePath('app/sitemap.ts').ok).toBe(true)
+		expect(validateFilePath('app/robots.ts').ok).toBe(true)
+		expect(validateFilePath('app/manifest.ts').ok).toBe(true)
+		expect(validateFilePath('src/app/dashboard/template.tsx').ok).toBe(true)
+	})
+
 	it('allows src components and lib', () => {
 		expect(validateFilePath('src/components/Button.tsx').ok).toBe(true)
 		expect(validateFilePath('src/lib/utils.ts').ok).toBe(true)
@@ -603,6 +613,40 @@ describe('validatePandaCss', () => {
 			}
 		})
 
+		it('accepts raw CSS color functions (rgba, hsla, oklch, etc.)', () => {
+			const files: FileInput[] = [
+				{
+					path: 'src/app/page.tsx',
+					content: `import { Box } from 'styled-system/jsx'
+export default function Page() {
+  return (
+    <Box bg="rgba(245, 245, 247, 0.8)" color="rgba(0,0,0,0.06)" borderColor="hsla(0, 0%, 100%, 0.5)">
+      <Box background="oklch(0.5 0.2 240)" fill="rgb(255, 0, 0)" stroke="hsl(120, 100%, 50%)">Hi</Box>
+    </Box>
+  )
+}`,
+				},
+			]
+			expect(validatePandaCss(files).ok).toBe(true)
+		})
+
+		it('accepts CSS functions with decimals (calc, clamp, min, max, var, gradient)', () => {
+			const files: FileInput[] = [
+				{
+					path: 'src/app/page.tsx',
+					content: `import { Box } from 'styled-system/jsx'
+export default function Page() {
+  return (
+    <Box bg="linear-gradient(0.5turn, red, blue)" color="var(--c-0.5)">
+      <Box background="calc(100vh - 3.5rem)" fill="clamp(0.875rem, 2vw, 1.125rem)">Hi</Box>
+    </Box>
+  )
+}`,
+				},
+			]
+			expect(validatePandaCss(files).ok).toBe(true)
+		})
+
 		it('accepts numeric spacing values in color-like props context', () => {
 			const files: FileInput[] = [
 				{
@@ -679,6 +723,19 @@ describe('validatePandaCss', () => {
 			if (!result.ok) {
 				expect(result.errors.some((e) => e.message.includes('mt'))).toBe(true)
 			}
+		})
+
+		it('does not flag TypeScript type annotations that look like shorthands', () => {
+			const files: FileInput[] = [
+				{
+					path: 'src/components/Utils.tsx',
+					content: `function layout(mx: number, my: number) { return mx + my }
+type Spacing = { px: string; py: string }
+const pt: HTMLElement | null = null
+export default function U() { return <div>{String(pt)}</div> }`,
+				},
+			]
+			expect(validatePandaCss(files).ok).toBe(true)
 		})
 
 		it('accepts logical property names', () => {

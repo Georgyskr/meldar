@@ -22,33 +22,37 @@ describe('handleSseEvent', () => {
 		expect(publish).toHaveBeenCalledWith(event)
 	})
 
-	it('fires toast.error and console.warn on "failed" events', () => {
+	it('shows user-facing reason and suggestion in toast on "failed" events', () => {
 		const publish = vi.fn()
 		const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		handleSseEvent(
-			{ type: 'failed', reason: 'Build validation failed', code: 'VALIDATION_ERROR' },
+			{
+				type: 'failed',
+				reason: 'The AI produced a malformed response.',
+				code: 'tool_input_invalid',
+				suggestion: 'Try again — this is usually a one-off glitch.',
+			},
 			publish,
 		)
 
-		expect(publish).toHaveBeenCalledWith(
-			expect.objectContaining({ type: 'failed', reason: 'Build validation failed' }),
+		expect(publish).toHaveBeenCalledWith(expect.objectContaining({ type: 'failed' }))
+		expect(toast.error).toHaveBeenCalledWith(
+			'The AI produced a malformed response.',
+			'Try again — this is usually a one-off glitch.',
 		)
-		expect(toast.error).toHaveBeenCalledWith('Something went sideways', 'Build validation failed')
-		expect(spy).toHaveBeenCalledWith(
-			expect.stringContaining('VALIDATION_ERROR: Build validation failed'),
-		)
+		expect(spy).toHaveBeenCalled()
 
 		spy.mockRestore()
 	})
 
-	it('fires toast.error on "failed" events even without a code', () => {
+	it('shows reason without suggestion when suggestion is absent', () => {
 		const publish = vi.fn()
 		vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		handleSseEvent({ type: 'failed', reason: 'Unknown error' }, publish)
 
-		expect(toast.error).toHaveBeenCalledWith('Something went sideways', 'Unknown error')
+		expect(toast.error).toHaveBeenCalledWith('Unknown error', undefined)
 
 		vi.restoreAllMocks()
 	})
@@ -65,14 +69,14 @@ describe('handleSseEvent', () => {
 		expect(toast.error).not.toHaveBeenCalled()
 	})
 
-	it('fires console.warn on "pipeline_failed" events', () => {
+	it('fires toast on "pipeline_failed" events', () => {
 		const publish = vi.fn()
 		const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		handleSseEvent({ type: 'pipeline_failed', reason: 'Card build crashed', cardId: 'c1' }, publish)
 
 		expect(publish).toHaveBeenCalled()
-		expect(toast.error).toHaveBeenCalledWith('Something went sideways', 'Card build crashed')
+		expect(toast.error).toHaveBeenCalledWith('Card build crashed')
 		expect(spy).toHaveBeenCalled()
 
 		spy.mockRestore()
