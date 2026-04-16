@@ -224,7 +224,7 @@ describe('build journey (integration)', () => {
 		const failed = events[events.length - 1]
 		expect(failed.type).toBe('failed')
 		if (failed.type === 'failed') {
-			expect(failed.reason).toContain('..')
+			expect(failed.detail ?? failed.reason).toContain('..')
 		}
 
 		const project = await fixture.storage.getProject(fixture.projectId, fixture.userId)
@@ -253,7 +253,7 @@ describe('build journey (integration)', () => {
 		const failed = events[events.length - 1]
 		expect(failed.type).toBe('failed')
 		if (failed.type === 'failed') {
-			expect(failed.reason).toContain('node_modules')
+			expect(failed.detail ?? failed.reason).toContain('node_modules')
 		}
 	})
 

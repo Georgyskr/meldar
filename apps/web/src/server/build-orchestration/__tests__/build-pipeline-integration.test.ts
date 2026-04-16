@@ -861,7 +861,8 @@ describe('edge cases', () => {
 		const failed = events[events.length - 1]
 		expect(failed.type).toBe('failed')
 		if (failed.type === 'failed') {
-			expect(failed.reason).toContain('Zod')
+			expect(failed.code).toBe('tool_input_invalid')
+			expect(failed.detail).toContain('Zod')
 		}
 	})
 
