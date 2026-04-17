@@ -31,8 +31,10 @@ export function FirstBuildCelebration({ projectId, receipt, cards }: FirstBuildC
 		const already = localStorage.getItem(storageKey(projectId))
 		if (already) return
 
-		const hasBuiltCard = cards.some((c) => c.state === 'built')
-		if (!hasBuiltCard) return
+		const hasUserDirectedBuild = cards.some(
+			(c) => c.state === 'built' && c.generatedBy !== 'template',
+		)
+		if (!hasUserDirectedBuild) return
 
 		setVisible(true)
 	}, [projectId, cards])

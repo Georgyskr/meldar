@@ -19,7 +19,6 @@ import { WorkspaceShell } from '@/widgets/workspace'
 const projectIdSchema = z.string().uuid()
 
 const STUCK_BUILD_THRESHOLD_MS = 5 * 60 * 1000
-const PREVIEW_STALENESS_MS = 2 * 60 * 1000
 
 export const metadata: Metadata = {
 	title: 'Workspace · Meldar',
@@ -100,10 +99,7 @@ export default async function WorkspacePage({ params }: PageProps) {
 		subdomain = null
 	}
 
-	const isPreviewStale =
-		!project.previewUrlUpdatedAt ||
-		Date.now() - project.previewUrlUpdatedAt.getTime() > PREVIEW_STALENESS_MS
-	const initialPreviewUrl = isPreviewStale ? null : project.previewUrl
+	const initialPreviewUrl = project.previewUrl
 	const parsedCards = kanbanCards.map((c) => kanbanCardSchema.parse(c))
 	const step = deriveProjectStep(parsedCards)
 
