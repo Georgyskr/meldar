@@ -393,6 +393,36 @@ describe('POST /api/workspace/[projectId]/cards', () => {
 		expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({ position: 3 }))
 	})
 
+	it('rejects client-supplied generatedBy other than "user" (server-owned field)', async () => {
+		const res = await POST(
+			makePostRequest(
+				PROJECT_ID,
+				{ title: 'sneaky', generatedBy: 'auto_personalization' },
+				'valid_token',
+			),
+			routeContext,
+		)
+		expect(res.status).toBe(400)
+		const json = (await res.json()) as { error: { code: string } }
+		expect(json.error.code).toBe('VALIDATION_ERROR')
+	})
+
+	it('rejects client-supplied generatedBy=template (server-owned field)', async () => {
+		const res = await POST(
+			makePostRequest(PROJECT_ID, { title: 'x', generatedBy: 'template' }, 'valid_token'),
+			routeContext,
+		)
+		expect(res.status).toBe(400)
+	})
+
+	it('rejects client-supplied generatedBy=haiku (server-owned field)', async () => {
+		const res = await POST(
+			makePostRequest(PROJECT_ID, { title: 'x', generatedBy: 'haiku' }, 'valid_token'),
+			routeContext,
+		)
+		expect(res.status).toBe(400)
+	})
+
 	it('accepts a 1500-char description (personalization prompt length)', async () => {
 		const longDescription = 'x'.repeat(1500)
 		const created = makeCard({ id: CARD_ID_1, title: 'Card', description: longDescription })
@@ -522,6 +552,19 @@ describe('PATCH /api/workspace/[projectId]/cards/[cardId]', () => {
 			cardRouteContext(CARD_ID_1),
 		)
 		expect(res.status).toBe(200)
+	})
+
+	it('rejects client-supplied generatedBy in PATCH body (server-owned field)', async () => {
+		const res = await PATCH(
+			makePatchRequest(
+				PROJECT_ID,
+				CARD_ID_1,
+				{ generatedBy: 'auto_personalization' },
+				'valid_token',
+			),
+			cardRouteContext(CARD_ID_1),
+		)
+		expect(res.status).toBe(400)
 	})
 })
 

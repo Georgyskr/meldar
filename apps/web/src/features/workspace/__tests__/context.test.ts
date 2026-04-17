@@ -504,4 +504,102 @@ describe('pipelineStarting — optimistic pre-first-event window', () => {
 		})
 		expect(next.pipelineStarting).toBe(false)
 	})
+
+	describe('disconnected event', () => {
+		it('clears pipeline state without marking card as failed', () => {
+			const card = makeCard({ id: 'card-1', state: 'building' })
+			const state = seed({
+				cards: [card],
+				activeBuildCardId: 'card-1',
+				currentCardIndex: 2,
+				totalCards: 5,
+			})
+			const next = workspaceBuildReducer(state, {
+				type: 'disconnected',
+				reason: 'Lost connection',
+				code: 'lost_contact',
+			})
+			expect(next.activeBuildCardId).toBeNull()
+			expect(next.currentCardIndex).toBeNull()
+			expect(next.totalCards).toBeNull()
+			expect(next.cards[0].state).not.toBe('failed')
+		})
+
+		it('preserves card state on disconnect (server is authoritative, Refresh re-hydrates)', () => {
+			const buildingCard = makeCard({ id: 'card-building', state: 'building' })
+			const builtCard = makeCard({ id: 'card-built', state: 'built' })
+
+			const state = seed({
+				cards: [buildingCard, builtCard],
+				activeBuildCardId: 'card-building',
+			})
+			const next = workspaceBuildReducer(state, {
+				type: 'disconnected',
+				reason: 'still waiting',
+				code: 'deadline',
+			})
+
+			expect(next.cards.find((c) => c.id === 'card-building')?.state).toBe('building')
+			expect(next.cards.find((c) => c.id === 'card-built')?.state).toBe('built')
+		})
+
+		it('preserves existing failureMessage on disconnect (does not swallow genuine failures)', () => {
+			const state = seed({
+				failureMessage: 'Previous build crashed',
+			})
+			const next = workspaceBuildReducer(state, {
+				type: 'disconnected',
+				reason: 'still waiting',
+				code: 'deadline',
+			})
+			expect(next.failureMessage).toBe('Previous build crashed')
+		})
+
+		it('surfaces disconnect reason via disconnectedReason state field', () => {
+			const next = workspaceBuildReducer(seed(), {
+				type: 'disconnected',
+				reason: 'Still waiting — refresh to see the latest.',
+				code: 'deadline',
+			})
+			expect(next.disconnectedReason).toBe('Still waiting — refresh to see the latest.')
+		})
+
+		it('auto-clears disconnectedReason when a new build starts', () => {
+			const disconnected = workspaceBuildReducer(seed(), {
+				type: 'disconnected',
+				reason: 'Lost connection',
+				code: 'lost_contact',
+			})
+			const started = workspaceBuildReducer(disconnected, {
+				type: 'started',
+				buildId: 'b1',
+				projectId: 'p1',
+			})
+			expect(started.disconnectedReason).toBeNull()
+		})
+
+		it('auto-clears disconnectedReason when pipeline starts', () => {
+			const disconnected = workspaceBuildReducer(seed(), {
+				type: 'disconnected',
+				reason: 'Lost connection',
+				code: 'lost_contact',
+			})
+			const pipelineStart = workspaceBuildReducer(disconnected, {
+				type: 'ui/pipelineStarting',
+			})
+			expect(pipelineStart.disconnectedReason).toBeNull()
+		})
+
+		it('clears disconnectedReason on explicit dismiss action', () => {
+			const disconnected = workspaceBuildReducer(seed(), {
+				type: 'disconnected',
+				reason: 'Lost connection',
+				code: 'lost_contact',
+			})
+			const dismissed = workspaceBuildReducer(disconnected, {
+				type: 'ui/dismissDisconnect',
+			})
+			expect(dismissed.disconnectedReason).toBeNull()
+		})
+	})
 })

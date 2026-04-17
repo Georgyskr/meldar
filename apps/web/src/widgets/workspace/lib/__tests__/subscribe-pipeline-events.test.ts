@@ -51,21 +51,21 @@ describe('subscribePipelineEvents', () => {
 		expect(fetchFn).toHaveBeenCalledTimes(2)
 	})
 
-	it('publishes a synthetic failed event when no run is found to attach to', async () => {
+	it('publishes a synthetic disconnected event when no run is found to attach to', async () => {
 		const fetchFn = vi.fn().mockResolvedValue(response(null, [], false))
-		const collected: Array<{ type: string; reason?: string }> = []
+		const collected: Array<{ type: string; reason?: string; code?: string }> = []
 		for await (const event of subscribePipelineEvents('proj-1', undefined, {
 			fetchFn,
 			intervalMs: 10,
 		})) {
-			collected.push(event as { type: string; reason?: string })
+			collected.push(event as { type: string; reason?: string; code?: string })
 		}
 		expect(collected).toHaveLength(1)
-		expect(collected[0].type).toBe('failed')
+		expect(collected[0].type).toBe('disconnected')
 		expect(fetchFn).toHaveBeenCalledTimes(1)
 	})
 
-	it('publishes synthetic failed when run finished with no events before client attached', async () => {
+	it('publishes synthetic disconnected when run finished with no events before client attached', async () => {
 		const fetchFn = vi.fn().mockImplementation(async () => response('run-1', [], false))
 		const collected: Array<{ type: string }> = []
 		for await (const event of subscribePipelineEvents('proj-1', undefined, {
@@ -75,7 +75,72 @@ describe('subscribePipelineEvents', () => {
 			collected.push(event as { type: string })
 		}
 		expect(collected).toHaveLength(1)
-		expect(collected[0].type).toBe('failed')
+		expect(collected[0].type).toBe('disconnected')
+	})
+
+	it('publishes disconnected (not failed) when 5 consecutive fetches throw', async () => {
+		const fetchFn = vi.fn().mockRejectedValue(new TypeError('network'))
+		const collected: Array<{ type: string; code?: string }> = []
+		const gen = subscribePipelineEvents('proj-1', undefined, { fetchFn, intervalMs: 10 })
+		const consumer = (async () => {
+			for await (const event of gen) {
+				collected.push(event as { type: string; code?: string })
+			}
+		})()
+		await vi.advanceTimersByTimeAsync(200)
+		await consumer
+		expect(collected).toHaveLength(1)
+		expect(collected[0].type).toBe('disconnected')
+	})
+
+	it('pauses fetching while document.hidden is true and resumes on visible', async () => {
+		const originalDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden')
+		let hidden = true
+		Object.defineProperty(document, 'hidden', {
+			configurable: true,
+			get: () => hidden,
+		})
+
+		const fetchFn = vi.fn().mockImplementation(async () => response('run-1', [], false))
+		const collected: Array<{ type: string }> = []
+		const gen = subscribePipelineEvents('proj-visible', undefined, { fetchFn, intervalMs: 10 })
+		const consumer = (async () => {
+			for await (const event of gen) {
+				collected.push(event as { type: string })
+			}
+		})()
+
+		await vi.advanceTimersByTimeAsync(50)
+		expect(fetchFn).not.toHaveBeenCalled()
+
+		hidden = false
+		document.dispatchEvent(new Event('visibilitychange'))
+		await vi.advanceTimersByTimeAsync(50)
+		await consumer
+
+		expect(fetchFn).toHaveBeenCalled()
+
+		if (originalDescriptor) {
+			Object.defineProperty(Document.prototype, 'hidden', originalDescriptor)
+		}
+	})
+
+	it('publishes disconnected when deadline reached with no events', async () => {
+		const fetchFn = vi.fn().mockImplementation(async () => response('run-1', [], true))
+		const collected: Array<{ type: string }> = []
+		const gen = subscribePipelineEvents('proj-1', undefined, {
+			fetchFn,
+			intervalMs: 10,
+			maxDurationMs: 40,
+		})
+		const consumer = (async () => {
+			for await (const event of gen) {
+				collected.push(event as { type: string })
+			}
+		})()
+		await vi.advanceTimersByTimeAsync(200)
+		await consumer
+		expect(collected.at(-1)?.type).toBe('disconnected')
 	})
 
 	it('sends x-meldar-client header (CSRF hardening)', async () => {

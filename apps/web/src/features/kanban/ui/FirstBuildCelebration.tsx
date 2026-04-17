@@ -32,7 +32,7 @@ export function FirstBuildCelebration({ projectId, receipt, cards }: FirstBuildC
 		if (already) return
 
 		const hasUserDirectedBuild = cards.some(
-			(c) => c.state === 'built' && c.generatedBy !== 'template',
+			(c) => c.state === 'built' && c.generatedBy !== 'auto_personalization',
 		)
 		if (!hasUserDirectedBuild) return
 

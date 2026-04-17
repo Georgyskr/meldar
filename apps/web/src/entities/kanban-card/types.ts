@@ -21,7 +21,12 @@ export const kanbanCardTaskTypeSchema = z.enum([
 ])
 export type KanbanCardTaskType = z.infer<typeof kanbanCardTaskTypeSchema>
 
-export const kanbanCardGeneratedBySchema = z.enum(['template', 'haiku', 'user'])
+export const kanbanCardGeneratedBySchema = z.enum([
+	'template',
+	'haiku',
+	'user',
+	'auto_personalization',
+])
 export type KanbanCardGeneratedBy = z.infer<typeof kanbanCardGeneratedBySchema>
 
 export const kanbanCardSchema = z.object({

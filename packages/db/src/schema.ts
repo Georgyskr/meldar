@@ -384,7 +384,7 @@ export const kanbanCards = pgTable(
 		),
 		check(
 			'kanban_cards_generated_by_valid',
-			sql`${table.generatedBy} IN ('template', 'haiku', 'user')`,
+			sql`${table.generatedBy} IN ('template', 'haiku', 'user', 'auto_personalization')`,
 		),
 	],
 )

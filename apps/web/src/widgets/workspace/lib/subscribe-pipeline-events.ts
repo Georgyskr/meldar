@@ -40,6 +40,8 @@ export async function* subscribePipelineEvents(
 
 	while (Date.now() < deadline) {
 		if (signal?.aborted) return
+		await waitForVisible(signal)
+		if (signal?.aborted) return
 		const qs = new URLSearchParams({ since: String(lastSeq) })
 		if (runId) qs.set('runId', runId)
 		let res: Response
@@ -50,7 +52,7 @@ export async function* subscribePipelineEvents(
 			})
 		} catch {
 			if (++consecutiveFailures >= CONSECUTIVE_FAILURE_LIMIT) {
-				yield syntheticFailed('lost contact with pipeline')
+				yield disconnected('lost_contact', 'Connection dropped. Refresh to resync.')
 				return
 			}
 			await sleep(intervalMs, signal)
@@ -58,7 +60,7 @@ export async function* subscribePipelineEvents(
 		}
 		if (!res.ok) {
 			if (++consecutiveFailures >= CONSECUTIVE_FAILURE_LIMIT) {
-				yield syntheticFailed('pipeline events endpoint unavailable')
+				yield disconnected('endpoint_unavailable', 'Connection dropped. Refresh to resync.')
 				return
 			}
 			await sleep(intervalMs, signal)
@@ -68,7 +70,7 @@ export async function* subscribePipelineEvents(
 		const body = (await res.json()) as PipelineEventsResponse
 		if (!body.runId) {
 			if (!sawAnyEvent) {
-				yield syntheticFailed('no pipeline found to attach to')
+				yield disconnected('nothing_to_attach', 'No build is running right now.')
 			}
 			return
 		}
@@ -80,19 +82,19 @@ export async function* subscribePipelineEvents(
 		}
 		if (!body.active) {
 			if (!sawAnyEvent && body.events.length === 0) {
-				yield syntheticFailed('pipeline finished before client could attach')
+				yield disconnected('pipeline_gone', 'Build finished. Refresh to see it.')
 			}
 			return
 		}
 		await sleep(intervalMs, signal)
 	}
 	if (!sawAnyEvent) {
-		yield syntheticFailed('pipeline events deadline reached')
+		yield disconnected('deadline', 'Still waiting — refresh to see the latest.')
 	}
 }
 
-function syntheticFailed(reason: string): OrchestratorEvent {
-	return { type: 'failed', reason, code: 'subscriber_lost_contact' } as OrchestratorEvent
+function disconnected(code: string, reason: string): OrchestratorEvent {
+	return { type: 'disconnected', reason, code }
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -106,5 +108,27 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 			},
 			{ once: true },
 		)
+	})
+}
+
+function waitForVisible(signal?: AbortSignal): Promise<void> {
+	if (typeof document === 'undefined' || !document.hidden) return Promise.resolve()
+	return new Promise((resolve) => {
+		let settled = false
+		const settle = () => {
+			if (settled) return
+			settled = true
+			document.removeEventListener('visibilitychange', handleVisibility)
+			resolve()
+		}
+		const handleVisibility = () => {
+			if (!document.hidden) settle()
+		}
+		signal?.addEventListener('abort', settle, { once: true })
+		document.addEventListener('visibilitychange', handleVisibility)
+		// TOCTOU: visibility may have flipped between the check above and listener
+		// attachment. Without this recheck, waitForVisible would hang until the
+		// next unrelated visibilitychange event.
+		if (!document.hidden) settle()
 	})
 }

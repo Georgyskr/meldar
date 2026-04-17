@@ -81,4 +81,44 @@ describe('handleSseEvent', () => {
 
 		spy.mockRestore()
 	})
+
+	it('publishes "disconnected" events but does NOT show a toast with a technical string', () => {
+		const publish = vi.fn()
+		vi.mocked(toast.error).mockClear()
+		vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+		handleSseEvent(
+			{
+				type: 'disconnected',
+				reason: 'Lost connection while waiting for update.',
+				code: 'lost_contact',
+			},
+			publish,
+		)
+
+		expect(publish).toHaveBeenCalledWith(expect.objectContaining({ type: 'disconnected' }))
+		expect(toast.error).not.toHaveBeenCalled()
+
+		vi.restoreAllMocks()
+	})
+
+	it('does NOT treat "deadline" disconnects as errors (silent)', () => {
+		const publish = vi.fn()
+		vi.mocked(toast.error).mockClear()
+		vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+		handleSseEvent(
+			{
+				type: 'disconnected',
+				reason: 'Still waiting — refresh to see the latest.',
+				code: 'deadline',
+			},
+			publish,
+		)
+
+		expect(publish).toHaveBeenCalled()
+		expect(toast.error).not.toHaveBeenCalled()
+
+		vi.restoreAllMocks()
+	})
 })

@@ -59,6 +59,7 @@ export type WorkspaceBuildState = {
 	readonly totalCards: number | null
 	readonly lastEventSeq: number
 	readonly pipelineStarting: boolean
+	readonly disconnectedReason: string | null
 }
 
 export type WorkspaceUiAction =
@@ -67,6 +68,7 @@ export type WorkspaceUiAction =
 	| { type: 'ui/openChat' }
 	| { type: 'ui/closeChat' }
 	| { type: 'ui/pipelineStarting' }
+	| { type: 'ui/dismissDisconnect' }
 
 export type WorkspaceBuildInit = {
 	readonly initialPreviewUrl: string | null
@@ -95,6 +97,7 @@ export function workspaceBuildInitialState(init: WorkspaceBuildInit): WorkspaceB
 		totalCards: null,
 		lastEventSeq: 0,
 		pipelineStarting: false,
+		disconnectedReason: null,
 	}
 }
 
@@ -179,7 +182,8 @@ function isUiAction(action: WorkspaceAction): action is WorkspaceUiAction {
 		action.type === 'ui/clearSelection' ||
 		action.type === 'ui/openChat' ||
 		action.type === 'ui/closeChat' ||
-		action.type === 'ui/pipelineStarting'
+		action.type === 'ui/pipelineStarting' ||
+		action.type === 'ui/dismissDisconnect'
 	)
 }
 
@@ -198,7 +202,14 @@ export function workspaceBuildReducer(
 			case 'ui/closeChat':
 				return { ...state, chatOpen: false }
 			case 'ui/pipelineStarting':
-				return { ...state, pipelineStarting: true, failureMessage: null }
+				return {
+					...state,
+					pipelineStarting: true,
+					failureMessage: null,
+					disconnectedReason: null,
+				}
+			case 'ui/dismissDisconnect':
+				return { ...state, disconnectedReason: null }
 		}
 	}
 
@@ -234,6 +245,7 @@ function orchestratorEventReducer(
 				activeBuildCardId: action.kanbanCardId ?? state.selectedTaskId ?? action.buildId,
 				writtenFiles: [],
 				failureMessage: null,
+				disconnectedReason: null,
 				deployment: { type: 'idle' },
 			}
 		case 'file_written':
@@ -277,6 +289,14 @@ function orchestratorEventReducer(
 				currentCardIndex: null,
 				totalCards: null,
 				failureMessage: action.reason,
+			}
+		case 'disconnected':
+			return {
+				...state,
+				activeBuildCardId: null,
+				currentCardIndex: null,
+				totalCards: null,
+				disconnectedReason: action.reason,
 			}
 		case 'deploying':
 			return {
@@ -366,6 +386,7 @@ type WorkspaceBuildContextValue = WorkspaceBuildState & {
 	readonly openChat: () => void
 	readonly closeChat: () => void
 	readonly markPipelineStarting: () => void
+	readonly dismissDisconnect: () => void
 }
 
 const Ctx = createContext<WorkspaceBuildContextValue | null>(null)
@@ -423,6 +444,7 @@ export function WorkspaceBuildProvider({
 	const openChat = useCallback(() => dispatch({ type: 'ui/openChat' }), [])
 	const closeChat = useCallback(() => dispatch({ type: 'ui/closeChat' }), [])
 	const markPipelineStarting = useCallback(() => dispatch({ type: 'ui/pipelineStarting' }), [])
+	const dismissDisconnect = useCallback(() => dispatch({ type: 'ui/dismissDisconnect' }), [])
 
 	const mode = useMemo(() => deriveWorkspaceMode(state), [state])
 
@@ -436,8 +458,19 @@ export function WorkspaceBuildProvider({
 			openChat,
 			closeChat,
 			markPipelineStarting,
+			dismissDisconnect,
 		}),
-		[state, mode, publish, selectTask, clearSelection, openChat, closeChat, markPipelineStarting],
+		[
+			state,
+			mode,
+			publish,
+			selectTask,
+			clearSelection,
+			openChat,
+			closeChat,
+			markPipelineStarting,
+			dismissDisconnect,
+		],
 	)
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

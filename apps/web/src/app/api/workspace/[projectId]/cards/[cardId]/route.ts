@@ -5,7 +5,6 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import {
 	type KanbanCardState,
-	kanbanCardGeneratedBySchema,
 	kanbanCardStateSchema,
 	kanbanCardTaskTypeSchema,
 } from '@/entities/kanban-card'
@@ -17,25 +16,28 @@ import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const updateCardSchema = z.object({
-	title: z.string().trim().min(1).max(80).optional(),
-	description: z.string().max(8000).nullable().optional(),
-	parentId: z.string().uuid().nullable().optional(),
-	position: z.number().int().optional(),
-	state: kanbanCardStateSchema.optional(),
-	required: z.boolean().optional(),
-	taskType: kanbanCardTaskTypeSchema.optional(),
-	acceptanceCriteria: z.array(z.string()).max(5).nullable().optional(),
-	explainerText: z.string().max(500).nullable().optional(),
-	generatedBy: kanbanCardGeneratedBySchema.optional(),
-	tokenCostEstimateMin: z.number().int().nullable().optional(),
-	tokenCostEstimateMax: z.number().int().nullable().optional(),
-	tokenCostActual: z.number().int().nullable().optional(),
-	dependsOn: z.array(z.string().uuid()).optional(),
-	blockedReason: z.string().nullable().optional(),
-	lastBuildId: z.string().uuid().nullable().optional(),
-	builtAt: z.coerce.date().nullable().optional(),
-})
+// .strict() rejects unknown keys — prevents clients from mutating server-owned
+// fields like generatedBy via unrecognized properties.
+const updateCardSchema = z
+	.object({
+		title: z.string().trim().min(1).max(80).optional(),
+		description: z.string().max(8000).nullable().optional(),
+		parentId: z.string().uuid().nullable().optional(),
+		position: z.number().int().optional(),
+		state: kanbanCardStateSchema.optional(),
+		required: z.boolean().optional(),
+		taskType: kanbanCardTaskTypeSchema.optional(),
+		acceptanceCriteria: z.array(z.string()).max(5).nullable().optional(),
+		explainerText: z.string().max(500).nullable().optional(),
+		tokenCostEstimateMin: z.number().int().nullable().optional(),
+		tokenCostEstimateMax: z.number().int().nullable().optional(),
+		tokenCostActual: z.number().int().nullable().optional(),
+		dependsOn: z.array(z.string().uuid()).optional(),
+		blockedReason: z.string().nullable().optional(),
+		lastBuildId: z.string().uuid().nullable().optional(),
+		builtAt: z.coerce.date().nullable().optional(),
+	})
+	.strict()
 
 const limiter = mustHaveRateLimit(cardsLimit, 'cards')
 

@@ -65,6 +65,7 @@ export type OrchestratorEvent =
 	| { type: 'repair_started'; errorCount: number; affectedPaths: readonly string[] }
 	| { type: 'repair_succeeded'; filesRewritten: number }
 	| { type: 'repair_failed'; reason: string; code: string }
+	| { type: 'disconnected'; reason: string; code: string }
 
 export type OrchestratorResult =
 	| { ok: true; buildId: string; fileCount: number; tokenCost: number; centsCharged: number }

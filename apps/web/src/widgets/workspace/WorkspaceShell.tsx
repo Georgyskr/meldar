@@ -2,6 +2,7 @@
 
 import { consumeSseStream } from '@meldar/orchestrator'
 import { Box, Flex } from '@styled-system/jsx'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef } from 'react'
 import type { ProjectStep } from '@/entities/project-step'
 import type { KanbanCard } from '@/features/kanban'
@@ -14,6 +15,7 @@ import {
 	WorkspaceBuildProvider,
 } from '@/features/workspace'
 import { toast } from '@/shared/ui'
+import { DisconnectedStrip } from './DisconnectedStrip'
 import { handleSseEvent } from './lib/handle-sse-event'
 import { runBuild } from './lib/run-build'
 import { subscribePipelineEvents } from './lib/subscribe-pipeline-events'
@@ -61,6 +63,7 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 }
 
 function WorkspaceBody({ projectId }: { readonly projectId: string }) {
+	const router = useRouter()
 	const workspace = useWorkspaceBuild()
 	const {
 		activeBuildCardId,
@@ -71,6 +74,8 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 		lastBuildAt,
 		cards,
 		markPipelineStarting,
+		disconnectedReason,
+		dismissDisconnect,
 	} = workspace
 	const phase = derivePipelinePhase(workspace)
 	const pipelineBusy = phase.kind === 'building' || phase.kind === 'deploying'
@@ -120,6 +125,13 @@ function WorkspaceBody({ projectId }: { readonly projectId: string }) {
 
 	return (
 		<>
+			<DisconnectedStrip
+				reason={disconnectedReason}
+				onRefresh={() => {
+					dismissDisconnect()
+					router.refresh()
+				}}
+			/>
 			<Box flex="1" position="relative" minHeight={0}>
 				<PreviewPane
 					previewUrl={previewUrl}

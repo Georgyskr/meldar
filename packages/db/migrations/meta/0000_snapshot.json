@@ -1545,7 +1545,7 @@
         },
         "kanban_cards_generated_by_valid": {
           "name": "kanban_cards_generated_by_valid",
-          "value": "\"kanban_cards\".\"generated_by\" IN ('template', 'haiku', 'user')"
+          "value": "\"kanban_cards\".\"generated_by\" IN ('template', 'haiku', 'user', 'auto_personalization')"
         }
       },
       "isRLSEnabled": false

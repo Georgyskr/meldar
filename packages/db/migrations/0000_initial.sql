@@ -167,7 +167,7 @@ CREATE TABLE "kanban_cards" (
 	"built_at" timestamp with time zone,
 	CONSTRAINT "kanban_cards_state_valid" CHECK ("kanban_cards"."state" IN ('draft', 'ready', 'queued', 'building', 'built', 'needs_rework', 'failed')),
 	CONSTRAINT "kanban_cards_type_valid" CHECK ("kanban_cards"."task_type" IN ('feature', 'page', 'integration', 'data', 'fix', 'polish')),
-	CONSTRAINT "kanban_cards_generated_by_valid" CHECK ("kanban_cards"."generated_by" IN ('template', 'haiku', 'user'))
+	CONSTRAINT "kanban_cards_generated_by_valid" CHECK ("kanban_cards"."generated_by" IN ('template', 'haiku', 'user', 'auto_personalization'))
 );
 --> statement-breakpoint
 CREATE TABLE "pipeline_events" (

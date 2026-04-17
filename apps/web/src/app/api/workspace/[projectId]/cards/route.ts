@@ -3,7 +3,7 @@ import { kanbanCards } from '@meldar/db/schema'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { kanbanCardGeneratedBySchema, kanbanCardTaskTypeSchema } from '@/entities/kanban-card'
+import { kanbanCardTaskTypeSchema } from '@/entities/kanban-card'
 import { requireAuth } from '@/server/identity/require-auth'
 import { cardsLimit, checkRateLimit, mustHaveRateLimit } from '@/server/lib/rate-limit'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
@@ -18,7 +18,11 @@ const createCardSchema = z.object({
 	taskType: kanbanCardTaskTypeSchema.optional().default('feature'),
 	acceptanceCriteria: z.array(z.string()).max(5).nullable().optional(),
 	explainerText: z.string().max(500).nullable().optional(),
-	generatedBy: kanbanCardGeneratedBySchema.optional().default('user'),
+	// generatedBy is a server-owned trust-boundary field. Clients may only mint
+	// cards as 'user'. Other values ('template', 'haiku', 'auto_personalization')
+	// are set by server code (insertPlanCards, insertPersonalizationCard, etc.)
+	// to gate downstream UI (e.g. FirstBuildCelebration).
+	generatedBy: z.literal('user').optional().default('user'),
 	dependsOn: z.array(z.string().uuid()).optional(),
 })
 

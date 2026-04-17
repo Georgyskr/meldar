@@ -101,12 +101,12 @@ describe('FirstBuildCelebration', () => {
 		localStorage.clear()
 	})
 
-	it('does NOT fire for a template-generated auto-build (personalization card)', () => {
+	it('does NOT fire for the auto-personalization card', () => {
 		const cards = [
 			makeCard({
 				title: 'Personalizing your page',
 				state: 'built',
-				generatedBy: 'template',
+				generatedBy: 'auto_personalization',
 			}),
 		]
 		act(() => {
@@ -119,6 +119,26 @@ describe('FirstBuildCelebration', () => {
 			)
 		})
 		expect(container.textContent).not.toContain('Your first feature just shipped')
+	})
+
+	it('DOES fire for a user-applied template card that was just built', () => {
+		const cards = [
+			makeCard({
+				title: 'Hero section',
+				state: 'built',
+				generatedBy: 'template',
+			}),
+		]
+		act(() => {
+			root.render(
+				createElement(FirstBuildCelebration, {
+					projectId: 'p-tpl',
+					receipt: { ...RECEIPT, subtaskTitle: 'Hero section' },
+					cards,
+				}),
+			)
+		})
+		expect(container.textContent).toContain('Your first feature just shipped')
 	})
 
 	it('fires for a user-directed build (generatedBy user)', () => {
@@ -161,12 +181,12 @@ describe('FirstBuildCelebration', () => {
 		expect(container.textContent).toContain('Your first feature just shipped')
 	})
 
-	it('fires once template card is built AND a user/haiku card is also built', () => {
+	it('fires when auto-personalization is built AND a user card is also built', () => {
 		const cards = [
 			makeCard({
 				title: 'Personalizing your page',
 				state: 'built',
-				generatedBy: 'template',
+				generatedBy: 'auto_personalization',
 			}),
 			makeCard({
 				title: 'Real feature',
