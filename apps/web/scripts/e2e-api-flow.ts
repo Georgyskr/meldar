@@ -110,7 +110,7 @@ async function verifyAuth(): Promise<string> {
 }
 
 async function createProject(): Promise<string> {
-	const res = await api('POST', '/api/workspace/projects', { name: 'E2E Flow Test' })
+	const res = await api('POST', '/api/onboarding', { verticalId: 'other' })
 	assert(res.status === 201 || res.status === 200, `Create project: ${res.status} ${JSON.stringify(res.data)}`)
 	const body = res.data as { projectId?: string }
 	assert(!!body.projectId, `No projectId in response: ${JSON.stringify(body)}`)
@@ -258,7 +258,7 @@ async function checkRoutes(): Promise<string> {
 	const routes = [
 		['POST', '/api/auth/login'],
 		['GET', '/api/auth/me'],
-		['POST', '/api/workspace/projects'],
+		['POST', '/api/onboarding'],
 		['POST', `/api/workspace/${projectId}/build`],
 		['POST', `/api/workspace/${projectId}/auto-build`],
 		['POST', `/api/workspace/${projectId}/generate-proposal`],

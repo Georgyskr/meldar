@@ -392,6 +392,28 @@ describe('POST /api/workspace/[projectId]/cards', () => {
 		expect(res.status).toBe(201)
 		expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({ position: 3 }))
 	})
+
+	it('accepts a 1500-char description (personalization prompt length)', async () => {
+		const longDescription = 'x'.repeat(1500)
+		const created = makeCard({ id: CARD_ID_1, title: 'Card', description: longDescription })
+
+		const maxPosChain = {
+			from: vi.fn().mockReturnThis(),
+			where: vi.fn().mockResolvedValue([{ maxPosition: -1 }]),
+		}
+		const insertChain = {
+			values: vi.fn().mockReturnThis(),
+			returning: vi.fn().mockResolvedValue([created]),
+		}
+		mockDb.select.mockReturnValue(maxPosChain)
+		mockDb.insert.mockReturnValue(insertChain)
+
+		const res = await POST(
+			makePostRequest(PROJECT_ID, { title: 'Card', description: longDescription }, 'valid_token'),
+			routeContext,
+		)
+		expect(res.status).toBe(201)
+	})
 })
 
 describe('PATCH /api/workspace/[projectId]/cards/[cardId]', () => {
@@ -471,6 +493,35 @@ describe('PATCH /api/workspace/[projectId]/cards/[cardId]', () => {
 		expect(res.status).toBe(404)
 		const json = (await res.json()) as { error: { code: string } }
 		expect(json.error.code).toBe('NOT_FOUND')
+	})
+
+	it('accepts a 1500-char description update (personalization card edit)', async () => {
+		const longDescription = 'x'.repeat(1500)
+		const currentCard = makeCard({ id: CARD_ID_1, title: 'Personalizing' })
+		const updated = makeCard({
+			id: CARD_ID_1,
+			title: 'Personalizing',
+			description: longDescription,
+		})
+
+		const selectChain = {
+			from: vi.fn().mockReturnThis(),
+			where: vi.fn().mockReturnThis(),
+			limit: vi.fn().mockResolvedValue([currentCard]),
+		}
+		const updateChain = {
+			set: vi.fn().mockReturnThis(),
+			where: vi.fn().mockReturnThis(),
+			returning: vi.fn().mockResolvedValue([updated]),
+		}
+		mockDb.select.mockReturnValue(selectChain)
+		mockDb.update.mockReturnValue(updateChain)
+
+		const res = await PATCH(
+			makePatchRequest(PROJECT_ID, CARD_ID_1, { description: longDescription }, 'valid_token'),
+			cardRouteContext(CARD_ID_1),
+		)
+		expect(res.status).toBe(200)
 	})
 })
 

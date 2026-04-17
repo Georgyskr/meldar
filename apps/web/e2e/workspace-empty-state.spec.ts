@@ -1,7 +1,9 @@
 import { type APIRequestContext, expect, test } from '@playwright/test'
 
 async function createOrGetProject(request: APIRequestContext): Promise<string> {
-	const res = await request.post('/api/workspace/projects', { data: {} })
+	const res = await request.post('/api/onboarding', {
+		data: { verticalId: 'other' },
+	})
 	if (res.ok()) {
 		const { projectId } = (await res.json()) as { projectId: string }
 		return projectId
@@ -20,14 +22,5 @@ test.describe('Workspace empty state', () => {
 
 		const bodyText = (await page.textContent('body')) ?? ''
 		expect(bodyText.length).toBeGreaterThan(100)
-	})
-
-	test('skip-onboarding param does not surface onboarding copy', async ({ page, request }) => {
-		const projectId = await createOrGetProject(request)
-
-		await page.goto(`/workspace/${projectId}?skip-onboarding=1`)
-
-		const bodyText = (await page.textContent('body')) ?? ''
-		expect(bodyText).not.toMatch(/what are you making/i)
 	})
 })

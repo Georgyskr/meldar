@@ -1,3 +1,5 @@
+import { getDb } from '@meldar/db/client'
+import { projects } from '@meldar/db/schema'
 import {
 	buildPersonalizationPrompt,
 	renderBookingPageTemplate,
@@ -5,6 +7,7 @@ import {
 } from '@meldar/orchestrator'
 import { CloudflareSandboxProvider } from '@meldar/sandbox'
 import { buildProjectStorageFromEnv, buildProjectStorageWithoutR2 } from '@meldar/storage'
+import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { BOOKING_VERTICALS, getVerticalById } from '@/entities/booking-verticals'
@@ -12,6 +15,7 @@ import { provisionSubdomain } from '@/server/domains'
 import { requireAuth } from '@/server/identity/require-auth'
 import { insertPersonalizationCard } from '@/server/lib/insert-plan-cards'
 import { checkRateLimit, mustHaveRateLimit, projectsCreateLimit } from '@/server/lib/rate-limit'
+import { businessNameSchema } from '@/shared/lib/business-name'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,15 +26,7 @@ const bodySchema = z.object({
 	verticalId: z.string().refine((id) => validVerticalIds.includes(id), {
 		message: 'Unknown business type',
 	}),
-	businessName: z
-		.string()
-		.trim()
-		.min(1)
-		.max(80)
-		.regex(/^[\p{L}\p{N}\p{Zs}\-'.&,!()/]+$/u, {
-			message: 'Business name contains invalid characters',
-		})
-		.optional(),
+	businessName: businessNameSchema.optional(),
 	freeformDescription: z.string().max(500).optional(),
 })
 
@@ -130,6 +126,22 @@ export async function POST(request: NextRequest) {
 			parsed.data.freeformDescription,
 		)
 		await insertPersonalizationCard(created.project.id, personalizationPrompt)
+
+		try {
+			const db = getDb()
+			await db
+				.update(projects)
+				.set({
+					wishes: { verticalId: vertical.id, businessName: projectName },
+					updatedAt: new Date(),
+				})
+				.where(eq(projects.id, created.project.id))
+		} catch (err) {
+			console.warn(
+				'[api/onboarding] failed to persist wishes (non-fatal):',
+				err instanceof Error ? err.message : err,
+			)
+		}
 
 		writeSandboxFiles(created.project.id, auth.userId, initialFiles, storage)
 

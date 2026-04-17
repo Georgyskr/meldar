@@ -84,4 +84,102 @@ describe('OnboardingFunnel', () => {
 		act(() => backBtn?.click())
 		expect(container.textContent).toContain('What do you need today')
 	})
+
+	it('shows a loading state (not DoorPicker) before prefill resolves', async () => {
+		let resolveFetch: (v: Response) => void = () => {}
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				() =>
+					new Promise<Response>((resolve) => {
+						resolveFetch = resolve
+					}),
+			),
+		)
+
+		await act(async () => {
+			root.render(createElement(OnboardingFunnel, { fromProjectId: 'abc-123' }))
+		})
+
+		expect(container.textContent).not.toContain('What do you need today')
+
+		resolveFetch({
+			ok: true,
+			json: () =>
+				Promise.resolve({
+					settings: { verticalId: 'pt-wellness', businessName: 'Joes PT' },
+				}),
+		} as Response)
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 0))
+		})
+		vi.unstubAllGlobals()
+	})
+
+	it('shows ProposalPreview with "Copy of X" name after prefill resolves', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() =>
+				Promise.resolve({
+					ok: true,
+					json: () =>
+						Promise.resolve({
+							settings: { verticalId: 'pt-wellness', businessName: 'Joes PT' },
+						}),
+				} as Response),
+			),
+		)
+
+		await act(async () => {
+			root.render(createElement(OnboardingFunnel, { fromProjectId: 'abc-123' }))
+		})
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 0))
+		})
+
+		expect(container.textContent).toContain('Copy of Joes PT')
+		vi.unstubAllGlobals()
+	})
+
+	it('falls back to DoorPicker when settings response has invalid shape', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() =>
+				Promise.resolve({
+					ok: true,
+					json: () =>
+						Promise.resolve({
+							settings: { garbage: 'value' },
+						}),
+				} as Response),
+			),
+		)
+
+		await act(async () => {
+			root.render(createElement(OnboardingFunnel, { fromProjectId: 'abc-123' }))
+		})
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 0))
+		})
+
+		expect(container.textContent).toContain('What do you need today')
+		vi.unstubAllGlobals()
+	})
+
+	it('falls back to DoorPicker when fetch fails', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.reject(new Error('network'))),
+		)
+
+		await act(async () => {
+			root.render(createElement(OnboardingFunnel, { fromProjectId: 'abc-123' }))
+		})
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 0))
+		})
+
+		expect(container.textContent).toContain('What do you need today')
+		vi.unstubAllGlobals()
+	})
 })

@@ -32,7 +32,7 @@ export const kanbanCardSchema = z.object({
 	state: kanbanCardStateSchema,
 	required: z.boolean(),
 	title: z.string().min(1).max(80),
-	description: z.string().max(2000).nullable(),
+	description: z.string().max(8000).nullable(),
 	taskType: kanbanCardTaskTypeSchema,
 	acceptanceCriteria: z.array(z.string()).max(5).nullable(),
 	explainerText: z.string().max(500).nullable(),

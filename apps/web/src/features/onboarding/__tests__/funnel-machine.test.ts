@@ -183,4 +183,35 @@ describe('funnelReducer', () => {
 			expect(next.sourceDoor).toBe('c')
 		}
 	})
+
+	it('prefillFromProject applies "Copy of" prefix and exposes sourceName', () => {
+		const next = funnelReducer(INITIAL_STATE, {
+			type: 'prefillFromProject',
+			verticalId: 'pt-wellness',
+			businessName: "Joe's PT Shop",
+		})
+		expect(next.screen).toBe('proposalPreview')
+		if (next.screen === 'proposalPreview') {
+			expect(next.sourceDoor).toBe('a')
+			expect(next.proposal.verticalId).toBe('pt-wellness')
+			expect(next.proposal.businessName).toBe("Copy of Joe's PT Shop")
+			expect(next.sourceName).toBe("Joe's PT Shop")
+			expect(next.proposal.services.length).toBeGreaterThan(0)
+		}
+	})
+
+	it('prefillFromProject rejects unknown vertical and stays on doorPicker', () => {
+		const next = funnelReducer(INITIAL_STATE, {
+			type: 'prefillFromProject',
+			verticalId: 'nonexistent',
+			businessName: 'X',
+		})
+		expect(next.screen).toBe('doorPicker')
+	})
+
+	it('prefillFailed transitions prefilling back to doorPicker', () => {
+		const prefilling: FunnelState = { screen: 'prefilling' }
+		const next = funnelReducer(prefilling, { type: 'prefillFailed' })
+		expect(next.screen).toBe('doorPicker')
+	})
 })

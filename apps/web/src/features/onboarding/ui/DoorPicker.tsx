@@ -25,7 +25,7 @@ const DOORS: ReadonlyArray<{
 		id: 'b',
 		icon: '👀',
 		label: 'Show me what this can do',
-		description: 'See real examples. No commitment. Pick one if you like it.',
+		description: 'Browse real examples and pick one to start from.',
 	},
 	{
 		id: 'c',
@@ -68,7 +68,7 @@ export function DoorPicker({ onSelectDoor }: Props) {
 					What do you need today?
 				</Heading>
 				<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
-					Your AI. Your app. Nobody else's.
+					Pick a starting point.
 				</Text>
 			</VStack>
 

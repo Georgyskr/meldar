@@ -10,9 +10,17 @@ type Props = {
 	readonly error: string | null
 	readonly onConfirm: () => void
 	readonly onGoBack: () => void
+	readonly sourceName?: string
 }
 
-export function ProposalPreview({ proposal, submitting, error, onConfirm, onGoBack }: Props) {
+export function ProposalPreview({
+	proposal,
+	submitting,
+	error,
+	onConfirm,
+	onGoBack,
+	sourceName,
+}: Props) {
 	const dayLabel =
 		proposal.hours.days.length === 7
 			? 'Every day'
@@ -27,7 +35,9 @@ export function ProposalPreview({ proposal, submitting, error, onConfirm, onGoBa
 					{proposal.verticalLabel}
 				</Text>
 				<Heading as="h1" textStyle="primary.lg">
-					Here's what we've put together for you
+					{sourceName
+						? `A copy of ${sourceName}, ready to tweak`
+						: "Here's what we've put together for you"}
 				</Heading>
 				<Text as="p" textStyle="secondary.md" color="onSurfaceVariant">
 					Ready in about 30 seconds. Change anything first, or go.

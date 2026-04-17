@@ -57,6 +57,25 @@ vi.mock('@meldar/sandbox', async () => {
 	}
 })
 
+const { mockDbUpdate } = vi.hoisted(() => ({
+	mockDbUpdate: vi.fn(() => ({
+		set: vi.fn().mockReturnThis(),
+		where: vi.fn().mockResolvedValue(undefined),
+	})),
+}))
+
+vi.mock('@meldar/db/client', () => ({
+	getDb: () => ({ update: mockDbUpdate }),
+}))
+
+vi.mock('@meldar/db/schema', () => ({
+	projects: { id: 'id', wishes: 'wishes', updatedAt: 'updated_at' },
+}))
+
+vi.mock('drizzle-orm', () => ({
+	eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
+}))
+
 const { POST } = await import('../route')
 
 function makeRequest(opts: { body: unknown; cookie?: string }): NextRequest {
@@ -123,5 +142,26 @@ describe('POST /api/onboarding', () => {
 		})
 		const res = await POST(req)
 		expect(res.status).toBe(400)
+	})
+
+	it('persists verticalId and businessName to project.wishes for later duplication', async () => {
+		mockDbUpdate.mockClear()
+		const req = makeRequest({
+			body: { verticalId: 'consulting', businessName: 'Acme Consulting' },
+			cookie: 'valid_token',
+		})
+		const res = await POST(req)
+		expect(res.status).toBe(200)
+
+		expect(mockDbUpdate).toHaveBeenCalled()
+		const setCall = mockDbUpdate.mock.results[0]?.value?.set as unknown as ReturnType<typeof vi.fn>
+		expect(setCall).toHaveBeenCalledWith(
+			expect.objectContaining({
+				wishes: expect.objectContaining({
+					verticalId: 'consulting',
+					businessName: 'Acme Consulting',
+				}),
+			}),
+		)
 	})
 })

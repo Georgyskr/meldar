@@ -152,6 +152,21 @@ describe('GET /api/workspace/[projectId]/settings', () => {
 		expect(json.settings).toEqual({})
 	})
 
+	it('filters out non-whitelisted wishes keys from the response', async () => {
+		setupDbMocks({
+			businessName: 'OK',
+			verticalId: 'consulting',
+			internalSecret: 'should-not-leak',
+			arbitraryExtra: { deep: 'field' },
+		})
+
+		const res = await GET(makeGetRequest('valid_token'), routeContext)
+		expect(res.status).toBe(200)
+		const json = (await res.json()) as { settings: Record<string, unknown> }
+		expect(json.settings).toEqual({ businessName: 'OK', verticalId: 'consulting' })
+		expect(json.settings).not.toHaveProperty('internalSecret')
+	})
+
 	it('returns 500 when db query throws', async () => {
 		mockDbSelect.mockReturnValue({
 			from: vi.fn().mockReturnValue({

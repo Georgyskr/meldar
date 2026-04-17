@@ -187,9 +187,29 @@ function ProjectCard({ project, number }: { project: WorkspaceProjectListItem; n
 			border="1px solid"
 			borderColor="onSurface/15"
 			transition="all 0.2s ease"
+			position="relative"
 			_hover={{ bg: 'primary/3', borderColor: 'onSurface/40' }}
 			_focusWithin={{ borderColor: 'primary' }}
 		>
+			<StyledLink
+				href={`/onboarding?from=${project.id}`}
+				position="absolute"
+				top={3}
+				right={4}
+				color="onSurfaceVariant/70"
+				textDecoration="none"
+				zIndex={1}
+				_hover={{ color: 'primary', textDecoration: 'underline' }}
+				_focusVisible={{
+					outline: '2px solid',
+					outlineColor: 'primary',
+					outlineOffset: '2px',
+				}}
+			>
+				<Text as="span" textStyle="tertiary.sm">
+					Start similar
+				</Text>
+			</StyledLink>
 			<StyledLink
 				href={`/workspace/${project.id}`}
 				display="block"

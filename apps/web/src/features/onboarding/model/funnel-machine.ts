@@ -82,6 +82,7 @@ export function funnelReducer(state: FunnelState, action: FunnelAction): FunnelS
 				proposal: state.proposal,
 				sourceDoor: state.sourceDoor,
 				websiteUrl: state.websiteUrl,
+				sourceName: state.sourceName,
 			}
 
 		case 'success':
@@ -95,7 +96,33 @@ export function funnelReducer(state: FunnelState, action: FunnelAction): FunnelS
 				websiteUrl: state.websiteUrl,
 				error: action.error,
 				proposal: state.proposal,
+				sourceName: state.sourceName,
 			}
+
+		case 'prefillFromProject': {
+			const vertical = getVerticalById(action.verticalId)
+			if (!vertical) return state
+			return {
+				screen: 'proposalPreview',
+				sourceDoor: 'a',
+				websiteUrl: null,
+				error: null,
+				sourceName: action.businessName,
+				proposal: {
+					verticalId: vertical.id,
+					verticalLabel: vertical.label,
+					businessName: `Copy of ${action.businessName}`,
+					services: vertical.defaultServices.map((s) => ({
+						name: s.name,
+						durationMinutes: s.durationMinutes,
+					})),
+					hours: vertical.defaultHours,
+				},
+			}
+		}
+
+		case 'prefillFailed':
+			return INITIAL_STATE
 	}
 
 	return state

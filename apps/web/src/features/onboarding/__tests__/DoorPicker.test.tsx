@@ -40,6 +40,15 @@ describe('DoorPicker', () => {
 		expect(text).not.toContain('847')
 	})
 
+	it('does NOT use first-time-only framing (returning users use this screen too)', () => {
+		act(() => {
+			root.render(createElement(DoorPicker, { onSelectDoor: vi.fn() }))
+		})
+		const text = container.textContent ?? ''
+		expect(text).not.toMatch(/no commitment/i)
+		expect(text).not.toContain("Nobody else's")
+	})
+
 	it('renders exactly 3 door cards', () => {
 		act(() => {
 			root.render(createElement(DoorPicker, { onSelectDoor: vi.fn() }))

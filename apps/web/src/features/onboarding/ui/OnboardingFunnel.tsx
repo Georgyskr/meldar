@@ -1,9 +1,11 @@
 'use client'
 
+import { VStack } from '@styled-system/jsx'
 import { useRouter } from 'next/navigation'
-import { useCallback, useReducer } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { z } from 'zod'
 import { getVerticalById } from '@/entities/booking-verticals'
-import { toast } from '@/shared/ui'
+import { Text, toast } from '@/shared/ui'
 import { EXAMPLE_PAGES } from '../model/example-pages'
 import { funnelReducer, INITIAL_STATE } from '../model/funnel-machine'
 import { buildProposalFromFreeform } from '../model/proposal-data'
@@ -13,9 +15,54 @@ import { DoorC } from './DoorC'
 import { DoorPicker } from './DoorPicker'
 import { ProposalPreview } from './ProposalPreview'
 
-export function OnboardingFunnel() {
+type Props = {
+	readonly fromProjectId?: string
+}
+
+const prefillResponseSchema = z.object({
+	settings: z.object({
+		verticalId: z.string().min(1),
+		businessName: z.string().min(1),
+	}),
+})
+
+function initialState(fromProjectId: string | undefined): import('../model/types').FunnelState {
+	return fromProjectId ? { screen: 'prefilling' } : INITIAL_STATE
+}
+
+export function OnboardingFunnel({ fromProjectId }: Props) {
 	const router = useRouter()
-	const [state, dispatch] = useReducer(funnelReducer, INITIAL_STATE)
+	const [state, dispatch] = useReducer(funnelReducer, fromProjectId, initialState)
+	const prefillAttempted = useRef(false)
+
+	useEffect(() => {
+		if (!fromProjectId || prefillAttempted.current) return
+		prefillAttempted.current = true
+		const controller = new AbortController()
+
+		fetch(`/api/workspace/${fromProjectId}/settings`, { signal: controller.signal })
+			.then((res) => (res.ok ? res.json() : null))
+			.then((data) => {
+				const parsed = prefillResponseSchema.safeParse(data)
+				if (!parsed.success) {
+					dispatch({ type: 'prefillFailed' })
+					toast.error("Couldn't load that project", 'Start fresh — pick a starting point below.')
+					return
+				}
+				dispatch({
+					type: 'prefillFromProject',
+					verticalId: parsed.data.settings.verticalId,
+					businessName: parsed.data.settings.businessName,
+				})
+			})
+			.catch((err) => {
+				if (err?.name === 'AbortError') return
+				dispatch({ type: 'prefillFailed' })
+				toast.error("Couldn't load that project", 'Start fresh — pick a starting point below.')
+			})
+
+		return () => controller.abort()
+	}, [fromProjectId])
 
 	const handleDoorASubmit = useCallback(
 		(data: { verticalId: string; businessName: string; websiteUrl: string }) => {
@@ -88,6 +135,14 @@ export function OnboardingFunnel() {
 	}, [state, router])
 
 	switch (state.screen) {
+		case 'prefilling':
+			return (
+				<VStack gap="4" alignItems="center" paddingBlock="16">
+					<Text textStyle="secondary.md" color="onSurfaceVariant">
+						Loading your project…
+					</Text>
+				</VStack>
+			)
 		case 'doorPicker':
 			return <DoorPicker onSelectDoor={(door) => dispatch({ type: 'selectDoor', door })} />
 		case 'doorA':
@@ -109,6 +164,7 @@ export function OnboardingFunnel() {
 			return (
 				<ProposalPreview
 					proposal={state.proposal}
+					sourceName={state.sourceName}
 					submitting={false}
 					error={state.error}
 					onConfirm={handleConfirm}
@@ -119,6 +175,7 @@ export function OnboardingFunnel() {
 			return (
 				<ProposalPreview
 					proposal={state.proposal}
+					sourceName={state.sourceName}
 					submitting={true}
 					error={null}
 					onConfirm={handleConfirm}

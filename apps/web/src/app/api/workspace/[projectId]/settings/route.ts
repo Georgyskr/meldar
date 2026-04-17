@@ -5,6 +5,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth } from '@/server/identity/require-auth'
 import { verifyProjectOwnership } from '@/server/lib/verify-project-ownership'
+import { businessNameSchema } from '@/shared/lib/business-name'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,19 +19,24 @@ const serviceSchema = z.object({
 	priceEur: z.number().nonnegative().optional(),
 })
 
-const settingsSchema = z.object({
-	businessName: z
-		.string()
-		.min(1)
-		.max(200)
-		.regex(/^[\p{L}\p{N}\p{Zs}\-'.&,!()/]+$/u, {
-			message: 'Business name contains invalid characters',
-		})
-		.optional(),
-	services: z.array(serviceSchema).max(50).optional(),
-	availableHours: z.record(z.string(), z.unknown()).optional(),
-	hours: z.record(z.string(), z.unknown()).optional(),
-})
+const settingsSchema = z
+	.object({
+		businessName: businessNameSchema.optional(),
+		services: z.array(serviceSchema).max(50).optional(),
+		availableHours: z.record(z.string(), z.unknown()).optional(),
+		hours: z.record(z.string(), z.unknown()).optional(),
+	})
+	.strict()
+
+const WISHES_WHITELIST = ['businessName', 'services', 'availableHours', 'hours', 'verticalId']
+
+function filterWishes(raw: Record<string, unknown>): Record<string, unknown> {
+	const out: Record<string, unknown> = {}
+	for (const key of WISHES_WHITELIST) {
+		if (key in raw) out[key] = raw[key]
+	}
+	return out
+}
 
 type RouteContext = { params: Promise<{ projectId: string }> }
 
@@ -63,8 +69,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
 			.where(eq(projects.id, projectId))
 			.limit(1)
 
-		const settings = (row?.wishes as Record<string, unknown>) ?? {}
-		return NextResponse.json({ settings })
+		const rawWishes = (row?.wishes as Record<string, unknown> | null) ?? {}
+		return NextResponse.json({ settings: filterWishes(rawWishes) })
 	} catch (err) {
 		console.error('[settings] read failed', err)
 		return NextResponse.json(

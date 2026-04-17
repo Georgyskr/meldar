@@ -16,7 +16,6 @@ const ROUTES: Array<{ method: string; path: string; label: string }> = [
 	{ method: 'GET', path: '/api/auth/google', label: 'auth/google' },
 
 	{ method: 'GET', path: '/api/workspace/projects', label: 'workspace/projects GET' },
-	{ method: 'POST', path: '/api/workspace/projects', label: 'workspace/projects POST' },
 	{ method: 'GET', path: '/api/workspace/tokens', label: 'workspace/tokens GET' },
 	{
 		method: 'POST',

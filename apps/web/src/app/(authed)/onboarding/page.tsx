@@ -1,5 +1,6 @@
 import { styled } from '@styled-system/jsx'
 import type { Metadata } from 'next'
+import { z } from 'zod'
 import { OnboardingFunnel } from '@/features/onboarding'
 
 export const metadata: Metadata = {
@@ -8,7 +9,16 @@ export const metadata: Metadata = {
 	robots: { index: false, follow: false },
 }
 
-export default function OnboardingPage() {
+const fromParamSchema = z.string().uuid()
+
+type PageProps = {
+	searchParams: Promise<{ from?: string }>
+}
+
+export default async function OnboardingPage({ searchParams }: PageProps) {
+	const { from } = await searchParams
+	const fromProjectId = fromParamSchema.safeParse(from).success ? from : undefined
+
 	return (
 		<styled.main
 			minHeight="100vh"
@@ -16,7 +26,7 @@ export default function OnboardingPage() {
 			paddingBlock={{ base: 12, md: 16 }}
 			paddingInline={{ base: 6, md: 10 }}
 		>
-			<OnboardingFunnel />
+			<OnboardingFunnel fromProjectId={fromProjectId} />
 		</styled.main>
 	)
 }

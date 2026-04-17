@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
 
 const updateCardSchema = z.object({
 	title: z.string().trim().min(1).max(80).optional(),
-	description: z.string().max(500).nullable().optional(),
+	description: z.string().max(8000).nullable().optional(),
 	parentId: z.string().uuid().nullable().optional(),
 	position: z.number().int().optional(),
 	state: kanbanCardStateSchema.optional(),

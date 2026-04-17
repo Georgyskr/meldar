@@ -17,6 +17,7 @@ export type ProposalData = {
 
 export type FunnelState =
 	| { readonly screen: 'doorPicker' }
+	| { readonly screen: 'prefilling' }
 	| {
 			readonly screen: 'doorA'
 			readonly selectedVerticalId: string | null
@@ -31,12 +32,14 @@ export type FunnelState =
 			readonly sourceDoor: 'a' | 'b' | 'c'
 			readonly websiteUrl: string | null
 			readonly error: string | null
+			readonly sourceName?: string
 	  }
 	| {
 			readonly screen: 'submitting'
 			readonly proposal: ProposalData
 			readonly sourceDoor: 'a' | 'b' | 'c'
 			readonly websiteUrl: string | null
+			readonly sourceName?: string
 	  }
 	| { readonly screen: 'complete'; readonly projectId: string; readonly subdomain?: string }
 
@@ -54,3 +57,9 @@ export type FunnelAction =
 	| { readonly type: 'confirm' }
 	| { readonly type: 'success'; readonly projectId: string; readonly subdomain?: string }
 	| { readonly type: 'failure'; readonly error: string }
+	| {
+			readonly type: 'prefillFromProject'
+			readonly verticalId: string
+			readonly businessName: string
+	  }
+	| { readonly type: 'prefillFailed' }

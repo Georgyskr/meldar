@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 const createCardSchema = z.object({
 	title: z.string().trim().min(1, 'title required').max(80, 'title too long'),
-	description: z.string().max(500).nullable().optional(),
+	description: z.string().max(8000).nullable().optional(),
 	parentId: z.string().uuid().nullable().optional(),
 	taskType: kanbanCardTaskTypeSchema.optional().default('feature'),
 	acceptanceCriteria: z.array(z.string()).max(5).nullable().optional(),
