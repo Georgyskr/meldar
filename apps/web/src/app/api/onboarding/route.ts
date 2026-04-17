@@ -27,7 +27,7 @@ const bodySchema = z.object({
 		.trim()
 		.min(1)
 		.max(80)
-		.regex(/^[\p{L}\p{N}\p{Zs}\-'.&,!()]+$/u, {
+		.regex(/^[\p{L}\p{N}\p{Zs}\-'.&,!()/]+$/u, {
 			message: 'Business name contains invalid characters',
 		})
 		.optional(),

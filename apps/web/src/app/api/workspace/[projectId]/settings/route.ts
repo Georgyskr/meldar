@@ -23,7 +23,7 @@ const settingsSchema = z.object({
 		.string()
 		.min(1)
 		.max(200)
-		.regex(/^[\p{L}\p{N}\p{Zs}\-'.&,!()]+$/u, {
+		.regex(/^[\p{L}\p{N}\p{Zs}\-'.&,!()/]+$/u, {
 			message: 'Business name contains invalid characters',
 		})
 		.optional(),
