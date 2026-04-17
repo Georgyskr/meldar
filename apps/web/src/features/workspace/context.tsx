@@ -351,6 +351,13 @@ function orchestratorEventReducer(
 				totalCards: null,
 				failureMessage: action.reason,
 			}
+		case 'pipeline_complete':
+			return {
+				...state,
+				activeBuildCardId: null,
+				currentCardIndex: null,
+				totalCards: null,
+			}
 		default:
 			return state
 	}

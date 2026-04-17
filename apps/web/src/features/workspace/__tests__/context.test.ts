@@ -265,7 +265,7 @@ describe('workspaceBuildReducer', () => {
 		expect(next.failureMessage).toBeNull()
 	})
 
-	it('pipeline_complete is a no-op (phase stays building until deploying arrives)', () => {
+	it('pipeline_complete clears progress counters (terminal event for the build pipeline)', () => {
 		const before = seed({
 			currentCardIndex: 2,
 			totalCards: 3,
@@ -275,8 +275,8 @@ describe('workspaceBuildReducer', () => {
 			totalBuilt: 3,
 			totalCards: 3,
 		})
-		expect(next.currentCardIndex).toBe(2)
-		expect(next.totalCards).toBe(3)
+		expect(next.currentCardIndex).toBeNull()
+		expect(next.totalCards).toBeNull()
 	})
 
 	it('deployed clears per-card progress so the footer stops showing "step X of Y"', () => {
@@ -371,7 +371,12 @@ describe('derivePipelinePhase — THE single source of truth selector', () => {
 		expect(phase.kind).toBe('building')
 	})
 
-	it('stays building through pipeline_complete → deploying (no idle flicker)', () => {
+	it('transitions through pipeline_complete → deploying to final "deploying" phase', () => {
+		// pipeline_complete is a terminal event for the build pipeline. It clears
+		// sticky indicators so the UI doesn't get stuck at "building" forever when
+		// no deploy follows (e.g. auto-build on a project with no subtasks yet).
+		// If a `deploying` event does follow, React batches the dispatches and the
+		// intermediate `idle` frame is imperceptible in practice.
 		let next = workspaceBuildReducer(seed(), {
 			type: 'card_started',
 			cardId: 'c1',
@@ -392,13 +397,38 @@ describe('derivePipelinePhase — THE single source of truth selector', () => {
 			totalBuilt: 1,
 			totalCards: 1,
 		})
-		expect(derivePipelinePhase(next).kind).toBe('building')
 		next = workspaceBuildReducer(next, {
 			type: 'deploying',
 			slug: 'app',
 			hostname: 'app.meldar.ai',
 		})
 		expect(derivePipelinePhase(next).kind).toBe('deploying')
+	})
+
+	it('pipeline_complete alone (no subsequent deploying) transitions out of "building"', () => {
+		// Regression guard: auto-build on a project with no subtasks emits only
+		// pipeline_complete and closes the stream. Without this, the UI stuck at
+		// "Updating…" forever because currentCardIndex/totalCards were sticky.
+		let next = workspaceBuildReducer(seed(), {
+			type: 'card_started',
+			cardId: 'c1',
+			cardIndex: 0,
+			totalCards: 1,
+		})
+		next = workspaceBuildReducer(next, {
+			type: 'committed',
+			buildId: 'b1',
+			kanbanCardId: 'c1',
+			tokenCost: 5,
+			fileCount: 1,
+			actualCents: 1,
+		})
+		next = workspaceBuildReducer(next, {
+			type: 'pipeline_complete',
+			totalBuilt: 1,
+			totalCards: 1,
+		})
+		expect(derivePipelinePhase(next).kind).not.toBe('building')
 	})
 
 	it('deploying phase when deployment.type = deploying', () => {
@@ -588,6 +618,37 @@ describe('pipelineStarting — optimistic pre-first-event window', () => {
 				type: 'ui/pipelineStarting',
 			})
 			expect(pipelineStart.disconnectedReason).toBeNull()
+		})
+
+		it('pipeline_complete clears sticky pipeline indicators (currentCardIndex/totalCards/activeBuildCardId)', () => {
+			const state = seed({
+				activeBuildCardId: 'card-x',
+				currentCardIndex: 3,
+				totalCards: 5,
+				pipelineStarting: false,
+			})
+			const next = workspaceBuildReducer(state, {
+				type: 'pipeline_complete',
+				totalBuilt: 5,
+				totalCards: 5,
+			})
+			expect(next.activeBuildCardId).toBeNull()
+			expect(next.currentCardIndex).toBeNull()
+			expect(next.totalCards).toBeNull()
+		})
+
+		it('pipeline_complete transitions derivePipelinePhase out of "building"', () => {
+			const state = seed({
+				activeBuildCardId: 'card-x',
+				currentCardIndex: 3,
+				totalCards: 5,
+			})
+			const next = workspaceBuildReducer(state, {
+				type: 'pipeline_complete',
+				totalBuilt: 5,
+				totalCards: 5,
+			})
+			expect(derivePipelinePhase(next).kind).not.toBe('building')
 		})
 
 		it('clears disconnectedReason on explicit dismiss action', () => {
